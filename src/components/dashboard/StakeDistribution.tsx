@@ -1,6 +1,5 @@
-import { useMemo } from "react"
+import { useMemo, lazy, Suspense } from "react"
 import { useAccount } from "wagmi"
-import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts"
 import { useValidators } from "@/hooks/useValidators"
 import { useUserStakesOnValidators } from "@/hooks/useStakingReads"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -8,6 +7,45 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { formatTokenAmount, truncateAddress } from "@/lib/format"
 import type { Address } from "viem"
 import validatorData from "@/data/validators.json"
+
+const LazyPieChart = lazy(() =>
+  import("recharts").then((m) => ({
+    default: ({ data, colors }: { data: ChartEntry[]; colors: string[] }) => (
+      <m.ResponsiveContainer width="100%" height="100%">
+        <m.PieChart>
+          <m.Pie
+            data={data}
+            cx="50%"
+            cy="50%"
+            innerRadius={60}
+            outerRadius={90}
+            dataKey="value"
+            nameKey="name"
+            paddingAngle={2}
+          >
+            {data.map((_, i) => (
+              <m.Cell key={i} fill={colors[i % colors.length]} />
+            ))}
+          </m.Pie>
+          <m.Tooltip
+            content={({ active, payload }) => {
+              if (!active || !payload?.length) return null
+              const entry = payload[0].payload as ChartEntry
+              return (
+                <div className="rounded-lg border bg-background p-2 shadow-md">
+                  <p className="text-sm font-medium">{entry.name}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {formatTokenAmount(entry.amount)} SAFE
+                  </p>
+                </div>
+              )
+            }}
+          />
+        </m.PieChart>
+      </m.ResponsiveContainer>
+    ),
+  }))
+)
 
 const metadata = validatorData as Record<string, { label: string; commission: number; uptime: number }>
 
@@ -76,38 +114,9 @@ export function StakeDistribution() {
       </CardHeader>
       <CardContent>
         <div className="h-64">
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Pie
-                data={chartData}
-                cx="50%"
-                cy="50%"
-                innerRadius={60}
-                outerRadius={90}
-                dataKey="value"
-                nameKey="name"
-                paddingAngle={2}
-              >
-                {chartData.map((_, i) => (
-                  <Cell key={i} fill={COLORS[i % COLORS.length]} />
-                ))}
-              </Pie>
-              <Tooltip
-                content={({ active, payload }) => {
-                  if (!active || !payload?.length) return null
-                  const entry = payload[0].payload as ChartEntry
-                  return (
-                    <div className="rounded-lg border bg-background p-2 shadow-md">
-                      <p className="text-sm font-medium">{entry.name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {formatTokenAmount(entry.amount)} SAFE
-                      </p>
-                    </div>
-                  )
-                }}
-              />
-            </PieChart>
-          </ResponsiveContainer>
+          <Suspense fallback={<Skeleton className="h-full w-full" />}>
+            <LazyPieChart data={chartData} colors={COLORS} />
+          </Suspense>
         </div>
         <div className="mt-4 flex flex-wrap gap-3 justify-center">
           {chartData.map((entry, i) => (

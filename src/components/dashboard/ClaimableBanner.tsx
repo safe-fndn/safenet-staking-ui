@@ -3,7 +3,8 @@ import { useAccount } from "wagmi"
 import { Link } from "react-router-dom"
 import { useNextClaimable } from "@/hooks/useWithdrawals"
 import { formatTokenAmount } from "@/lib/format"
-import { X, ArrowRight } from "lucide-react"
+import X from "lucide-react/dist/esm/icons/x"
+import ArrowRight from "lucide-react/dist/esm/icons/arrow-right"
 import { Button } from "@/components/ui/button"
 
 export function ClaimableBanner() {
@@ -34,11 +35,11 @@ export function ClaimableBanner() {
         <Button asChild variant="ghost" size="sm">
           <Link to="/withdrawals">
             Go to Withdrawals
-            <ArrowRight className="h-4 w-4" />
+            <ArrowRight className="h-4 w-4" aria-hidden="true" />
           </Link>
         </Button>
-        <button onClick={() => setDismissed(true)} className="text-muted-foreground hover:text-foreground">
-          <X className="h-4 w-4" />
+        <button onClick={() => setDismissed(true)} className="text-muted-foreground hover:text-foreground" aria-label="Dismiss banner">
+          <X className="h-4 w-4" aria-hidden="true" />
         </button>
       </div>
     </div>

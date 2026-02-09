@@ -7,7 +7,10 @@ import { useTransactionHistory, type TransactionRecord, type TxType } from "@/ho
 import { useValidatorMetadata } from "@/hooks/useValidatorMetadata"
 import { formatTokenAmount, truncateAddress } from "@/lib/format"
 import { activeChain } from "@/config/chains"
-import { ArrowUpRight, ArrowDownLeft, HandCoins, ExternalLink } from "lucide-react"
+import ArrowUpRight from "lucide-react/dist/esm/icons/arrow-up-right"
+import ArrowDownLeft from "lucide-react/dist/esm/icons/arrow-down-left"
+import HandCoins from "lucide-react/dist/esm/icons/hand-coins"
+import ExternalLink from "lucide-react/dist/esm/icons/external-link"
 import type { Address } from "viem"
 
 function getExplorerTxUrl(hash: string): string {
@@ -34,7 +37,7 @@ function TxRow({ tx }: { tx: TransactionRecord }) {
   return (
     <div className="flex items-center justify-between py-3 border-b last:border-b-0">
       <div className="flex items-center gap-3">
-        <Icon className={`h-4 w-4 ${config.color}`} />
+        <Icon className={`h-4 w-4 ${config.color}`} aria-hidden="true" />
         <div>
           <div className="flex items-center gap-2">
             <Badge variant="outline" className="text-xs">{config.label}</Badge>
@@ -55,7 +58,7 @@ function TxRow({ tx }: { tx: TransactionRecord }) {
             rel="noopener noreferrer"
             className="text-muted-foreground hover:text-foreground"
           >
-            <ExternalLink className="h-3.5 w-3.5" />
+            <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
           </a>
         )}
       </div>

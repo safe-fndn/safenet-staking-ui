@@ -6,7 +6,7 @@ import { activeChain } from "@/config/chains"
 import { useTokenBalance } from "@/hooks/useTokenBalance"
 import { useToast } from "@/hooks/useToast"
 import { copyToClipboard } from "@/lib/clipboard"
-import { Copy } from "lucide-react"
+import Copy from "lucide-react/dist/esm/icons/copy"
 
 export function ConnectButton() {
   const { address, isConnected, chain } = useAccount()
@@ -134,7 +134,7 @@ export function ConnectButton() {
         title="Copy address"
       >
         {truncateAddress(address!)}
-        <Copy className="h-3 w-3 text-muted-foreground" />
+        <Copy className="h-3 w-3 text-muted-foreground" aria-hidden="true" />
       </button>
       <Button variant="outline" size="sm" onClick={() => disconnect()}>
         Disconnect

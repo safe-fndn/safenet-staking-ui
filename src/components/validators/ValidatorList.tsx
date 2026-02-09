@@ -1,10 +1,10 @@
-import { useMemo, useState } from "react"
+import { useMemo, useState, useTransition } from "react"
 import { useValidators } from "@/hooks/useValidators"
 import { ValidatorCard } from "./ValidatorCard"
 import { ValidatorControls, type StatusFilter, type SortOption } from "./ValidatorControls"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Button } from "@/components/ui/button"
-import { RefreshCw } from "lucide-react"
+import RefreshCw from "lucide-react/dist/esm/icons/refresh-cw"
 import validatorData from "@/data/validators.json"
 
 const metadata = validatorData as Record<string, { label: string; commission: number; uptime: number }>
@@ -18,6 +18,17 @@ export function ValidatorList({ autoOpenDelegate }: { autoOpenDelegate?: string 
   const [search, setSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all")
   const [sortBy, setSortBy] = useState<SortOption>("totalStake")
+  const [, startTransition] = useTransition()
+
+  const handleSearchChange = (value: string) => {
+    startTransition(() => setSearch(value))
+  }
+  const handleStatusFilterChange = (value: StatusFilter) => {
+    startTransition(() => setStatusFilter(value))
+  }
+  const handleSortChange = (value: SortOption) => {
+    startTransition(() => setSortBy(value))
+  }
 
   const filtered = useMemo(() => {
     if (!validators) return []
@@ -44,7 +55,7 @@ export function ValidatorList({ autoOpenDelegate }: { autoOpenDelegate?: string 
     }
 
     // Sort
-    result.sort((a, b) => {
+    return result.toSorted((a, b) => {
       const metaA = getMetadata(a.address)
       const metaB = getMetadata(b.address)
 
@@ -57,8 +68,6 @@ export function ValidatorList({ autoOpenDelegate }: { autoOpenDelegate?: string 
       // totalStake — active first is the default from the hook, keep that
       return a.isActive === b.isActive ? 0 : a.isActive ? -1 : 1
     })
-
-    return result
   }, [validators, search, statusFilter, sortBy])
 
   if (isLoading) {
@@ -66,11 +75,11 @@ export function ValidatorList({ autoOpenDelegate }: { autoOpenDelegate?: string 
       <div className="space-y-4">
         <ValidatorControls
           search={search}
-          onSearchChange={setSearch}
+          onSearchChange={handleSearchChange}
           statusFilter={statusFilter}
-          onStatusFilterChange={setStatusFilter}
+          onStatusFilterChange={handleStatusFilterChange}
           sortBy={sortBy}
-          onSortChange={setSortBy}
+          onSortChange={handleSortChange}
         />
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {Array.from({ length: 3 }).map((_, i) => (
@@ -96,7 +105,7 @@ export function ValidatorList({ autoOpenDelegate }: { autoOpenDelegate?: string 
           No validators are currently available. Delegation is temporarily unavailable.
         </p>
         <Button variant="outline" size="sm" onClick={() => refetch()}>
-          <RefreshCw className="h-4 w-4 mr-2" />
+          <RefreshCw className="h-4 w-4 mr-2" aria-hidden="true" />
           Refresh
         </Button>
       </div>

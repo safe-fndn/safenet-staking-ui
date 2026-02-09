@@ -7,7 +7,7 @@ import { WithdrawalCard } from "./WithdrawalCard"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
 import { useEffect } from "react"
-import { Info } from "lucide-react"
+import Info from "lucide-react/dist/esm/icons/info"
 
 export function WithdrawalQueue() {
   const { isConnected } = useAccount()
@@ -61,8 +61,8 @@ export function WithdrawalQueue() {
         <h2 className="text-lg font-semibold">Pending Withdrawals</h2>
         <Tooltip>
           <TooltipTrigger asChild>
-            <button className="text-muted-foreground hover:text-foreground">
-              <Info className="h-4 w-4" />
+            <button className="text-muted-foreground hover:text-foreground" aria-label="Withdrawal queue info">
+              <Info className="h-4 w-4" aria-hidden="true" />
             </button>
           </TooltipTrigger>
           <TooltipContent side="right" className="max-w-xs">

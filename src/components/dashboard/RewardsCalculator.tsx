@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input"
 import { useUserTotalStake } from "@/hooks/useStakingReads"
 import { useRewardsEstimate } from "@/hooks/useRewardsEstimate"
 import { formatTokenAmount } from "@/lib/format"
-import { Calculator } from "lucide-react"
+import Calculator from "lucide-react/dist/esm/icons/calculator"
 
 function formatEstimate(value: string): string {
   const num = parseFloat(value)
@@ -39,15 +39,18 @@ export function RewardsCalculator() {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Calculator className="h-5 w-5" />
+          <Calculator className="h-5 w-5" aria-hidden="true" />
           Rewards Calculator
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">Delegation Amount (SAFE)</label>
+            <label htmlFor="calc-amount" className="text-sm font-medium">Delegation Amount (SAFE)</label>
             <Input
+              id="calc-amount"
+              name="calc-amount"
+              autoComplete="off"
               type="text"
               inputMode="decimal"
               placeholder="0.0"
@@ -60,8 +63,11 @@ export function RewardsCalculator() {
             />
           </div>
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">APR (%)</label>
+            <label htmlFor="calc-apr" className="text-sm font-medium">APR (%)</label>
             <Input
+              id="calc-apr"
+              name="calc-apr"
+              autoComplete="off"
               type="text"
               inputMode="decimal"
               placeholder="5"

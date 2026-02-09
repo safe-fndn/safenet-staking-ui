@@ -16,7 +16,12 @@ import { formatTokenAmount, truncateAddress } from "@/lib/format"
 import { copyToClipboard } from "@/lib/clipboard"
 import { useToast } from "@/hooks/useToast"
 import { activeChain } from "@/config/chains"
-import { ArrowLeft, Copy, ExternalLink, ArrowUpRight, ArrowDownLeft, HandCoins } from "lucide-react"
+import ArrowLeft from "lucide-react/dist/esm/icons/arrow-left"
+import Copy from "lucide-react/dist/esm/icons/copy"
+import ExternalLink from "lucide-react/dist/esm/icons/external-link"
+import ArrowUpRight from "lucide-react/dist/esm/icons/arrow-up-right"
+import ArrowDownLeft from "lucide-react/dist/esm/icons/arrow-down-left"
+import HandCoins from "lucide-react/dist/esm/icons/hand-coins"
 
 function getExplorerTxUrl(hash: string): string {
   const explorers = activeChain.blockExplorers
@@ -63,7 +68,7 @@ export function ValidatorDetailPage() {
     return (
       <div className="space-y-4">
         <Link to="/validators" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
-          <ArrowLeft className="h-4 w-4" />
+          <ArrowLeft className="h-4 w-4" aria-hidden="true" />
           Back to Validators
         </Link>
         <div className="rounded-lg border p-8 text-center text-muted-foreground">
@@ -76,7 +81,7 @@ export function ValidatorDetailPage() {
   return (
     <div className="space-y-6">
       <Link to="/validators" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
-        <ArrowLeft className="h-4 w-4" />
+        <ArrowLeft className="h-4 w-4" aria-hidden="true" />
         Back to Validators
       </Link>
 
@@ -95,8 +100,9 @@ export function ValidatorDetailPage() {
                     if (ok) toast({ variant: "success", title: "Address copied" })
                   }}
                   className="text-muted-foreground hover:text-foreground"
+                  aria-label="Copy address"
                 >
-                  <Copy className="h-3.5 w-3.5" />
+                  <Copy className="h-3.5 w-3.5" aria-hidden="true" />
                 </button>
               </div>
             </div>

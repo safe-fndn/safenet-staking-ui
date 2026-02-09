@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils"
-import { Check } from "lucide-react"
+import Check from "lucide-react/dist/esm/icons/check"
 
 interface StepperProps {
   steps: string[]
@@ -34,7 +34,7 @@ export function Stepper({ steps, currentStep, completedSteps }: StepperProps) {
                       : "border border-muted-foreground/30 text-muted-foreground",
                 )}
               >
-                {isCompleted ? <Check className="h-3.5 w-3.5" /> : i + 1}
+                {isCompleted ? <Check className="h-3.5 w-3.5" aria-hidden="true" /> : i + 1}
               </div>
               <span
                 className={cn(

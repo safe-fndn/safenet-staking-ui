@@ -15,7 +15,9 @@ import { useToast } from "@/hooks/useToast"
 import { truncateAddress, formatCountdown } from "@/lib/format"
 import { formatContractError } from "@/lib/errorFormat"
 import { useGasEstimate } from "@/hooks/useGasEstimate"
-import { Loader2, Info, Fuel } from "lucide-react"
+import Loader2 from "lucide-react/dist/esm/icons/loader-2"
+import Info from "lucide-react/dist/esm/icons/info"
+import Fuel from "lucide-react/dist/esm/icons/fuel"
 
 interface UndelegateDialogProps {
   validator: Address
@@ -76,14 +78,14 @@ export function UndelegateDialog({ validator, open, onOpenChange }: UndelegateDi
 
         {gasEstimate && (
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <Fuel className="h-3.5 w-3.5" />
+            <Fuel className="h-3.5 w-3.5" aria-hidden="true" />
             <span>Estimated gas: ~{parseFloat(gasEstimate).toFixed(6)} ETH</span>
           </div>
         )}
 
         {withdrawDelay !== undefined && (
           <div className="flex items-center gap-2 rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground">
-            <Info className="h-4 w-4 shrink-0" />
+            <Info className="h-4 w-4 shrink-0" aria-hidden="true" />
             <span>Unbonding period: {formatCountdown(Number(withdrawDelay))}. Tokens will be claimable after this period.</span>
           </div>
         )}
@@ -91,13 +93,13 @@ export function UndelegateDialog({ validator, open, onOpenChange }: UndelegateDi
         <Button onClick={() => initiateWithdrawal(validator, parsedAmount)} disabled={!canUndelegate || isSigningTx || isConfirmingTx}>
           {isSigningTx ? (
             <>
-              <Loader2 className="animate-spin" />
-              Confirm in Wallet...
+              <Loader2 className="animate-spin" aria-hidden="true" />
+              Confirm in Wallet…
             </>
           ) : isConfirmingTx ? (
             <>
-              <Loader2 className="animate-spin" />
-              Confirming on chain...
+              <Loader2 className="animate-spin" aria-hidden="true" />
+              Confirming on chain…
             </>
           ) : (
             "Initiate Withdrawal"

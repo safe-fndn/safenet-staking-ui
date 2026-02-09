@@ -117,8 +117,9 @@ export function useTransactionHistory(validatorFilter?: Address) {
       }
 
       // Sort by block number descending, limit to 50
-      records.sort((a, b) => (a.blockNumber > b.blockNumber ? -1 : a.blockNumber < b.blockNumber ? 1 : 0))
-      return records.slice(0, 50)
+      return records
+        .toSorted((a, b) => (a.blockNumber > b.blockNumber ? -1 : a.blockNumber < b.blockNumber ? 1 : 0))
+        .slice(0, 50)
     },
     staleTime: 60_000,
     enabled: !!client && !!address,

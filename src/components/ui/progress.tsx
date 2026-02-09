@@ -15,7 +15,7 @@ const progressVariants = cva("h-2 rounded-full bg-muted overflow-hidden", {
   },
 })
 
-const indicatorVariants = cva("h-full rounded-full transition-all duration-300", {
+const indicatorVariants = cva("h-full rounded-full transition-[width] duration-300 motion-reduce:transition-none", {
   variants: {
     variant: {
       default: "bg-primary",
@@ -39,7 +39,7 @@ const Progress = React.forwardRef<HTMLDivElement, ProgressProps>(
   ({ className, value, size, variant, ...props }, ref) => {
     const clamped = Math.min(100, Math.max(0, value))
     return (
-      <div ref={ref} className={cn(progressVariants({ size }), className)} {...props}>
+      <div ref={ref} role="progressbar" aria-valuenow={clamped} aria-valuemin={0} aria-valuemax={100} className={cn(progressVariants({ size }), className)} {...props}>
         <div
           className={cn(indicatorVariants({ variant }))}
           style={{ width: `${clamped}%` }}

@@ -26,7 +26,7 @@ export function AmountInput({ value, onChange, maxAmount, label = "Amount", disa
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
-        <label className="text-sm font-medium">{label}</label>
+        <label htmlFor="amount-input" className="text-sm font-medium">{label}</label>
         {maxAmount !== undefined && (
           <span className="text-xs text-muted-foreground">
             Balance: {formatTokenAmount(maxAmount)} SAFE
@@ -34,6 +34,9 @@ export function AmountInput({ value, onChange, maxAmount, label = "Amount", disa
         )}
       </div>
       <Input
+        id="amount-input"
+        name="amount"
+        autoComplete="off"
         type="text"
         inputMode="decimal"
         placeholder="0.0"

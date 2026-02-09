@@ -3,7 +3,10 @@ import { Link, useLocation } from "react-router-dom"
 import { ConnectButton } from "@/components/wallet/ConnectButton"
 import { useDarkMode } from "@/hooks/useDarkMode"
 import { cn } from "@/lib/utils"
-import { Menu, X, Sun, Moon } from "lucide-react"
+import Menu from "lucide-react/dist/esm/icons/menu"
+import X from "lucide-react/dist/esm/icons/x"
+import Sun from "lucide-react/dist/esm/icons/sun"
+import Moon from "lucide-react/dist/esm/icons/moon"
 import { Button } from "@/components/ui/button"
 
 const navItems = [
@@ -51,7 +54,7 @@ export function Header() {
             onClick={toggle}
             aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
           >
-            {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+            {isDark ? <Sun className="h-5 w-5" aria-hidden="true" /> : <Moon className="h-5 w-5" aria-hidden="true" />}
           </Button>
           <div className="hidden md:block">
             <ConnectButton />
@@ -64,7 +67,7 @@ export function Header() {
             aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
             aria-expanded={mobileMenuOpen}
           >
-            {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            {mobileMenuOpen ? <X className="h-5 w-5" aria-hidden="true" /> : <Menu className="h-5 w-5" aria-hidden="true" />}
           </Button>
         </div>
       </div>

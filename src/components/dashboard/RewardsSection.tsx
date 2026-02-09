@@ -34,7 +34,7 @@ export function RewardsSection() {
             </div>
             <div className="h-2 rounded-full bg-muted">
               <div
-                className="h-full rounded-full bg-primary transition-all"
+                className="h-full rounded-full bg-primary transition-[width] duration-300"
                 style={{ width: `${capPercent}%` }}
               />
             </div>

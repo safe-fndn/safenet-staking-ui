@@ -68,9 +68,7 @@ export function useValidators() {
       }
 
       // Sort: active first, then inactive
-      result.sort((a, b) => (a.isActive === b.isActive ? 0 : a.isActive ? -1 : 1))
-
-      return result
+      return result.toSorted((a, b) => (a.isActive === b.isActive ? 0 : a.isActive ? -1 : 1))
     },
     staleTime: 60_000,
     enabled: !!client,

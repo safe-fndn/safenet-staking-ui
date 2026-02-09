@@ -5,7 +5,8 @@ import { CountdownTimer } from "./CountdownTimer"
 import { formatTokenAmount, formatTimestamp } from "@/lib/format"
 import { useCountdown } from "@/hooks/useCountdown"
 import { useWithdrawDelay } from "@/hooks/useStakingReads"
-import { Loader2, CheckCircle } from "lucide-react"
+import Loader2 from "lucide-react/dist/esm/icons/loader-2"
+import CheckCircle from "lucide-react/dist/esm/icons/check-circle"
 
 interface WithdrawalCardProps {
   amount: bigint
@@ -40,7 +41,7 @@ export function WithdrawalCard({ amount, claimableAt, isFirst, onClaim, isSignin
               <CountdownTimer claimableAt={claimableAt} />
             ) : (
               <div className="flex items-center gap-1.5 text-success text-sm font-medium">
-                <CheckCircle className="h-4 w-4" />
+                <CheckCircle className="h-4 w-4" aria-hidden="true" />
                 Ready to claim
               </div>
             )}
@@ -48,13 +49,13 @@ export function WithdrawalCard({ amount, claimableAt, isFirst, onClaim, isSignin
               <Button size="sm" onClick={onClaim} disabled={isBusy}>
                 {isSigningTx ? (
                   <>
-                    <Loader2 className="animate-spin" />
-                    Confirm in Wallet...
+                    <Loader2 className="animate-spin" aria-hidden="true" />
+                    Confirm in Wallet…
                   </>
                 ) : isConfirmingTx ? (
                   <>
-                    <Loader2 className="animate-spin" />
-                    Confirming on chain...
+                    <Loader2 className="animate-spin" aria-hidden="true" />
+                    Confirming on chain…
                   </>
                 ) : (
                   "Claim"

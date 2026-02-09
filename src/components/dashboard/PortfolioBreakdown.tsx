@@ -59,9 +59,9 @@ export function PortfolioBreakdown() {
     }
   }
 
-  positions.sort((a, b) => (a.amount > b.amount ? -1 : a.amount < b.amount ? 1 : 0))
+  const sorted = positions.toSorted((a, b) => (a.amount > b.amount ? -1 : a.amount < b.amount ? 1 : 0))
 
-  if (positions.length === 0) return null
+  if (sorted.length === 0) return null
 
   const totalStake = (userTotalStake as bigint) ?? 0n
 
@@ -72,7 +72,7 @@ export function PortfolioBreakdown() {
       </CardHeader>
       <CardContent>
         <div className="divide-y">
-          {positions.map((pos) => (
+          {sorted.map((pos) => (
             <ValidatorRow
               key={pos.validator}
               address={pos.validator}
