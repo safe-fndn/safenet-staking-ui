@@ -3,7 +3,6 @@ import { ClaimableBanner } from "@/components/dashboard/ClaimableBanner"
 import { QuickActions } from "@/components/dashboard/QuickActions"
 import { EligibilityNotice } from "@/components/dashboard/EligibilityNotice"
 import { RewardsSection } from "@/components/dashboard/RewardsSection"
-import { PortfolioBreakdown } from "@/components/dashboard/PortfolioBreakdown"
 import { StakeDistribution } from "@/components/dashboard/StakeDistribution"
 import { UserPositions } from "@/components/dashboard/UserPositions"
 import { TransactionHistory } from "@/components/dashboard/TransactionHistory"
@@ -13,8 +12,8 @@ export function DashboardPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-bold">Dashboard</h1>
-        <p className="text-muted-foreground">Overview of SAFE token delegation</p>
+        <h1 className="text-3xl font-bold">SAFE Delegation &amp; Claiming</h1>
+        <p className="text-muted-foreground">Manage your SAFE token delegation and rewards</p>
       </div>
       <OnboardingBanner />
       <ClaimableBanner />
@@ -23,7 +22,6 @@ export function DashboardPage() {
       <EligibilityNotice />
       <RewardsSection />
       <StakeDistribution />
-      <PortfolioBreakdown />
       <UserPositions />
       <TransactionHistory />
     </div>

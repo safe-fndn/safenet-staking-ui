@@ -2,9 +2,11 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { CountdownTimer } from "./CountdownTimer"
-import { formatTokenAmount, formatTimestamp } from "@/lib/format"
+import { formatTokenAmount, formatTimestamp, truncateAddress } from "@/lib/format"
 import { useCountdown } from "@/hooks/useCountdown"
 import { useWithdrawDelay } from "@/hooks/useStakingReads"
+import { useValidatorMetadata } from "@/hooks/useValidatorMetadata"
+import type { Address } from "viem"
 import Loader2 from "lucide-react/dist/esm/icons/loader-2"
 import CheckCircle from "lucide-react/dist/esm/icons/check-circle"
 
@@ -15,9 +17,20 @@ interface WithdrawalCardProps {
   onClaim: () => void
   isSigningTx: boolean
   isConfirmingTx: boolean
+  validator?: Address
 }
 
-export function WithdrawalCard({ amount, claimableAt, isFirst, onClaim, isSigningTx, isConfirmingTx }: WithdrawalCardProps) {
+function ValidatorLabel({ address }: { address: Address }) {
+  const metadata = useValidatorMetadata(address)
+  if (address === "0x0000000000000000000000000000000000000000") return null
+  return (
+    <p className="text-xs text-muted-foreground">
+      Validator: {metadata ? metadata.label : truncateAddress(address)}
+    </p>
+  )
+}
+
+export function WithdrawalCard({ amount, claimableAt, isFirst, onClaim, isSigningTx, isConfirmingTx, validator }: WithdrawalCardProps) {
   const secondsLeft = useCountdown(claimableAt)
   const { data: withdrawDelay } = useWithdrawDelay()
   const canClaim = isFirst && secondsLeft === 0
@@ -31,6 +44,7 @@ export function WithdrawalCard({ amount, claimableAt, isFirst, onClaim, isSignin
       <CardContent className="p-4 space-y-3">
         <div className="flex items-center justify-between">
           <div className="space-y-1">
+            {validator && <ValidatorLabel address={validator} />}
             <p className="text-lg font-semibold">{formatTokenAmount(amount)} SAFE</p>
             <p className="text-xs text-muted-foreground">
               Claimable at: {formatTimestamp(claimableAt)}

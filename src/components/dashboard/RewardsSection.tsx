@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
 import { useRewards } from "@/hooks/useRewards"
 import { useAccount } from "wagmi"
 import { formatTokenAmount } from "@/lib/format"
@@ -48,12 +49,22 @@ export function RewardsSection() {
           )}
 
           <p className="text-xs text-muted-foreground">
-            Rewards are distributed bi-weekly based on delegation activity.
+            Rewards become available for claiming every 2 weeks based on delegation activity.
+            Unclaimed rewards expire after 6 months.
           </p>
 
-          <Button className="w-full" disabled>
-            Claim Rewards — Coming Soon
-          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="w-full">
+                <Button className="w-full" disabled>
+                  Claim Rewards
+                </Button>
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>
+              Rewards claiming will be available soon.
+            </TooltipContent>
+          </Tooltip>
         </CardContent>
       </Card>
 
