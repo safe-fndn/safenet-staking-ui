@@ -9,6 +9,7 @@ import { WithdrawalsPage } from "@/pages/WithdrawalsPage"
 import { SanctionsBlocked } from "@/components/SanctionsBlocked"
 import { useSanctionsCheck } from "@/hooks/useSanctionsCheck"
 import { useToast } from "@/hooks/useToast"
+import { Loader2 } from "lucide-react"
 
 function DisconnectWatcher() {
   const { isConnected } = useAccount()
@@ -35,7 +36,11 @@ function App() {
   const { allowed, isLoading } = useSanctionsCheck()
 
   if (isLoading) {
-    return null
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    )
   }
 
   if (!allowed) {

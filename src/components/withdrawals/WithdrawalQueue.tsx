@@ -9,16 +9,15 @@ import { useEffect } from "react"
 
 export function WithdrawalQueue() {
   const { isConnected } = useAccount()
-  const { data: withdrawals, isLoading, refetch } = usePendingWithdrawals()
-  const { claimWithdrawal, isPending: isClaiming, isSuccess: isClaimed, error: claimError, txHash: claimTxHash } = useClaimWithdrawal()
+  const { data: withdrawals, isLoading } = usePendingWithdrawals()
+  const { claimWithdrawal, isSigningTx, isConfirmingTx, isSuccess: isClaimed, error: claimError, txHash: claimTxHash } = useClaimWithdrawal()
   const { toast } = useToast()
 
   useEffect(() => {
     if (isClaimed) {
       toast({ variant: "success", title: "Withdrawal claimed", description: "SAFE tokens sent to your wallet", txHash: claimTxHash! })
-      refetch()
     }
-  }, [isClaimed, refetch, toast, claimTxHash])
+  }, [isClaimed, toast, claimTxHash])
 
   useEffect(() => {
     if (claimError) {
@@ -63,7 +62,8 @@ export function WithdrawalQueue() {
           claimableAt={Number(w.claimableAt)}
           isFirst={i === 0}
           onClaim={claimWithdrawal}
-          isClaiming={isClaiming}
+          isSigningTx={isSigningTx}
+          isConfirmingTx={isConfirmingTx}
         />
       ))}
     </div>

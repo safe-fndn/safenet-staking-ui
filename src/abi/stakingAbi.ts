@@ -26,4 +26,12 @@ export const stakingAbi = parseAbi([
   "event WithdrawalInitiated(address indexed staker, address indexed validator, uint64 indexed withdrawalId, uint256 amount)",
   "event WithdrawalClaimed(address indexed staker, uint64 indexed withdrawalId, uint256 amount)",
   "event ValidatorUpdated(address indexed validator, bool isRegistered)",
+
+  // Custom errors
+  "error InvalidAmount()",
+  "error NotValidator()",
+  "error InsufficientStake()",
+  "error WithdrawalQueueEmpty()",
+  "error NoClaimableWithdrawal()",
+  "error InvalidAddress()",
 ])

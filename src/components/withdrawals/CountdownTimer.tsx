@@ -10,7 +10,7 @@ export function CountdownTimer({ claimableAt }: CountdownTimerProps) {
   const secondsLeft = useCountdown(claimableAt)
 
   if (secondsLeft === 0) {
-    return <Badge className="bg-green-600 hover:bg-green-700">Claimable</Badge>
+    return null
   }
 
   return (

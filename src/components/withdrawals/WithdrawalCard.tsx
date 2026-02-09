@@ -10,12 +10,14 @@ interface WithdrawalCardProps {
   claimableAt: number
   isFirst: boolean
   onClaim: () => void
-  isClaiming: boolean
+  isSigningTx: boolean
+  isConfirmingTx: boolean
 }
 
-export function WithdrawalCard({ amount, claimableAt, isFirst, onClaim, isClaiming }: WithdrawalCardProps) {
+export function WithdrawalCard({ amount, claimableAt, isFirst, onClaim, isSigningTx, isConfirmingTx }: WithdrawalCardProps) {
   const secondsLeft = useCountdown(claimableAt)
   const canClaim = isFirst && secondsLeft === 0
+  const isBusy = isSigningTx || isConfirmingTx
 
   return (
     <Card>
@@ -29,11 +31,16 @@ export function WithdrawalCard({ amount, claimableAt, isFirst, onClaim, isClaimi
         <div className="flex items-center gap-3">
           <CountdownTimer claimableAt={claimableAt} />
           {canClaim && (
-            <Button size="sm" onClick={onClaim} disabled={isClaiming}>
-              {isClaiming ? (
+            <Button size="sm" onClick={onClaim} disabled={isBusy}>
+              {isSigningTx ? (
                 <>
                   <Loader2 className="animate-spin" />
-                  Claiming...
+                  Confirm in Wallet...
+                </>
+              ) : isConfirmingTx ? (
+                <>
+                  <Loader2 className="animate-spin" />
+                  Confirming on chain...
                 </>
               ) : (
                 "Claim"

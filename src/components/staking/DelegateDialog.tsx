@@ -26,9 +26,27 @@ interface DelegateDialogProps {
 
 export function DelegateDialog({ validator, open, onOpenChange }: DelegateDialogProps) {
   const [amount, setAmount] = useState("")
-  const { data: balance, refetch: refetchBalance } = useTokenBalance()
-  const { allowance, approve, isApproving, isApproved, refetchAllowance, resetApproval } = useTokenAllowance()
-  const { stake, isPending: isStaking, isSuccess: isStaked, error: stakeError, reset: resetStake, txHash: stakeTxHash } = useStake()
+  const { data: balance } = useTokenBalance()
+  const {
+    allowance,
+    approve,
+    approveUnlimited,
+    isSigningApproval,
+    isConfirmingApproval,
+    isApproved,
+    approvalError,
+    approvalTxHash,
+    resetApproval,
+  } = useTokenAllowance()
+  const {
+    stake,
+    isSigningTx,
+    isConfirmingTx,
+    isSuccess: isStaked,
+    error: stakeError,
+    reset: resetStake,
+    txHash: stakeTxHash,
+  } = useStake()
   const { data: withdrawDelay } = useWithdrawDelay()
   const { toast } = useToast()
 
@@ -38,32 +56,46 @@ export function DelegateDialog({ validator, open, onOpenChange }: DelegateDialog
   const hasZeroBalance = balanceValue !== undefined && balanceValue === 0n
   const insufficientBalance = balanceValue !== undefined && parsedAmount > 0n && parsedAmount > balanceValue
   const canDelegate = parsedAmount > 0n && !needsApproval && balanceValue !== undefined && parsedAmount <= balanceValue
+  const isApprovalPending = isSigningApproval || isConfirmingApproval
 
-  // After approval confirmed, refetch allowance
+  // After approval confirmed, show toast and reset
   useEffect(() => {
     if (isApproved) {
-      refetchAllowance()
+      toast({ variant: "success", title: "Approval confirmed", description: "You can now delegate your SAFE tokens", txHash: approvalTxHash! })
       resetApproval()
     }
-  }, [isApproved, refetchAllowance, resetApproval])
+  }, [isApproved, resetApproval, toast, approvalTxHash])
+
+  // Approval error toast
+  useEffect(() => {
+    if (approvalError) {
+      toast({ variant: "error", title: "Approval failed", description: formatContractError(approvalError) })
+    }
+  }, [approvalError, toast])
 
   // After delegation confirmed, close dialog
   useEffect(() => {
     if (isStaked) {
       toast({ variant: "success", title: "Delegation successful", description: `Delegated ${amount} SAFE to ${truncateAddress(validator)}`, txHash: stakeTxHash! })
-      refetchBalance()
-      refetchAllowance()
       setAmount("")
       resetStake()
       onOpenChange(false)
     }
-  }, [isStaked, refetchBalance, refetchAllowance, resetStake, onOpenChange, toast, amount, validator, stakeTxHash])
+  }, [isStaked, resetStake, onOpenChange, toast, amount, validator, stakeTxHash])
 
   useEffect(() => {
     if (stakeError) {
       toast({ variant: "error", title: "Delegation failed", description: formatContractError(stakeError) })
     }
   }, [stakeError, toast])
+
+  // Reset form state on close
+  useEffect(() => {
+    if (!open) {
+      setAmount("")
+      resetStake()
+    }
+  }, [open, resetStake])
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -103,22 +135,49 @@ export function DelegateDialog({ validator, open, onOpenChange }: DelegateDialog
 
         <div className="flex flex-col gap-2">
           {needsApproval ? (
-            <Button onClick={() => approve(parsedAmount)} disabled={isApproving || parsedAmount === 0n}>
-              {isApproving ? (
-                <>
-                  <Loader2 className="animate-spin" />
-                  Approving...
-                </>
-              ) : (
-                "Approve SAFE"
-              )}
-            </Button>
+            <>
+              <Button onClick={() => approve(parsedAmount)} disabled={isApprovalPending || parsedAmount === 0n}>
+                {isSigningApproval ? (
+                  <>
+                    <Loader2 className="animate-spin" />
+                    Confirm Approval in Wallet...
+                  </>
+                ) : isConfirmingApproval ? (
+                  <>
+                    <Loader2 className="animate-spin" />
+                    Approval confirming...
+                  </>
+                ) : (
+                  "Approve exact amount"
+                )}
+              </Button>
+              <Button variant="outline" onClick={approveUnlimited} disabled={isApprovalPending || parsedAmount === 0n}>
+                {isSigningApproval ? (
+                  <>
+                    <Loader2 className="animate-spin" />
+                    Confirm Approval in Wallet...
+                  </>
+                ) : isConfirmingApproval ? (
+                  <>
+                    <Loader2 className="animate-spin" />
+                    Approval confirming...
+                  </>
+                ) : (
+                  "Approve unlimited"
+                )}
+              </Button>
+            </>
           ) : (
-            <Button onClick={() => stake(validator, parsedAmount)} disabled={!canDelegate || isStaking}>
-              {isStaking ? (
+            <Button onClick={() => stake(validator, parsedAmount)} disabled={!canDelegate || isSigningTx || isConfirmingTx}>
+              {isSigningTx ? (
                 <>
                   <Loader2 className="animate-spin" />
-                  Delegating...
+                  Confirm in Wallet...
+                </>
+              ) : isConfirmingTx ? (
+                <>
+                  <Loader2 className="animate-spin" />
+                  Confirming on chain...
                 </>
               ) : (
                 "Delegate"

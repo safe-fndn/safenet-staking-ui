@@ -1,19 +1,31 @@
-import { useRef, useState, useEffect } from "react"
+import { useRef, useState, useEffect, useCallback } from "react"
 import { useAccount, useConnect, useDisconnect, useSwitchChain } from "wagmi"
 import { Button } from "@/components/ui/button"
 import { truncateAddress, formatTokenAmount } from "@/lib/format"
 import { activeChain } from "@/config/chains"
 import { useTokenBalance } from "@/hooks/useTokenBalance"
+import { useToast } from "@/hooks/useToast"
 
 export function ConnectButton() {
   const { address, isConnected, chain } = useAccount()
-  const { connect, connectors } = useConnect()
+  const { connect, connectors, error: connectError } = useConnect()
   const { disconnect } = useDisconnect()
   const { switchChain } = useSwitchChain()
   const { data: balance } = useTokenBalance()
+  const { toast } = useToast()
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
+  const triggerRef = useRef<HTMLButtonElement>(null)
+  const itemRefs = useRef<(HTMLButtonElement | null)[]>([])
 
+  // Show toast on connection failure
+  useEffect(() => {
+    if (connectError) {
+      toast({ variant: "error", title: "Connection failed", description: connectError.message.slice(0, 150) })
+    }
+  }, [connectError, toast])
+
+  // Close on outside click
   useEffect(() => {
     if (!menuOpen) return
     function handleClick(e: MouseEvent) {
@@ -25,16 +37,63 @@ export function ConnectButton() {
     return () => document.removeEventListener("mousedown", handleClick)
   }, [menuOpen])
 
+  // Auto-focus first item on open
+  useEffect(() => {
+    if (menuOpen && itemRefs.current[0]) {
+      itemRefs.current[0].focus()
+    }
+  }, [menuOpen])
+
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (!menuOpen) return
+
+      if (e.key === "Escape") {
+        e.preventDefault()
+        setMenuOpen(false)
+        triggerRef.current?.focus()
+        return
+      }
+
+      const items = itemRefs.current.filter(Boolean) as HTMLButtonElement[]
+      const currentIndex = items.indexOf(document.activeElement as HTMLButtonElement)
+
+      if (e.key === "ArrowDown") {
+        e.preventDefault()
+        const next = currentIndex < items.length - 1 ? currentIndex + 1 : 0
+        items[next]?.focus()
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault()
+        const prev = currentIndex > 0 ? currentIndex - 1 : items.length - 1
+        items[prev]?.focus()
+      }
+    },
+    [menuOpen],
+  )
+
   if (!isConnected) {
     return (
-      <div className="relative" ref={menuRef}>
-        <Button onClick={() => setMenuOpen((v) => !v)}>Connect Wallet</Button>
+      <div className="relative" ref={menuRef} onKeyDown={handleKeyDown}>
+        <Button
+          ref={triggerRef}
+          onClick={() => setMenuOpen((v) => !v)}
+          aria-haspopup="true"
+          aria-expanded={menuOpen}
+        >
+          Connect Wallet
+        </Button>
         {menuOpen && (
-          <div className="absolute right-0 top-full mt-2 w-56 rounded-lg border bg-card p-2 shadow-lg">
-            {connectors.map((connector) => (
+          <div
+            className="absolute right-0 top-full mt-2 w-56 rounded-lg border bg-card p-2 shadow-lg z-50"
+            role="menu"
+          >
+            {connectors.map((connector, i) => (
               <button
                 key={connector.uid}
-                className="flex w-full items-center rounded-md px-3 py-2.5 text-sm font-medium hover:bg-accent transition-colors text-left"
+                ref={(el) => { itemRefs.current[i] = el }}
+                role="menuitem"
+                tabIndex={-1}
+                className="flex w-full items-center rounded-md px-3 py-2.5 text-sm font-medium hover:bg-accent focus:bg-accent focus:outline-none transition-colors text-left"
                 onClick={() => {
                   setMenuOpen(false)
                   connect({ connector })

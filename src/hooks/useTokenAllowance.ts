@@ -1,7 +1,10 @@
+import { useEffect } from "react"
 import { useReadContract, useAccount, useWriteContract, useWaitForTransactionReceipt } from "wagmi"
+import { maxUint256 } from "viem"
 import { erc20Abi } from "@/abi/erc20Abi"
 import { getContractAddresses } from "@/config/contracts"
 import { activeChain } from "@/config/chains"
+import { queryClient } from "@/main"
 
 export function useTokenAllowance() {
   const { address } = useAccount()
@@ -15,11 +18,18 @@ export function useTokenAllowance() {
     query: { enabled: !!address },
   })
 
-  const { writeContract, data: txHash, isPending: isApproving, reset } = useWriteContract()
+  const { writeContract, data: txHash, isPending, reset, error } = useWriteContract()
 
   const { isLoading: isWaitingForApproval, isSuccess: isApproved } = useWaitForTransactionReceipt({
     hash: txHash,
   })
+
+  useEffect(() => {
+    if (isApproved) {
+      queryClient.invalidateQueries({ queryKey: ["readContract"] })
+      queryClient.invalidateQueries({ queryKey: ["readContracts"] })
+    }
+  }, [isApproved])
 
   function approve(amount: bigint) {
     writeContract({
@@ -30,12 +40,25 @@ export function useTokenAllowance() {
     })
   }
 
+  function approveUnlimited() {
+    writeContract({
+      address: token,
+      abi: erc20Abi,
+      functionName: "approve",
+      args: [staking, maxUint256],
+    })
+  }
+
   return {
     allowance: allowance.data as bigint | undefined,
     refetchAllowance: allowance.refetch,
     approve,
-    isApproving: isApproving || isWaitingForApproval,
+    approveUnlimited,
+    isSigningApproval: isPending,
+    isConfirmingApproval: isWaitingForApproval,
     isApproved,
+    approvalError: error,
+    approvalTxHash: txHash,
     resetApproval: reset,
   }
 }

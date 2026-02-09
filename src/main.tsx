@@ -7,7 +7,7 @@ import { ToastProvider } from "@/hooks/useToast"
 import App from "./App"
 import "./index.css"
 
-const queryClient = new QueryClient()
+export const queryClient = new QueryClient()
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

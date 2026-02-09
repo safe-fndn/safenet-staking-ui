@@ -24,8 +24,8 @@ interface UndelegateDialogProps {
 
 export function UndelegateDialog({ validator, open, onOpenChange }: UndelegateDialogProps) {
   const [amount, setAmount] = useState("")
-  const { data: userStake, refetch } = useUserStakeOnValidator(validator)
-  const { initiateWithdrawal, isPending, isSuccess, error, reset, txHash } = useInitiateWithdrawal()
+  const { data: userStake } = useUserStakeOnValidator(validator)
+  const { initiateWithdrawal, isSigningTx, isConfirmingTx, isSuccess, error, reset, txHash } = useInitiateWithdrawal()
   const { data: withdrawDelay } = useWithdrawDelay()
   const { toast } = useToast()
 
@@ -35,18 +35,25 @@ export function UndelegateDialog({ validator, open, onOpenChange }: UndelegateDi
   useEffect(() => {
     if (isSuccess) {
       toast({ variant: "success", title: "Undelegation initiated", description: `Queued withdrawal of ${amount} SAFE from ${truncateAddress(validator)}`, txHash: txHash! })
-      refetch()
       setAmount("")
       reset()
       onOpenChange(false)
     }
-  }, [isSuccess, refetch, reset, onOpenChange, toast, amount, validator, txHash])
+  }, [isSuccess, reset, onOpenChange, toast, amount, validator, txHash])
 
   useEffect(() => {
     if (error) {
       toast({ variant: "error", title: "Undelegation failed", description: formatContractError(error) })
     }
   }, [error, toast])
+
+  // Reset form state on close
+  useEffect(() => {
+    if (!open) {
+      setAmount("")
+      reset()
+    }
+  }, [open, reset])
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -72,11 +79,16 @@ export function UndelegateDialog({ validator, open, onOpenChange }: UndelegateDi
           </div>
         )}
 
-        <Button onClick={() => initiateWithdrawal(validator, parsedAmount)} disabled={!canUndelegate || isPending}>
-          {isPending ? (
+        <Button onClick={() => initiateWithdrawal(validator, parsedAmount)} disabled={!canUndelegate || isSigningTx || isConfirmingTx}>
+          {isSigningTx ? (
             <>
               <Loader2 className="animate-spin" />
-              Processing...
+              Confirm in Wallet...
+            </>
+          ) : isConfirmingTx ? (
+            <>
+              <Loader2 className="animate-spin" />
+              Confirming on chain...
             </>
           ) : (
             "Initiate Withdrawal"

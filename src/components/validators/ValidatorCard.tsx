@@ -38,7 +38,7 @@ export function ValidatorCard({ validator, isActive }: ValidatorCardProps) {
             {isActive ? (
               <Badge variant="secondary">Active</Badge>
             ) : (
-              <Badge className="bg-yellow-600/20 text-yellow-600 hover:bg-yellow-600/30">Inactive</Badge>
+              <Badge className="bg-warning/20 text-warning hover:bg-warning/30">Inactive</Badge>
             )}
           </div>
           {metadata && (
@@ -78,7 +78,7 @@ export function ValidatorCard({ validator, isActive }: ValidatorCardProps) {
           )}
 
           {!isActive && (
-            <p className="text-xs text-yellow-600">Validator is inactive</p>
+            <p className="text-xs text-warning">Validator is inactive</p>
           )}
 
           {isConnected && (

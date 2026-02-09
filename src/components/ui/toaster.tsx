@@ -4,9 +4,9 @@ import { X, CheckCircle, AlertCircle, Info } from "lucide-react"
 import { activeChain } from "@/config/chains"
 
 const variantStyles: Record<ToastVariant, string> = {
-  success: "border-green-500/50 bg-green-500/10 text-green-700 dark:text-green-400",
+  success: "border-success/50 bg-success/10 text-success",
   error: "border-destructive/50 bg-destructive/10 text-destructive",
-  info: "border-blue-500/50 bg-blue-500/10 text-blue-700 dark:text-blue-400",
+  info: "border-info/50 bg-info/10 text-info",
 }
 
 const variantIcons: Record<ToastVariant, typeof CheckCircle> = {
