@@ -1,7 +1,7 @@
 import { useAccount } from "wagmi"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
-import { useTotalStaked, useUserTotalStake } from "@/hooks/useStakingReads"
+import { useTotalStaked, useUserTotalStake, useTotalPendingWithdrawals } from "@/hooks/useStakingReads"
 import { useValidators } from "@/hooks/useValidators"
 import { usePendingWithdrawals } from "@/hooks/useWithdrawals"
 import { formatTokenAmount } from "@/lib/format"
@@ -12,6 +12,7 @@ export function StatsOverview() {
   const { data: userTotalStake, isLoading: l2 } = useUserTotalStake()
   const { data: validators, isLoading: l3 } = useValidators()
   const { data: pendingWithdrawals, isLoading: l4 } = usePendingWithdrawals()
+  const { data: totalPendingWithdrawals, isLoading: l5 } = useTotalPendingWithdrawals()
 
   const activeCount = validators ? validators.filter((v) => v.isActive).length : 0
   const pendingCount = pendingWithdrawals ? (pendingWithdrawals as readonly unknown[]).length : 0
@@ -42,6 +43,11 @@ export function StatsOverview() {
             title: "Unstaking",
             value: l4 ? null : `${pendingCount}`,
             loading: l4,
+          },
+          {
+            title: "Pending Withdrawals",
+            value: l5 ? null : `${formatTokenAmount(totalPendingWithdrawals as bigint ?? 0n)} SAFE`,
+            loading: l5,
           },
         ]
       : []),

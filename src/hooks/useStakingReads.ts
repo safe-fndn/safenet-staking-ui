@@ -6,11 +6,14 @@ import type { Address } from "viem"
 
 const addresses = getContractAddresses(activeChain.id)
 
+const POLL_INTERVAL = 15_000
+
 export function useTotalStaked() {
   return useReadContract({
     address: addresses.staking,
     abi: stakingAbi,
     functionName: "totalStakedAmount",
+    query: { refetchInterval: POLL_INTERVAL },
   })
 }
 
@@ -19,6 +22,7 @@ export function useTotalPendingWithdrawals() {
     address: addresses.staking,
     abi: stakingAbi,
     functionName: "totalPendingWithdrawals",
+    query: { refetchInterval: POLL_INTERVAL },
   })
 }
 
@@ -37,7 +41,7 @@ export function useUserTotalStake() {
     abi: stakingAbi,
     functionName: "totalStakerStakes",
     args: [address!],
-    query: { enabled: !!address },
+    query: { enabled: !!address, refetchInterval: POLL_INTERVAL },
   })
 }
 
@@ -48,7 +52,7 @@ export function useUserStakeOnValidator(validator: Address) {
     abi: stakingAbi,
     functionName: "stakes",
     args: [address!, validator],
-    query: { enabled: !!address },
+    query: { enabled: !!address, refetchInterval: POLL_INTERVAL },
   })
 }
 
@@ -58,6 +62,7 @@ export function useValidatorTotalStake(validator: Address) {
     abi: stakingAbi,
     functionName: "totalValidatorStakes",
     args: [validator],
+    query: { refetchInterval: POLL_INTERVAL },
   })
 }
 
@@ -70,7 +75,7 @@ export function useUserStakesOnValidators(validators: Address[]) {
       functionName: "stakes" as const,
       args: [address!, v],
     })),
-    query: { enabled: !!address && validators.length > 0 },
+    query: { enabled: !!address && validators.length > 0, refetchInterval: POLL_INTERVAL },
   })
 }
 
@@ -82,6 +87,6 @@ export function useValidatorTotalStakes(validators: Address[]) {
       functionName: "totalValidatorStakes" as const,
       args: [v],
     })),
-    query: { enabled: validators.length > 0 },
+    query: { enabled: validators.length > 0, refetchInterval: POLL_INTERVAL },
   })
 }

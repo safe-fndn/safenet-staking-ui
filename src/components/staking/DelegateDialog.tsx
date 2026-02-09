@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { parseEther, type Address } from "viem"
 import {
   Dialog,
@@ -8,6 +8,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
+import { Stepper } from "@/components/ui/stepper"
 import { AmountInput } from "./AmountInput"
 import { useTokenBalance } from "@/hooks/useTokenBalance"
 import { useTokenAllowance } from "@/hooks/useTokenAllowance"
@@ -16,7 +17,8 @@ import { useWithdrawDelay } from "@/hooks/useStakingReads"
 import { useToast } from "@/hooks/useToast"
 import { truncateAddress, formatCountdown } from "@/lib/format"
 import { formatContractError } from "@/lib/errorFormat"
-import { Loader2, Info } from "lucide-react"
+import { useGasEstimate } from "@/hooks/useGasEstimate"
+import { Loader2, Info, Fuel } from "lucide-react"
 
 interface DelegateDialogProps {
   validator: Address
@@ -57,8 +59,33 @@ export function DelegateDialog({ validator, open, onOpenChange }: DelegateDialog
   const insufficientBalance = balanceValue !== undefined && parsedAmount > 0n && parsedAmount > balanceValue
   const canDelegate = parsedAmount > 0n && !needsApproval && balanceValue !== undefined && parsedAmount <= balanceValue
   const isApprovalPending = isSigningApproval || isConfirmingApproval
+  const { estimatedCost: gasEstimate } = useGasEstimate("stake", validator, parsedAmount)
 
-  // After approval confirmed, show toast and reset
+  // Stepper logic
+  const steps = useMemo(
+    () => (needsApproval ? ["Approve", "Delegate", "Done"] : ["Delegate", "Done"]),
+    [needsApproval],
+  )
+
+  const { currentStep, completedSteps } = useMemo(() => {
+    if (isStaked) {
+      return { currentStep: steps.length - 1, completedSteps: steps.map((_, i) => i) }
+    }
+    if (needsApproval) {
+      if (isSigningApproval || isConfirmingApproval) {
+        return { currentStep: 0, completedSteps: [] as number[] }
+      }
+      if (isSigningTx || isConfirmingTx) {
+        return { currentStep: 1, completedSteps: [0] }
+      }
+      return { currentStep: 0, completedSteps: [] as number[] }
+    }
+    if (isSigningTx || isConfirmingTx) {
+      return { currentStep: 0, completedSteps: [] as number[] }
+    }
+    return { currentStep: 0, completedSteps: [] as number[] }
+  }, [needsApproval, isSigningApproval, isConfirmingApproval, isSigningTx, isConfirmingTx, isStaked, steps])
+
   useEffect(() => {
     if (isApproved) {
       toast({ variant: "success", title: "Approval confirmed", description: "You can now delegate your SAFE tokens", txHash: approvalTxHash! })
@@ -66,14 +93,12 @@ export function DelegateDialog({ validator, open, onOpenChange }: DelegateDialog
     }
   }, [isApproved, resetApproval, toast, approvalTxHash])
 
-  // Approval error toast
   useEffect(() => {
     if (approvalError) {
       toast({ variant: "error", title: "Approval failed", description: formatContractError(approvalError) })
     }
   }, [approvalError, toast])
 
-  // After delegation confirmed, close dialog
   useEffect(() => {
     if (isStaked) {
       toast({ variant: "success", title: "Delegation successful", description: `Delegated ${amount} SAFE to ${truncateAddress(validator)}`, txHash: stakeTxHash! })
@@ -89,13 +114,14 @@ export function DelegateDialog({ validator, open, onOpenChange }: DelegateDialog
     }
   }, [stakeError, toast])
 
-  // Reset form state on close
   useEffect(() => {
     if (!open) {
       setAmount("")
       resetStake()
     }
   }, [open, resetStake])
+
+  const showStepper = parsedAmount > 0n && (needsApproval || isSigningTx || isConfirmingTx)
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -106,6 +132,10 @@ export function DelegateDialog({ validator, open, onOpenChange }: DelegateDialog
             Delegate tokens toward validator {truncateAddress(validator)}
           </DialogDescription>
         </DialogHeader>
+
+        {showStepper && (
+          <Stepper steps={steps} currentStep={currentStep} completedSteps={completedSteps} />
+        )}
 
         <AmountInput
           value={amount}
@@ -124,6 +154,13 @@ export function DelegateDialog({ validator, open, onOpenChange }: DelegateDialog
           <p className="text-sm text-destructive">
             You do not have enough SAFE to delegate this amount.
           </p>
+        )}
+
+        {gasEstimate && (
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <Fuel className="h-3.5 w-3.5" />
+            <span>Estimated gas: ~{parseFloat(gasEstimate).toFixed(6)} ETH</span>
+          </div>
         )}
 
         {withdrawDelay !== undefined && (

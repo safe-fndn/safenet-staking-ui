@@ -6,6 +6,8 @@ import { Toaster } from "@/components/ui/toaster"
 import { DashboardPage } from "@/pages/DashboardPage"
 import { ValidatorsPage } from "@/pages/ValidatorsPage"
 import { WithdrawalsPage } from "@/pages/WithdrawalsPage"
+import { ValidatorDetailPage } from "@/pages/ValidatorDetailPage"
+import { NotFoundPage } from "@/pages/NotFoundPage"
 import { SanctionsBlocked } from "@/components/SanctionsBlocked"
 import { useSanctionsCheck } from "@/hooks/useSanctionsCheck"
 import { useToast } from "@/hooks/useToast"
@@ -54,7 +56,9 @@ function App() {
         <Route element={<Layout />}>
           <Route path="/" element={<DashboardPage />} />
           <Route path="/validators" element={<ValidatorsPage />} />
+          <Route path="/validators/:address" element={<ValidatorDetailPage />} />
           <Route path="/withdrawals" element={<WithdrawalsPage />} />
+          <Route path="*" element={<NotFoundPage />} />
         </Route>
       </Routes>
       <Toaster />

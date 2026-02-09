@@ -10,7 +10,19 @@ interface AmountInputProps {
   disabled?: boolean
 }
 
+const PERCENTAGES = [25, 50, 75, 100] as const
+
 export function AmountInput({ value, onChange, maxAmount, label = "Amount", disabled }: AmountInputProps) {
+  function setPercentage(pct: number) {
+    if (maxAmount === undefined) return
+    if (pct === 100) {
+      onChange(formatTokenAmount(maxAmount, 18, 18))
+    } else {
+      const amount = (maxAmount * BigInt(pct)) / 100n
+      onChange(formatTokenAmount(amount, 18, 18))
+    }
+  }
+
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
@@ -21,32 +33,35 @@ export function AmountInput({ value, onChange, maxAmount, label = "Amount", disa
           </span>
         )}
       </div>
-      <div className="flex gap-2">
-        <Input
-          type="text"
-          inputMode="decimal"
-          placeholder="0.0"
-          value={value}
-          disabled={disabled}
-          onChange={(e) => {
-            const val = e.target.value
-            if (/^[0-9]*\.?[0-9]*$/.test(val)) {
-              onChange(val)
-            }
-          }}
-        />
-        {maxAmount !== undefined && (
-          <Button
-            variant="outline"
-            size="sm"
-            className="shrink-0"
-            disabled={disabled}
-            onClick={() => onChange(formatTokenAmount(maxAmount, 18, 18))}
-          >
-            MAX
-          </Button>
-        )}
-      </div>
+      <Input
+        type="text"
+        inputMode="decimal"
+        placeholder="0.0"
+        value={value}
+        disabled={disabled}
+        onChange={(e) => {
+          const val = e.target.value
+          if (/^[0-9]*\.?[0-9]*$/.test(val)) {
+            onChange(val)
+          }
+        }}
+      />
+      {maxAmount !== undefined && (
+        <div className="flex gap-2">
+          {PERCENTAGES.map((pct) => (
+            <Button
+              key={pct}
+              variant="ghost"
+              size="sm"
+              className="flex-1 text-xs"
+              disabled={disabled}
+              onClick={() => setPercentage(pct)}
+            >
+              {pct === 100 ? "MAX" : `${pct}%`}
+            </Button>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

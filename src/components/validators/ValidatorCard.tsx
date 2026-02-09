@@ -1,4 +1,5 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { Link } from "react-router-dom"
 import type { Address } from "viem"
 import { useAccount } from "wagmi"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -10,22 +11,32 @@ import { UndelegateDialog } from "@/components/staking/UndelegateDialog"
 import { useValidatorTotalStake, useUserStakeOnValidator } from "@/hooks/useStakingReads"
 import { useValidatorMetadata } from "@/hooks/useValidatorMetadata"
 import { truncateAddress, formatTokenAmount } from "@/lib/format"
+import { copyToClipboard } from "@/lib/clipboard"
+import { useToast } from "@/hooks/useToast"
 
 interface ValidatorCardProps {
   validator: Address
   isActive: boolean
+  autoOpenDelegate?: boolean
 }
 
-export function ValidatorCard({ validator, isActive }: ValidatorCardProps) {
+export function ValidatorCard({ validator, isActive, autoOpenDelegate }: ValidatorCardProps) {
   const { isConnected } = useAccount()
   const { data: totalStake, isLoading: loadingTotal } = useValidatorTotalStake(validator)
   const { data: userStake, isLoading: loadingUser } = useUserStakeOnValidator(validator)
   const metadata = useValidatorMetadata(validator)
+  const { toast } = useToast()
   const [delegateOpen, setDelegateOpen] = useState(false)
   const [undelegateOpen, setUndelegateOpen] = useState(false)
 
   const userStakeAmount = userStake as bigint | undefined
   const hasStake = userStakeAmount !== undefined && userStakeAmount > 0n
+
+  useEffect(() => {
+    if (autoOpenDelegate && isActive) {
+      setDelegateOpen(true)
+    }
+  }, [autoOpenDelegate, isActive])
 
   return (
     <>
@@ -33,7 +44,9 @@ export function ValidatorCard({ validator, isActive }: ValidatorCardProps) {
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <CardTitle className="text-base">
-              {metadata ? metadata.label : <span className="font-mono">{truncateAddress(validator)}</span>}
+              <Link to={`/validators/${validator}`} className="hover:underline">
+                {metadata ? metadata.label : <span className="font-mono">{truncateAddress(validator)}</span>}
+              </Link>
             </CardTitle>
             {isActive ? (
               <Badge variant="secondary">Active</Badge>
@@ -42,7 +55,16 @@ export function ValidatorCard({ validator, isActive }: ValidatorCardProps) {
             )}
           </div>
           {metadata && (
-            <p className="text-xs font-mono text-muted-foreground">{truncateAddress(validator)}</p>
+            <button
+              className="text-xs font-mono text-muted-foreground hover:text-foreground transition-colors text-left"
+              onClick={async () => {
+                const ok = await copyToClipboard(validator)
+                if (ok) toast({ variant: "success", title: "Address copied" })
+              }}
+              title="Copy validator address"
+            >
+              {truncateAddress(validator)}
+            </button>
           )}
         </CardHeader>
         <CardContent className="space-y-3">

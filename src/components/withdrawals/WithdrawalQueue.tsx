@@ -5,7 +5,9 @@ import { useToast } from "@/hooks/useToast"
 import { formatContractError } from "@/lib/errorFormat"
 import { WithdrawalCard } from "./WithdrawalCard"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
 import { useEffect } from "react"
+import { Info } from "lucide-react"
 
 export function WithdrawalQueue() {
   const { isConnected } = useAccount()
@@ -55,6 +57,19 @@ export function WithdrawalQueue() {
 
   return (
     <div className="space-y-3">
+      <div className="flex items-center gap-2">
+        <h2 className="text-lg font-semibold">Pending Withdrawals</h2>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button className="text-muted-foreground hover:text-foreground">
+              <Info className="h-4 w-4" />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="right" className="max-w-xs">
+            Withdrawals are processed in FIFO order. The oldest withdrawal must be claimed first before newer ones become available.
+          </TooltipContent>
+        </Tooltip>
+      </div>
       {items.map((w, i) => (
         <WithdrawalCard
           key={i}

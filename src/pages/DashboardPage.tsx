@@ -1,7 +1,13 @@
 import { StatsOverview } from "@/components/dashboard/StatsOverview"
+import { ClaimableBanner } from "@/components/dashboard/ClaimableBanner"
+import { QuickActions } from "@/components/dashboard/QuickActions"
 import { EligibilityNotice } from "@/components/dashboard/EligibilityNotice"
 import { RewardsSection } from "@/components/dashboard/RewardsSection"
+import { PortfolioBreakdown } from "@/components/dashboard/PortfolioBreakdown"
+import { StakeDistribution } from "@/components/dashboard/StakeDistribution"
 import { UserPositions } from "@/components/dashboard/UserPositions"
+import { TransactionHistory } from "@/components/dashboard/TransactionHistory"
+import { OnboardingBanner } from "@/components/onboarding/OnboardingBanner"
 
 export function DashboardPage() {
   return (
@@ -10,10 +16,16 @@ export function DashboardPage() {
         <h1 className="text-3xl font-bold">Dashboard</h1>
         <p className="text-muted-foreground">Overview of SAFE token delegation</p>
       </div>
+      <OnboardingBanner />
+      <ClaimableBanner />
       <StatsOverview />
+      <QuickActions />
       <EligibilityNotice />
       <RewardsSection />
+      <StakeDistribution />
+      <PortfolioBreakdown />
       <UserPositions />
+      <TransactionHistory />
     </div>
   )
 }

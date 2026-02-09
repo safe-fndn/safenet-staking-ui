@@ -14,7 +14,8 @@ import { useInitiateWithdrawal } from "@/hooks/useStakingWrites"
 import { useToast } from "@/hooks/useToast"
 import { truncateAddress, formatCountdown } from "@/lib/format"
 import { formatContractError } from "@/lib/errorFormat"
-import { Loader2, Info } from "lucide-react"
+import { useGasEstimate } from "@/hooks/useGasEstimate"
+import { Loader2, Info, Fuel } from "lucide-react"
 
 interface UndelegateDialogProps {
   validator: Address
@@ -31,6 +32,7 @@ export function UndelegateDialog({ validator, open, onOpenChange }: UndelegateDi
 
   const parsedAmount = amount ? parseEther(amount) : 0n
   const canUndelegate = parsedAmount > 0n && userStake !== undefined && parsedAmount <= (userStake as bigint)
+  const { estimatedCost: gasEstimate } = useGasEstimate("initiateWithdrawal", validator, parsedAmount)
 
   useEffect(() => {
     if (isSuccess) {
@@ -71,6 +73,13 @@ export function UndelegateDialog({ validator, open, onOpenChange }: UndelegateDi
           maxAmount={userStake as bigint | undefined}
           label="Undelegate Amount"
         />
+
+        {gasEstimate && (
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <Fuel className="h-3.5 w-3.5" />
+            <span>Estimated gas: ~{parseFloat(gasEstimate).toFixed(6)} ETH</span>
+          </div>
+        )}
 
         {withdrawDelay !== undefined && (
           <div className="flex items-center gap-2 rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground">

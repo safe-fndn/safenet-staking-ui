@@ -1,9 +1,11 @@
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { Progress } from "@/components/ui/progress"
 import { CountdownTimer } from "./CountdownTimer"
 import { formatTokenAmount, formatTimestamp } from "@/lib/format"
 import { useCountdown } from "@/hooks/useCountdown"
-import { Loader2 } from "lucide-react"
+import { useWithdrawDelay } from "@/hooks/useStakingReads"
+import { Loader2, CheckCircle } from "lucide-react"
 
 interface WithdrawalCardProps {
   amount: bigint
@@ -16,38 +18,60 @@ interface WithdrawalCardProps {
 
 export function WithdrawalCard({ amount, claimableAt, isFirst, onClaim, isSigningTx, isConfirmingTx }: WithdrawalCardProps) {
   const secondsLeft = useCountdown(claimableAt)
+  const { data: withdrawDelay } = useWithdrawDelay()
   const canClaim = isFirst && secondsLeft === 0
   const isBusy = isSigningTx || isConfirmingTx
 
+  const totalDelay = withdrawDelay !== undefined ? Number(withdrawDelay) : 0
+  const progress = totalDelay > 0 ? Math.min(100, ((totalDelay - secondsLeft) / totalDelay) * 100) : (secondsLeft === 0 ? 100 : 0)
+
   return (
     <Card>
-      <CardContent className="flex items-center justify-between p-4">
-        <div className="space-y-1">
-          <p className="text-lg font-semibold">{formatTokenAmount(amount)} SAFE</p>
-          <p className="text-xs text-muted-foreground">
-            Claimable at: {formatTimestamp(claimableAt)}
-          </p>
+      <CardContent className="p-4 space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="space-y-1">
+            <p className="text-lg font-semibold">{formatTokenAmount(amount)} SAFE</p>
+            <p className="text-xs text-muted-foreground">
+              Claimable at: {formatTimestamp(claimableAt)}
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            {secondsLeft > 0 ? (
+              <CountdownTimer claimableAt={claimableAt} />
+            ) : (
+              <div className="flex items-center gap-1.5 text-success text-sm font-medium">
+                <CheckCircle className="h-4 w-4" />
+                Ready to claim
+              </div>
+            )}
+            {canClaim && (
+              <Button size="sm" onClick={onClaim} disabled={isBusy}>
+                {isSigningTx ? (
+                  <>
+                    <Loader2 className="animate-spin" />
+                    Confirm in Wallet...
+                  </>
+                ) : isConfirmingTx ? (
+                  <>
+                    <Loader2 className="animate-spin" />
+                    Confirming on chain...
+                  </>
+                ) : (
+                  "Claim"
+                )}
+              </Button>
+            )}
+          </div>
         </div>
-        <div className="flex items-center gap-3">
-          <CountdownTimer claimableAt={claimableAt} />
-          {canClaim && (
-            <Button size="sm" onClick={onClaim} disabled={isBusy}>
-              {isSigningTx ? (
-                <>
-                  <Loader2 className="animate-spin" />
-                  Confirm in Wallet...
-                </>
-              ) : isConfirmingTx ? (
-                <>
-                  <Loader2 className="animate-spin" />
-                  Confirming on chain...
-                </>
-              ) : (
-                "Claim"
-              )}
-            </Button>
-          )}
-        </div>
+        {secondsLeft > 0 && (
+          <div className="space-y-1">
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <span>Cooldown progress</span>
+              <span>{Math.round(progress)}%</span>
+            </div>
+            <Progress value={progress} size="sm" />
+          </div>
+        )}
       </CardContent>
     </Card>
   )

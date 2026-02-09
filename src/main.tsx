@@ -4,6 +4,7 @@ import { WagmiProvider } from "wagmi"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { config } from "@/config/wagmi"
 import { ToastProvider } from "@/hooks/useToast"
+import { TooltipProvider } from "@/components/ui/tooltip"
 import App from "./App"
 import "./index.css"
 
@@ -13,9 +14,11 @@ createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <WagmiProvider config={config}>
       <QueryClientProvider client={queryClient}>
-        <ToastProvider>
-          <App />
-        </ToastProvider>
+        <TooltipProvider>
+          <ToastProvider>
+            <App />
+          </ToastProvider>
+        </TooltipProvider>
       </QueryClientProvider>
     </WagmiProvider>
   </StrictMode>,
