@@ -1,0 +1,44 @@
+name: Deploy to IPFS
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-ipfs
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - run: npm ci
+      - run: npm run build
+
+      - name: Upload to IPFS via Storacha
+        uses: storacha/add-to-web3@v4
+        id: storacha
+        with:
+          path_to_add: dist
+          secret_key: ${{ secrets.STORACHA_PRINCIPAL }}
+          proof: ${{ secrets.STORACHA_PROOF }}
+
+      # dweb.link does not set restrictive CSP headers, unlike w3s.link / storacha.link
+      # which block outbound fetch() to external RPC endpoints.
+      - name: Print deployment URL
+        env:
+          CID: ${{ steps.storacha.outputs.cid }}
+        run: |
+          echo "CID:  ${CID}"
+          echo "URL:  https://${CID}.ipfs.dweb.link/"
+          echo "### IPFS Deployment" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **CID:** \`${CID}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **URL:** https://${CID}.ipfs.dweb.link/" >> "$GITHUB_STEP_SUMMARY"

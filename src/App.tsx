@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react"
-import { BrowserRouter, Routes, Route } from "react-router-dom"
+import { HashRouter, Routes, Route } from "react-router-dom"
 import { useAccount } from "wagmi"
 import { Layout } from "@/components/layout/Layout"
 import { Toaster } from "@/components/ui/toaster"
@@ -50,7 +50,7 @@ function App() {
   }
 
   return (
-    <BrowserRouter>
+    <HashRouter>
       <DisconnectWatcher />
       <Routes>
         <Route element={<Layout />}>
@@ -62,7 +62,7 @@ function App() {
         </Route>
       </Routes>
       <Toaster />
-    </BrowserRouter>
+    </HashRouter>
   )
 }
 
