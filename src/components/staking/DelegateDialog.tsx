@@ -54,7 +54,8 @@ export function DelegateDialog({ validator, open, onOpenChange }: DelegateDialog
   const { data: withdrawDelay } = useWithdrawDelay()
   const { toast } = useToast()
 
-  const parsedAmount = amount ? parseEther(amount) : 0n
+  let parsedAmount = 0n
+  try { if (amount) parsedAmount = parseEther(amount) } catch { /* invalid input */ }
   const needsApproval = allowance !== undefined && parsedAmount > 0n && allowance < parsedAmount
   const balanceValue = balance as bigint | undefined
   const hasZeroBalance = balanceValue !== undefined && balanceValue === 0n

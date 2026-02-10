@@ -32,7 +32,8 @@ export function UndelegateDialog({ validator, open, onOpenChange }: UndelegateDi
   const { data: withdrawDelay } = useWithdrawDelay()
   const { toast } = useToast()
 
-  const parsedAmount = amount ? parseEther(amount) : 0n
+  let parsedAmount = 0n
+  try { if (amount) parsedAmount = parseEther(amount) } catch { /* invalid input */ }
   const canUndelegate = parsedAmount > 0n && userStake !== undefined && parsedAmount <= (userStake as bigint)
   const { estimatedCost: gasEstimate } = useGasEstimate("initiateWithdrawal", validator, parsedAmount)
 

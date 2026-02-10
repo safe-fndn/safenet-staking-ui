@@ -59,6 +59,6 @@ export function formatContractError(error: Error): string {
     return "Network error — please try again"
   }
 
-  // 6. Fallback — truncated message
-  return msg.slice(0, 200)
+  // 6. Fallback — generic message (avoid leaking RPC URLs or internal state)
+  return "An unexpected error occurred. Please try again."
 }
