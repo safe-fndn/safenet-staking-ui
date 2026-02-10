@@ -1,9 +1,12 @@
+@import "@fontsource-variable/dm-sans";
 @import "tailwindcss";
 
 @custom-variant dark (&:is(.dark *));
 
 /* Safe Global palette — light mode */
 :root {
+  /* Override WalletConnect modal font to use self-hosted DM Sans (avoids fonts.reown.com fetch) */
+  --w3m-font-family: "DM Sans Variable", "DM Sans", ui-sans-serif, system-ui, sans-serif;
   --background: #F4F4F4;
   --foreground: #121312;
   --card: #FFFFFF;
@@ -60,7 +63,7 @@
 }
 
 @theme inline {
-  --font-sans: "DM Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "DM Sans Variable", "DM Sans", ui-sans-serif, system-ui, sans-serif;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);

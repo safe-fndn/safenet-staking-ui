@@ -9,11 +9,32 @@ import { useWalletSanctionsCheck } from "@/hooks/useWalletSanctionsCheck"
 import { useToast } from "@/hooks/useToast"
 import Loader2 from "lucide-react/dist/esm/icons/loader-2"
 
-const DashboardPage = lazy(() => import("@/pages/DashboardPage").then(m => ({ default: m.DashboardPage })))
-const ValidatorsPage = lazy(() => import("@/pages/ValidatorsPage").then(m => ({ default: m.ValidatorsPage })))
-const ValidatorDetailPage = lazy(() => import("@/pages/ValidatorDetailPage").then(m => ({ default: m.ValidatorDetailPage })))
-const WithdrawalsPage = lazy(() => import("@/pages/WithdrawalsPage").then(m => ({ default: m.WithdrawalsPage })))
-const NotFoundPage = lazy(() => import("@/pages/NotFoundPage").then(m => ({ default: m.NotFoundPage })))
+const pageImports = {
+  Dashboard: () => import("@/pages/DashboardPage").then(m => ({ default: m.DashboardPage })),
+  Validators: () => import("@/pages/ValidatorsPage").then(m => ({ default: m.ValidatorsPage })),
+  ValidatorDetail: () => import("@/pages/ValidatorDetailPage").then(m => ({ default: m.ValidatorDetailPage })),
+  Withdrawals: () => import("@/pages/WithdrawalsPage").then(m => ({ default: m.WithdrawalsPage })),
+  NotFound: () => import("@/pages/NotFoundPage").then(m => ({ default: m.NotFoundPage })),
+}
+
+const DashboardPage = lazy(pageImports.Dashboard)
+const ValidatorsPage = lazy(pageImports.Validators)
+const ValidatorDetailPage = lazy(pageImports.ValidatorDetail)
+const WithdrawalsPage = lazy(pageImports.Withdrawals)
+const NotFoundPage = lazy(pageImports.NotFound)
+
+// Preload all route chunks after initial render so IPFS-hosted builds are warm
+function preloadAllRoutes() {
+  for (const load of Object.values(pageImports)) {
+    void load()
+  }
+}
+
+if ("requestIdleCallback" in window) {
+  requestIdleCallback(preloadAllRoutes)
+} else {
+  setTimeout(preloadAllRoutes, 1000)
+}
 
 function DisconnectWatcher() {
   const { isConnected } = useAccount()
