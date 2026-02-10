@@ -15,10 +15,15 @@ permissions:
 
 jobs:
   build:
+    permissions:
+      contents: read
+    timeout-minutes: 20
     runs-on: ubuntu-24.04
     steps:
       # Pin actions to full SHA — mutable tags (v4) can be hijacked
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
 
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
@@ -28,6 +33,9 @@ jobs:
       # --ignore-scripts blocks postinstall hooks from compromised packages
       - name: Install dependencies (no lifecycle scripts)
         run: npm ci --ignore-scripts
+
+      - name: Audit dependencies (high severity and above)
+        run: npm audit --audit-level=high
 
       - name: Build
         run: npm run build
@@ -44,9 +52,17 @@ jobs:
           name: dist
           path: dist
           retention-days: 14
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: build-manifest
+          path: /tmp/build-checksums.txt
+          retention-days: 14
 
   deploy:
     needs: build
+    permissions:
+      contents: read
+    timeout-minutes: 15
     runs-on: ubuntu-24.04
     # Require manual approval via GitHub Environment protection rules
     # Set up at: Settings > Environments > production > Required reviewers
@@ -55,6 +71,7 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           sparse-checkout: scripts
+          persist-credentials: false
 
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
@@ -63,12 +80,19 @@ jobs:
       # Only install the deploy script's dependency, not the full tree
       # --ignore-scripts blocks postinstall hooks (Pinata SDK is pure JS, no scripts needed)
       - name: Install Pinata SDK
-        run: npm install --no-save --ignore-scripts pinata
+        run: npm install --no-save --ignore-scripts pinata@2.5.4
 
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: dist
           path: dist
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: build-manifest
+          path: .
+
+      - name: Verify artifact checksums
+        run: sha256sum -c build-checksums.txt
 
       # Artifact integrity is verified by download-artifact v4's built-in
       # SHA256 digest check (visible in the download step logs above).
