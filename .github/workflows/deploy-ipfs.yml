@@ -42,7 +42,7 @@ jobs:
 
       - name: Compute build checksum
         run: |
-          find dist -type f -exec sha256sum {} + | LC_ALL=C sort | tee /tmp/build-checksums.txt
+          find dist -type f ! -name '.gitkeep' -exec sha256sum {} + | LC_ALL=C sort | tee /tmp/build-checksums.txt
           HASH=$(sha256sum /tmp/build-checksums.txt | awk '{print $1}')
           echo "### Build Manifest" >> "$GITHUB_STEP_SUMMARY"
           echo "**Checksum:** \`${HASH}\`" >> "$GITHUB_STEP_SUMMARY"
