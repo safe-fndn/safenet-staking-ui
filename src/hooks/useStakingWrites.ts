@@ -8,21 +8,25 @@ import type { Address } from "viem"
 
 const addresses = getContractAddresses(activeChain.id)
 
-function useInvalidateOnSuccess(isSuccess: boolean) {
+export function useInvalidateOnSuccess(isSuccess: boolean, extraKeys: string[][] = []) {
   useEffect(() => {
     if (isSuccess) {
       queryClient.invalidateQueries({ queryKey: ["readContract"] })
       queryClient.invalidateQueries({ queryKey: ["readContracts"] })
-      queryClient.invalidateQueries({ queryKey: ["validators"] })
+      for (const key of extraKeys) {
+        queryClient.invalidateQueries({ queryKey: key })
+      }
     }
-  }, [isSuccess])
+  }, [isSuccess, extraKeys])
 }
+
+const STAKING_EXTRA_KEYS = [["validators"]]
 
 export function useStake() {
   const { writeContract, data: txHash, isPending, reset, error } = useWriteContract()
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash: txHash })
 
-  useInvalidateOnSuccess(isSuccess)
+  useInvalidateOnSuccess(isSuccess, STAKING_EXTRA_KEYS)
 
   function stake(validator: Address, amount: bigint) {
     writeContract({
@@ -40,7 +44,7 @@ export function useInitiateWithdrawal() {
   const { writeContract, data: txHash, isPending, reset, error } = useWriteContract()
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash: txHash })
 
-  useInvalidateOnSuccess(isSuccess)
+  useInvalidateOnSuccess(isSuccess, STAKING_EXTRA_KEYS)
 
   function initiateWithdrawal(validator: Address, amount: bigint) {
     writeContract({
@@ -58,7 +62,7 @@ export function useClaimWithdrawal() {
   const { writeContract, data: txHash, isPending, reset, error } = useWriteContract()
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash: txHash })
 
-  useInvalidateOnSuccess(isSuccess)
+  useInvalidateOnSuccess(isSuccess, STAKING_EXTRA_KEYS)
 
   function claimWithdrawal() {
     writeContract({

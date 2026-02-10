@@ -1,6 +1,6 @@
 import Info from "lucide-react/dist/esm/icons/info"
 
-const docsUrl = import.meta.env.VITE_DOCS_URL || "#"
+const rewardsDocsUrl = "https://docs.safefoundation.org/safenet/protocol/rewards#minimum-payout-threshold"
 
 export function EligibilityNotice() {
   return (
@@ -8,18 +8,18 @@ export function EligibilityNotice() {
       <Info className="h-4 w-4 mt-0.5 shrink-0 text-muted-foreground" aria-hidden="true" />
       <div className="space-y-1">
         <p className="text-muted-foreground">
-          Rewards are subject to a $500 USD weekly cap per user.
-        </p>
-        <p className="text-muted-foreground">
-          KYC may be required —{" "}
+          Rewards are subject to a minimum payout threshold.{" "}
           <a
-            href={docsUrl}
+            href={rewardsDocsUrl}
             target="_blank"
             rel="noopener noreferrer"
             className="text-primary underline hover:text-primary/80"
           >
             Learn more
           </a>
+        </p>
+        <p className="text-muted-foreground">
+          KYC may be required to claim rewards.
         </p>
       </div>
     </div>

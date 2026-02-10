@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react"
+import { useEffect, useRef, type ReactNode } from "react"
 import { HashRouter, Routes, Route } from "react-router-dom"
 import { useAccount } from "wagmi"
 import { Layout } from "@/components/layout/Layout"
@@ -9,7 +9,9 @@ import { WithdrawalsPage } from "@/pages/WithdrawalsPage"
 import { ValidatorDetailPage } from "@/pages/ValidatorDetailPage"
 import { NotFoundPage } from "@/pages/NotFoundPage"
 import { SanctionsBlocked } from "@/components/SanctionsBlocked"
+import { WalletSanctioned } from "@/components/WalletSanctioned"
 import { useSanctionsCheck } from "@/hooks/useSanctionsCheck"
+import { useWalletSanctionsCheck } from "@/hooks/useWalletSanctionsCheck"
 import { useToast } from "@/hooks/useToast"
 import Loader2 from "lucide-react/dist/esm/icons/loader-2"
 
@@ -34,6 +36,24 @@ function DisconnectWatcher() {
   return null
 }
 
+function WalletSanctionsGate({ children }: { children: ReactNode }) {
+  const { allowed, isLoading } = useWalletSanctionsCheck()
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center" role="status" aria-live="polite">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" aria-hidden="true" />
+      </div>
+    )
+  }
+
+  if (!allowed) {
+    return <WalletSanctioned />
+  }
+
+  return <>{children}</>
+}
+
 function App() {
   const { allowed, isLoading } = useSanctionsCheck()
 
@@ -52,15 +72,17 @@ function App() {
   return (
     <HashRouter>
       <DisconnectWatcher />
-      <Routes>
-        <Route element={<Layout />}>
-          <Route path="/" element={<DashboardPage />} />
-          <Route path="/validators" element={<ValidatorsPage />} />
-          <Route path="/validators/:address" element={<ValidatorDetailPage />} />
-          <Route path="/withdrawals" element={<WithdrawalsPage />} />
-          <Route path="*" element={<NotFoundPage />} />
-        </Route>
-      </Routes>
+      <WalletSanctionsGate>
+        <Routes>
+          <Route element={<Layout />}>
+            <Route path="/" element={<DashboardPage />} />
+            <Route path="/validators" element={<ValidatorsPage />} />
+            <Route path="/validators/:address" element={<ValidatorDetailPage />} />
+            <Route path="/withdrawals" element={<WithdrawalsPage />} />
+            <Route path="*" element={<NotFoundPage />} />
+          </Route>
+        </Routes>
+      </WalletSanctionsGate>
       <Toaster />
     </HashRouter>
   )

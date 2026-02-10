@@ -5,6 +5,9 @@ const CUSTOM_ERROR_MESSAGES: Record<string, string> = {
   WithdrawalQueueEmpty: "No pending withdrawals to claim",
   NoClaimableWithdrawal: "No withdrawal is ready to claim yet",
   InvalidAddress: "Invalid address provided",
+  InvalidProof: "Invalid merkle proof — rewards data may be outdated",
+  NothingToClaim: "No rewards available to claim",
+  MerkleRootWasUpdated: "Rewards data was updated — please try again",
 }
 
 export function formatContractError(error: Error): string {
