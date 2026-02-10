@@ -37,12 +37,12 @@ jobs:
       - name: Compute build checksum
         id: checksum
         run: |
-          LC_ALL=C find dist -type f -print0 | LC_ALL=C sort -z | xargs -0 sha256sum > /tmp/build-checksums.txt
+          find dist -type f -exec sha256sum {} + | LC_ALL=C sort > /tmp/build-checksums.txt
           HASH=$(sha256sum /tmp/build-checksums.txt | awk '{print $1}')
           echo "hash=${HASH}" >> "$GITHUB_OUTPUT"
           echo "### Build Manifest" >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
-          echo "${HASH}  /tmp/build-checksums.txt" >> "$GITHUB_STEP_SUMMARY"
+          echo "${HASH}" >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
 
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
@@ -80,12 +80,15 @@ jobs:
         env:
           EXPECTED: ${{ needs.build.outputs.build-checksum }}
         run: |
-          LC_ALL=C find dist -type f -print0 | LC_ALL=C sort -z | xargs -0 sha256sum > /tmp/build-checksums.txt
+          find dist -type f -exec sha256sum {} + | LC_ALL=C sort > /tmp/build-checksums.txt
           ACTUAL=$(sha256sum /tmp/build-checksums.txt | awk '{print $1}')
           echo "Expected: ${EXPECTED}"
           echo "Actual:   ${ACTUAL}"
           if [ "${ACTUAL}" != "${EXPECTED}" ]; then
             echo "::error::Artifact checksum mismatch — aborting deploy"
+            echo "::group::Per-file checksums (for debugging)"
+            cat /tmp/build-checksums.txt
+            echo "::endgroup::"
             exit 1
           fi
           echo "Artifact integrity verified"
