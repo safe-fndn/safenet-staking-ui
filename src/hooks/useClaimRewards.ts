@@ -3,6 +3,7 @@ import { merkleDropAbi } from "@/abi/merkleDropAbi"
 import { getContractAddresses } from "@/config/contracts"
 import { activeChain } from "@/config/chains"
 import { useInvalidateOnSuccess } from "./useStakingWrites"
+import { getAddress } from "viem"
 import type { Address, Hex } from "viem"
 
 const { merkleDrop } = getContractAddresses(activeChain.id)
@@ -22,11 +23,12 @@ export function useClaimRewards() {
     merkleProof: Hex[],
   ) {
     if (!merkleDrop) return
+    const normalizedAccount = getAddress(account)
     writeContract({
       address: merkleDrop,
       abi: merkleDropAbi,
       functionName: "claim",
-      args: [account, cumulativeAmount, expectedMerkleRoot, merkleProof],
+      args: [normalizedAccount, cumulativeAmount, expectedMerkleRoot, merkleProof],
     })
   }
 

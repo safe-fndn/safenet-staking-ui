@@ -25,9 +25,15 @@ export function RewardsSection() {
             <span className="font-semibold">{formatTokenAmount(rewards.claimable)} SAFE</span>
           </div>
 
-          <p className="text-xs text-muted-foreground">
-            Rewards become available for claiming every 2 weeks based on delegation activity.
-          </p>
+          {rewards.rootStale ? (
+            <p className="text-xs text-amber-600">
+              Rewards data is being updated. Claiming will be available again shortly.
+            </p>
+          ) : (
+            <p className="text-xs text-muted-foreground">
+              Rewards become available for claiming every 2 weeks based on delegation activity.
+            </p>
+          )}
 
           <Button
             className="w-full"

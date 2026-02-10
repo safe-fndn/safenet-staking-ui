@@ -40,7 +40,7 @@ export function useUserTotalStake() {
     address: addresses.staking,
     abi: stakingAbi,
     functionName: "totalStakerStakes",
-    args: [address!],
+    args: address ? [address] : undefined,
     query: { enabled: !!address, refetchInterval: POLL_INTERVAL },
   })
 }
@@ -51,7 +51,7 @@ export function useUserStakeOnValidator(validator: Address) {
     address: addresses.staking,
     abi: stakingAbi,
     functionName: "stakes",
-    args: [address!, validator],
+    args: address ? [address, validator] : undefined,
     query: { enabled: !!address, refetchInterval: POLL_INTERVAL },
   })
 }
@@ -73,7 +73,7 @@ export function useUserStakesOnValidators(validators: Address[]) {
       address: addresses.staking,
       abi: stakingAbi,
       functionName: "stakes" as const,
-      args: [address!, v],
+      args: address ? [address, v] as const : undefined,
     })),
     query: { enabled: !!address && validators.length > 0, refetchInterval: POLL_INTERVAL },
   })

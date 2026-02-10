@@ -9,6 +9,7 @@ const { merkleDrop } = getContractAddresses(activeChain.id)
 export interface RewardsData {
   claimable: bigint
   canClaim: boolean
+  rootStale: boolean
 }
 
 export function useRewards() {
@@ -26,22 +27,34 @@ export function useRewards() {
     },
   })
 
+  const { data: onChainRoot } = useReadContract({
+    address: merkleDrop,
+    abi: merkleDropAbi,
+    functionName: "merkleRoot",
+    query: {
+      enabled: !!merkleDrop,
+      staleTime: 60_000,
+    },
+  })
+
   const isLoading = isProofLoading || isClaimedLoading
 
   if (!proof || cumulativeClaimed === undefined) {
     return {
-      data: { claimable: 0n, canClaim: false },
+      data: { claimable: 0n, canClaim: false, rootStale: false },
       isLoading,
     }
   }
 
   const cumulativeAmount = BigInt(proof.cumulativeAmount)
   const claimable = cumulativeAmount > cumulativeClaimed ? cumulativeAmount - cumulativeClaimed : 0n
+  const rootStale = !!onChainRoot && onChainRoot !== proof.merkleRoot
 
   return {
     data: {
       claimable,
-      canClaim: claimable > 0n,
+      canClaim: claimable > 0n && !rootStale,
+      rootStale,
     },
     isLoading,
   }

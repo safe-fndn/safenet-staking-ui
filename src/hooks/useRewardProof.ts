@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query"
+import { getAddress } from "viem"
 import type { Address, Hex } from "viem"
 
 export interface RewardProof {
@@ -20,7 +21,8 @@ function isValidProof(data: unknown): data is RewardProof {
 }
 
 async function fetchProof(address: Address): Promise<RewardProof | null> {
-  const url = `${import.meta.env.BASE_URL}rewards/proofs/${address.toLowerCase()}.json`
+  const normalized = getAddress(address)
+  const url = `${import.meta.env.BASE_URL}rewards/proofs/${normalized.toLowerCase()}.json`
   const response = await fetch(url)
   if (response.status === 404) return null
   if (!response.ok) throw new Error(`Failed to fetch reward proof: ${response.status}`)

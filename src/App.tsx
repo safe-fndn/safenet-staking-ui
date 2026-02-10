@@ -8,8 +8,7 @@ import { ValidatorsPage } from "@/pages/ValidatorsPage"
 import { WithdrawalsPage } from "@/pages/WithdrawalsPage"
 import { ValidatorDetailPage } from "@/pages/ValidatorDetailPage"
 import { NotFoundPage } from "@/pages/NotFoundPage"
-import { SanctionsBlocked } from "@/components/SanctionsBlocked"
-import { WalletSanctioned } from "@/components/WalletSanctioned"
+import { RestrictedScreen } from "@/components/RestrictedScreen"
 import { useSanctionsCheck } from "@/hooks/useSanctionsCheck"
 import { useWalletSanctionsCheck } from "@/hooks/useWalletSanctionsCheck"
 import { useToast } from "@/hooks/useToast"
@@ -48,7 +47,7 @@ function WalletSanctionsGate({ children }: { children: ReactNode }) {
   }
 
   if (!allowed) {
-    return <WalletSanctioned />
+    return <RestrictedScreen title="Wallet Restricted" description="This wallet address has been flagged and cannot use SAFE Staking." />
   }
 
   return <>{children}</>
@@ -66,7 +65,7 @@ function App() {
   }
 
   if (!allowed) {
-    return <SanctionsBlocked />
+    return <RestrictedScreen title="Access Restricted" description="SAFE Staking and Rewards are unavailable in your region." linkText="Learn more about eligibility here" />
   }
 
   return (
