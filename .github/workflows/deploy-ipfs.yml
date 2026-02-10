@@ -23,22 +23,21 @@ jobs:
       - run: npm ci
       - run: npm run build
 
-      - name: Upload to IPFS via Storacha
-        uses: storacha/add-to-web3@v4
-        id: storacha
-        with:
-          path_to_add: dist
-          secret_key: ${{ secrets.STORACHA_PRINCIPAL }}
-          proof: ${{ secrets.STORACHA_PROOF }}
+      - name: Upload to IPFS via Pinata
+        id: pinata
+        env:
+          PINATA_JWT: ${{ secrets.PINATA_JWT }}
+          PINATA_GATEWAY: ${{ secrets.PINATA_GATEWAY }}
+        run: node scripts/deploy-ipfs.mjs --skip-build 2>&1 | tee /tmp/pinata-output.txt
 
-      # dweb.link does not set restrictive CSP headers, unlike w3s.link / storacha.link
-      # which block outbound fetch() to external RPC endpoints.
       - name: Print deployment URL
         env:
-          CID: ${{ steps.storacha.outputs.cid }}
+          PINATA_GATEWAY: ${{ secrets.PINATA_GATEWAY }}
         run: |
+          CID=$(grep '^CID:' /tmp/pinata-output.txt | awk '{print $2}')
           echo "CID:  ${CID}"
-          echo "URL:  https://${CID}.ipfs.dweb.link/"
+          echo "URL:  https://${PINATA_GATEWAY}/ipfs/${CID}"
           echo "### IPFS Deployment" >> "$GITHUB_STEP_SUMMARY"
           echo "- **CID:** \`${CID}\`" >> "$GITHUB_STEP_SUMMARY"
-          echo "- **URL:** https://${CID}.ipfs.dweb.link/" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Gateway:** https://${PINATA_GATEWAY}/ipfs/${CID}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **dweb.link:** https://${CID}.ipfs.dweb.link/" >> "$GITHUB_STEP_SUMMARY"

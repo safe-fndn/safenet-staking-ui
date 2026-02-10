@@ -1,27 +1,24 @@
 #!/usr/bin/env node
 
 /**
- * Deploy the built dist/ directory to IPFS via Storacha.
+ * Deploy the built dist/ directory to IPFS via Pinata.
  *
- * Prerequisites (one-time local setup):
- *   npx storacha login you@example.com   # verify email, select plan
- *   npx storacha space create safenet-staking-ui
+ * Required environment variables:
+ *   PINATA_JWT          — API JWT from https://app.pinata.cloud/developers/api-keys
+ *   PINATA_GATEWAY      — Your dedicated gateway domain (e.g. "my-gateway.mypinata.cloud")
  *
  * Usage:
- *   node scripts/deploy-ipfs.mjs          # build + upload
- *   node scripts/deploy-ipfs.mjs --skip-build  # upload only (dist/ must exist)
+ *   node scripts/deploy-ipfs.mjs              # build + upload
+ *   node scripts/deploy-ipfs.mjs --skip-build # upload only (dist/ must exist)
  */
 
 import { execSync } from "node:child_process";
-import { existsSync } from "node:fs";
-import { resolve } from "node:path";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { resolve, relative, join } from "node:path";
+import { PinataSDK } from "pinata";
 
 const ROOT = resolve(import.meta.dirname, "..");
 const DIST = resolve(ROOT, "dist");
-
-// dweb.link does not set restrictive CSP headers, unlike w3s.link / storacha.link
-// which block outbound fetch() to external RPC endpoints.
-const GATEWAY = "dweb.link";
 
 const skipBuild = process.argv.includes("--skip-build");
 
@@ -30,7 +27,39 @@ function run(cmd, opts = {}) {
   return execSync(cmd, { cwd: ROOT, ...opts });
 }
 
-// 1. Build
+/** Recursively collect all files in a directory into File objects. */
+function collectFiles(dir, base = dir) {
+  const files = [];
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const fullPath = join(dir, entry.name);
+    if (entry.isDirectory()) {
+      files.push(...collectFiles(fullPath, base));
+    } else {
+      const relativePath = relative(base, fullPath);
+      const content = readFileSync(fullPath);
+      files.push(new File([content], relativePath));
+    }
+  }
+  return files;
+}
+
+// --- Validate env ---
+const jwt = process.env.PINATA_JWT;
+const gateway = process.env.PINATA_GATEWAY;
+
+if (!jwt) {
+  console.error("Error: PINATA_JWT environment variable is required.");
+  console.error("Get one at https://app.pinata.cloud/developers/api-keys");
+  process.exit(1);
+}
+
+if (!gateway) {
+  console.error("Error: PINATA_GATEWAY environment variable is required.");
+  console.error("Find yours at https://app.pinata.cloud/gateway");
+  process.exit(1);
+}
+
+// --- 1. Build ---
 if (!skipBuild) {
   console.log("\n--- Building production bundle ---");
   run("npm run build", { stdio: "inherit" });
@@ -41,11 +70,24 @@ if (!existsSync(resolve(DIST, "index.html"))) {
   process.exit(1);
 }
 
-// 2. Upload to Storacha / IPFS
-console.log("\n--- Uploading dist/ to IPFS via Storacha ---");
-const output = run(`npx storacha up ${DIST} --json`, { encoding: "utf-8" });
-const { root } = JSON.parse(output);
-const cid = root["/"];
+// --- 2. Upload to Pinata / IPFS ---
+console.log("\n--- Uploading dist/ to IPFS via Pinata ---");
 
-console.log(`\nCID:  ${cid}`);
-console.log(`URL:  https://${cid}.ipfs.${GATEWAY}/`);
+const pinata = new PinataSDK({
+  pinataJwt: jwt,
+  pinataGateway: gateway,
+});
+
+const files = collectFiles(DIST);
+console.log(`Collected ${files.length} files from dist/`);
+
+const upload = await pinata.upload.public
+  .fileArray(files)
+  .name("safenet-staking-ui");
+
+const cid = upload.cid;
+const gatewayUrl = `https://${gateway}/ipfs/${cid}`;
+
+console.log(`\nCID:      ${cid}`);
+console.log(`Gateway:  ${gatewayUrl}`);
+console.log(`IPFS:     ipfs://${cid}`);
