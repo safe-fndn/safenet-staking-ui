@@ -37,7 +37,7 @@ jobs:
       - name: Compute build checksum
         id: checksum
         run: |
-          find dist -type f -print0 | sort -z | xargs -0 sha256sum > /tmp/build-checksums.txt
+          LC_ALL=C find dist -type f -print0 | LC_ALL=C sort -z | xargs -0 sha256sum > /tmp/build-checksums.txt
           HASH=$(sha256sum /tmp/build-checksums.txt | awk '{print $1}')
           echo "hash=${HASH}" >> "$GITHUB_OUTPUT"
           echo "### Build Manifest" >> "$GITHUB_STEP_SUMMARY"
@@ -80,7 +80,7 @@ jobs:
         env:
           EXPECTED: ${{ needs.build.outputs.build-checksum }}
         run: |
-          find dist -type f -print0 | sort -z | xargs -0 sha256sum > /tmp/build-checksums.txt
+          LC_ALL=C find dist -type f -print0 | LC_ALL=C sort -z | xargs -0 sha256sum > /tmp/build-checksums.txt
           ACTUAL=$(sha256sum /tmp/build-checksums.txt | awk '{print $1}')
           echo "Expected: ${EXPECTED}"
           echo "Actual:   ${ACTUAL}"
