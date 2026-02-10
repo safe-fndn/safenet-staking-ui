@@ -1,6 +1,8 @@
+import { Suspense } from "react"
 import { Outlet } from "react-router-dom"
 import { Header } from "./Header"
 import { Footer } from "./Footer"
+import Loader2 from "lucide-react/dist/esm/icons/loader-2"
 
 export function Layout() {
   return (
@@ -10,7 +12,9 @@ export function Layout() {
       </a>
       <Header />
       <main id="main-content" className="container mx-auto flex-1 px-4 py-8">
-        <Outlet />
+        <Suspense fallback={<div className="flex items-center justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>}>
+          <Outlet />
+        </Suspense>
       </main>
       <Footer />
     </div>

@@ -11,7 +11,7 @@ export function usePendingWithdrawals() {
     address: addresses.staking,
     abi: stakingAbi,
     functionName: "getPendingWithdrawals",
-    args: [address!],
+    args: address ? [address] : undefined,
     query: { enabled: !!address },
   })
 }
@@ -22,7 +22,7 @@ export function useNextClaimable() {
     address: addresses.staking,
     abi: stakingAbi,
     functionName: "getNextClaimableWithdrawal",
-    args: [address!],
+    args: address ? [address] : undefined,
     query: { enabled: !!address },
   })
 }

@@ -100,8 +100,8 @@ export function UserPositions() {
   if (stakes) {
     for (let i = 0; i < validatorAddresses.length; i++) {
       const result = stakes[i]
-      if (result.status === "success") {
-        const amount = result.result as bigint
+      if (result.status === "success" && typeof result.result === "bigint") {
+        const amount = result.result
         if (amount > 0n) {
           const validator = validators.find((v) => v.address === validatorAddresses[i])
           positions.push({

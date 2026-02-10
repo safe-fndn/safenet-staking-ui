@@ -1,9 +1,11 @@
 import { useSearchParams } from "react-router-dom"
+import { isAddress } from "viem"
 import { ValidatorList } from "@/components/validators/ValidatorList"
 
 export function ValidatorsPage() {
   const [searchParams] = useSearchParams()
-  const delegateParam = searchParams.get("delegate") ?? undefined
+  const rawDelegate = searchParams.get("delegate")
+  const delegateParam = rawDelegate && isAddress(rawDelegate) ? rawDelegate : undefined
 
   return (
     <div className="space-y-8">

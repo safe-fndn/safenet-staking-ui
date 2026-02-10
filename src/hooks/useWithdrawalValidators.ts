@@ -28,12 +28,12 @@ export function useWithdrawalValidators() {
     address: addresses.staking,
     abi: stakingAbi,
     functionName: "withdrawalQueues",
-    args: [address!],
+    args: address ? [address] : undefined,
     query: { enabled: !!address },
   })
 
-  const head = queueData ? (queueData as [bigint, bigint])[0] : undefined
-  const tail = queueData ? (queueData as [bigint, bigint])[1] : undefined
+  const head = queueData?.[0]
+  const tail = queueData?.[1]
 
   return useQuery({
     queryKey: ["withdrawalValidators", address, head?.toString(), tail?.toString()],
@@ -81,8 +81,9 @@ export function useWithdrawalValidators() {
       // Build a map from withdrawalId → validator
       const idToValidator = new Map<bigint, Address>()
       for (const log of logs) {
-        const args = (log as unknown as { args: { validator: Address; withdrawalId: bigint } }).args
-        idToValidator.set(args.withdrawalId, args.validator)
+        if (log.args.withdrawalId !== undefined && log.args.validator) {
+          idToValidator.set(log.args.withdrawalId, log.args.validator)
+        }
       }
 
       // Pending items are IDs head through tail - 1

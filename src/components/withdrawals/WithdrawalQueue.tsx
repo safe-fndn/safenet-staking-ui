@@ -47,9 +47,7 @@ export function WithdrawalQueue() {
     )
   }
 
-  const items = withdrawals as readonly { amount: bigint; claimableAt: bigint }[] | undefined
-
-  if (!items || items.length === 0) {
+  if (!withdrawals || withdrawals.length === 0) {
     return (
       <div className="rounded-lg border p-8 text-center text-muted-foreground">
         No pending withdrawals.
@@ -72,7 +70,7 @@ export function WithdrawalQueue() {
           </TooltipContent>
         </Tooltip>
       </div>
-      {items.map((w, i) => (
+      {withdrawals.map((w, i) => (
         <WithdrawalCard
           key={i}
           amount={w.amount}

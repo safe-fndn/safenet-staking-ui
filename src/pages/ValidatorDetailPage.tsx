@@ -1,7 +1,7 @@
 import { useState } from "react"
 import { useParams, Link } from "react-router-dom"
 import { useAccount } from "wagmi"
-import type { Address } from "viem"
+import { isAddress, type Address } from "viem"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -39,11 +39,13 @@ export function ValidatorDetailPage() {
   const { address: validatorAddress } = useParams<{ address: string }>()
   const { isConnected } = useAccount()
   const { toast } = useToast()
-  const validator = validatorAddress as Address
+
+  const isValidAddress = !!validatorAddress && isAddress(validatorAddress)
+  const validator = isValidAddress ? (validatorAddress as Address) : ("0x0000000000000000000000000000000000000000" as Address)
 
   const { data: validators, isLoading: loadingValidators } = useValidators()
-  const validatorInfo = validators?.find((v) => v.address.toLowerCase() === validator?.toLowerCase())
-  const metadata = useValidatorMetadata(validator ?? "")
+  const validatorInfo = validators?.find((v) => v.address.toLowerCase() === validator.toLowerCase())
+  const metadata = useValidatorMetadata(validator)
   const { data: totalStake, isLoading: loadingTotal } = useValidatorTotalStake(validator)
   const { data: userStake, isLoading: loadingUser } = useUserStakeOnValidator(validator)
   const { data: txHistory, isLoading: loadingTx } = useTransactionHistory(validator)
@@ -54,6 +56,20 @@ export function ValidatorDetailPage() {
   const userStakeAmount = userStake as bigint | undefined
   const hasStake = userStakeAmount !== undefined && userStakeAmount > 0n
   const isActive = validatorInfo?.isActive ?? false
+
+  if (!isValidAddress) {
+    return (
+      <div className="space-y-4">
+        <Link to="/validators" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+          <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+          Back to Validators
+        </Link>
+        <div className="rounded-lg border p-8 text-center text-muted-foreground">
+          Invalid validator address.
+        </div>
+      </div>
+    )
+  }
 
   if (loadingValidators) {
     return (

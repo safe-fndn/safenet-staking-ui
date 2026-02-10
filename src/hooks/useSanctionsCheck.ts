@@ -27,9 +27,9 @@ export function useSanctionsCheck(): SanctionsResult {
           setAllowed(response.status !== 403)
         }
       } catch {
-        // On network error, allow access
+        // On network error, block access (fail-closed when sanctions API is configured)
         if (!cancelled) {
-          setAllowed(true)
+          setAllowed(false)
         }
       } finally {
         if (!cancelled) {

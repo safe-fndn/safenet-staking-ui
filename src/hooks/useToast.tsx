@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useState, type ReactNode } from "react"
+import { createContext, useContext } from "react"
 
 export type ToastVariant = "success" | "error" | "info"
 
@@ -10,39 +10,13 @@ export interface Toast {
   txHash?: string
 }
 
-interface ToastContextValue {
+export interface ToastContextValue {
   toasts: Toast[]
   toast: (t: Omit<Toast, "id">) => void
   dismiss: (id: number) => void
 }
 
-const ToastContext = createContext<ToastContextValue | null>(null)
-
-let nextId = 0
-
-export function ToastProvider({ children }: { children: ReactNode }) {
-  const [toasts, setToasts] = useState<Toast[]>([])
-
-  const dismiss = useCallback((id: number) => {
-    setToasts((prev) => prev.filter((t) => t.id !== id))
-  }, [])
-
-  const toast = useCallback(
-    (t: Omit<Toast, "id">) => {
-      const id = ++nextId
-      setToasts((prev) => [...prev, { ...t, id }])
-      const duration = t.variant === "error" ? 8000 : 5000
-      setTimeout(() => dismiss(id), duration)
-    },
-    [dismiss],
-  )
-
-  return (
-    <ToastContext.Provider value={{ toasts, toast, dismiss }}>
-      {children}
-    </ToastContext.Provider>
-  )
-}
+export const ToastContext = createContext<ToastContextValue | null>(null)
 
 export function useToast() {
   const ctx = useContext(ToastContext)

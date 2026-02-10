@@ -24,6 +24,9 @@ const addresses: Record<number, ContractAddresses> = {
 export function getContractAddresses(chainId: number): ContractAddresses {
   const addrs = addresses[chainId]
   if (!addrs) throw new Error(`No contract addresses for chain ${chainId}`)
+  if (addrs.staking === "0x0000000000000000000000000000000000000000") {
+    throw new Error(`Staking contract address not configured for chain ${chainId}`)
+  }
   return addrs
 }
 

@@ -1,18 +1,19 @@
-import { useEffect, useRef, type ReactNode } from "react"
+import { lazy, useEffect, useRef, type ReactNode } from "react"
 import { HashRouter, Routes, Route } from "react-router-dom"
 import { useAccount } from "wagmi"
 import { Layout } from "@/components/layout/Layout"
 import { Toaster } from "@/components/ui/toaster"
-import { DashboardPage } from "@/pages/DashboardPage"
-import { ValidatorsPage } from "@/pages/ValidatorsPage"
-import { WithdrawalsPage } from "@/pages/WithdrawalsPage"
-import { ValidatorDetailPage } from "@/pages/ValidatorDetailPage"
-import { NotFoundPage } from "@/pages/NotFoundPage"
 import { RestrictedScreen } from "@/components/RestrictedScreen"
 import { useSanctionsCheck } from "@/hooks/useSanctionsCheck"
 import { useWalletSanctionsCheck } from "@/hooks/useWalletSanctionsCheck"
 import { useToast } from "@/hooks/useToast"
 import Loader2 from "lucide-react/dist/esm/icons/loader-2"
+
+const DashboardPage = lazy(() => import("@/pages/DashboardPage").then(m => ({ default: m.DashboardPage })))
+const ValidatorsPage = lazy(() => import("@/pages/ValidatorsPage").then(m => ({ default: m.ValidatorsPage })))
+const ValidatorDetailPage = lazy(() => import("@/pages/ValidatorDetailPage").then(m => ({ default: m.ValidatorDetailPage })))
+const WithdrawalsPage = lazy(() => import("@/pages/WithdrawalsPage").then(m => ({ default: m.WithdrawalsPage })))
+const NotFoundPage = lazy(() => import("@/pages/NotFoundPage").then(m => ({ default: m.NotFoundPage })))
 
 function DisconnectWatcher() {
   const { isConnected } = useAccount()
