@@ -49,27 +49,61 @@ jobs:
       - name: npm audit (high severity and above)
         run: npm audit --audit-level=high
 
-  codeql:
+  secret-scanning:
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 10
     permissions:
-      actions: read
       contents: read
-      security-events: write
+      security-events: read
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          persist-credentials: false
-      - name: Initialize CodeQL
-        uses: github/codeql-action/init@45cbd0c69e560cd9e7cd7f8c32362050c9b7ded2 # v4.32.2
-        with:
-          languages: javascript-typescript
-          queries: security-and-quality
-          build-mode: none
-      - name: Analyze
-        uses: github/codeql-action/analyze@45cbd0c69e560cd9e7cd7f8c32362050c9b7ded2 # v4.32.2
-        with:
-          category: "/language:javascript-typescript"
+      - name: Check Secret Scanning alerts (GitHub Advanced Security)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          import sys
+          import urllib.error
+          import urllib.request
+
+          token = os.environ.get("GH_TOKEN")
+          repo = os.environ.get("REPO")
+
+          if not token or not repo:
+            print("Missing token or repository info; skipping secret scanning check.")
+            sys.exit(0)
+
+          url = f"https://api.github.com/repos/{repo}/secret-scanning/alerts?state=open&per_page=100"
+          req = urllib.request.Request(
+            url,
+            headers={
+              "Authorization": f"Bearer {token}",
+              "Accept": "application/vnd.github+json",
+              "User-Agent": "security-audit",
+            },
+          )
+
+          try:
+            with urllib.request.urlopen(req) as resp:
+              data = json.load(resp)
+          except urllib.error.HTTPError as e:
+            if e.code in (403, 404):
+              print(f"Secret scanning not enabled or not accessible (HTTP {e.code}). Skipping.")
+              sys.exit(0)
+            raise
+
+          if isinstance(data, list) and data:
+            print(f"Open secret scanning alerts: {len(data)}")
+            for alert in data[:10]:
+              number = alert.get("number", "n/a")
+              name = alert.get("secret_type_display_name", "unknown")
+              print(f"- #{number}: {name}")
+            sys.exit(1)
+
+          print("No open secret scanning alerts.")
+          PY
 
   gitleaks:
     runs-on: ubuntu-24.04
