@@ -27,12 +27,12 @@ jobs:
         id: pinata
         env:
           PINATA_JWT: ${{ secrets.PINATA_JWT }}
-          PINATA_GATEWAY: ${{ secrets.PINATA_GATEWAY }}
+          PINATA_GATEWAY: ${{ vars.PINATA_GATEWAY }}
         run: node scripts/deploy-ipfs.mjs --skip-build 2>&1 | tee /tmp/pinata-output.txt
 
       - name: Print deployment URL
         env:
-          PINATA_GATEWAY: ${{ secrets.PINATA_GATEWAY }}
+          PINATA_GATEWAY: ${{ vars.PINATA_GATEWAY }}
         run: |
           CID=$(grep '^CID:' /tmp/pinata-output.txt | awk '{print $2}')
           echo "CID:  ${CID}"
