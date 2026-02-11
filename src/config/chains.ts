@@ -12,5 +12,5 @@ const chainMap: Record<number, Chain> = {
 export const activeChain: Chain = chainMap[chainId] ?? sepolia
 
 export const transports = {
-  [activeChain.id]: http(rpcUrl, { batch: true }),
+  [activeChain.id]: http(rpcUrl, { batch: { wait: 50 } }),
 }

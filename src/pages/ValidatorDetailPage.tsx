@@ -11,30 +11,12 @@ import { UndelegateDialog } from "@/components/staking/UndelegateDialog"
 import { useValidatorTotalStake, useUserStakeOnValidator } from "@/hooks/useStakingReads"
 import { useValidators } from "@/hooks/useValidators"
 import { useValidatorMetadata } from "@/hooks/useValidatorMetadata"
-import { useTransactionHistory } from "@/hooks/useTransactionHistory"
 import { formatTokenAmount, truncateAddress } from "@/lib/format"
 import { copyToClipboard } from "@/lib/clipboard"
 import { useToast } from "@/hooks/useToast"
 import { activeChain } from "@/config/chains"
 import ArrowLeft from "lucide-react/dist/esm/icons/arrow-left"
 import Copy from "lucide-react/dist/esm/icons/copy"
-import ExternalLink from "lucide-react/dist/esm/icons/external-link"
-import ArrowUpRight from "lucide-react/dist/esm/icons/arrow-up-right"
-import ArrowDownLeft from "lucide-react/dist/esm/icons/arrow-down-left"
-import HandCoins from "lucide-react/dist/esm/icons/hand-coins"
-
-function getExplorerTxUrl(hash: string): string {
-  const explorers = activeChain.blockExplorers
-  const base = explorers?.default?.url ?? "https://sepolia.etherscan.io"
-  return `${base}/tx/${hash}`
-}
-
-const typeLabels = {
-  delegation: { label: "Staked", icon: ArrowUpRight, color: "text-success" },
-  withdrawal_initiated: { label: "Unstaked", icon: ArrowDownLeft, color: "text-warning" },
-  withdrawal_claimed: { label: "Claimed", icon: HandCoins, color: "text-info" },
-} as const
-
 export function ValidatorDetailPage() {
   const { address: validatorAddress } = useParams<{ address: string }>()
   const { isConnected } = useAccount()
@@ -48,8 +30,6 @@ export function ValidatorDetailPage() {
   const metadata = useValidatorMetadata(validator)
   const { data: totalStake, isLoading: loadingTotal } = useValidatorTotalStake(validator)
   const { data: userStake, isLoading: loadingUser } = useUserStakeOnValidator(validator)
-  const { data: txHistory, isLoading: loadingTx } = useTransactionHistory(validator)
-
   const [delegateOpen, setDelegateOpen] = useState(false)
   const [undelegateOpen, setUndelegateOpen] = useState(false)
 
@@ -176,53 +156,6 @@ export function ValidatorDetailPage() {
           )}
         </CardContent>
       </Card>
-
-      {isConnected && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Transaction History</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {loadingTx ? (
-              <div className="space-y-3">
-                {Array.from({ length: 3 }).map((_, i) => (
-                  <Skeleton key={i} className="h-10" />
-                ))}
-              </div>
-            ) : !txHistory || txHistory.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-4">No transactions with this validator.</p>
-            ) : (
-              <div>
-                {txHistory.map((tx, i) => {
-                  const config = typeLabels[tx.type]
-                  const Icon = config.icon
-                  return (
-                    <div key={`${tx.txHash}-${i}`} className="flex items-center justify-between py-3 border-b last:border-b-0">
-                      <div className="flex items-center gap-3">
-                        <Icon className={`h-4 w-4 ${config.color}`} />
-                        <Badge variant="outline" className="text-xs">{config.label}</Badge>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <span className="text-sm font-semibold">{formatTokenAmount(tx.amount)} SAFE</span>
-                        {tx.txHash && (
-                          <a
-                            href={getExplorerTxUrl(tx.txHash)}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-muted-foreground hover:text-foreground"
-                          >
-                            <ExternalLink className="h-3.5 w-3.5" />
-                          </a>
-                        )}
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
 
       <DelegateDialog validator={validator} open={delegateOpen} onOpenChange={setDelegateOpen} />
       <UndelegateDialog validator={validator} open={undelegateOpen} onOpenChange={setUndelegateOpen} />
