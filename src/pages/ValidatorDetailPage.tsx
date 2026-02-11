@@ -124,20 +124,20 @@ export function ValidatorDetailPage() {
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="rounded-lg border p-4">
-              <p className="text-sm text-muted-foreground">Total Staked</p>
+              <p className="text-sm text-muted-foreground">Total SAFE Staked</p>
               {loadingTotal ? (
                 <Skeleton className="h-7 w-32 mt-1" />
               ) : (
-                <p className="text-xl font-bold">{formatTokenAmount(totalStake as bigint ?? 0n)} SAFE</p>
+                <p className="text-xl font-bold">{formatTokenAmount(totalStake as bigint ?? 0n)}</p>
               )}
             </div>
             {isConnected && (
               <div className="rounded-lg border p-4">
-                <p className="text-sm text-muted-foreground">Your Stake</p>
+                <p className="text-sm text-muted-foreground">Your SAFE Staked</p>
                 {loadingUser ? (
                   <Skeleton className="h-7 w-32 mt-1" />
                 ) : (
-                  <p className="text-xl font-bold">{formatTokenAmount(userStakeAmount ?? 0n)} SAFE</p>
+                  <p className="text-xl font-bold">{formatTokenAmount(userStakeAmount ?? 0n)}</p>
                 )}
               </div>
             )}

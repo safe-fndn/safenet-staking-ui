@@ -35,7 +35,7 @@ const LazyPieChart = lazy(() =>
                 <div className="rounded-lg border bg-background p-2 shadow-md">
                   <p className="text-sm font-medium">{entry.name}</p>
                   <p className="text-xs text-muted-foreground">
-                    {formatTokenAmount(entry.amount)} SAFE
+                    {formatTokenAmount(entry.amount)}
                   </p>
                 </div>
               )

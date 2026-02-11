@@ -78,24 +78,24 @@ export function ValidatorCard({ validator, isActive, autoOpenDelegate, totalStak
           )}
 
           <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">Total Staked</span>
+            <span className="text-muted-foreground">Total SAFE Staked</span>
             {loadingTotal ? (
               <Skeleton className="h-4 w-24" />
             ) : (
               <span className="font-medium">
-                {formatTokenAmount(totalStake ?? 0n)} SAFE
+                {formatTokenAmount(totalStake ?? 0n)}
               </span>
             )}
           </div>
 
           {isConnected && (
             <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Your Stake</span>
+              <span className="text-muted-foreground">Your SAFE Staked</span>
               {loadingUser ? (
                 <Skeleton className="h-4 w-24" />
               ) : (
                 <span className="font-medium">
-                  {formatTokenAmount(userStakeAmount ?? 0n)} SAFE
+                  {formatTokenAmount(userStakeAmount ?? 0n)}
                 </span>
               )}
             </div>

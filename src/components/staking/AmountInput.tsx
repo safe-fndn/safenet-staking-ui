@@ -29,7 +29,7 @@ export function AmountInput({ value, onChange, maxAmount, label = "Amount", disa
         <label htmlFor="amount-input" className="text-sm font-medium">{label}</label>
         {maxAmount !== undefined && (
           <span className="text-xs text-muted-foreground">
-            Balance: {formatTokenAmount(maxAmount)} SAFE
+            SAFE Balance: {formatTokenAmount(maxAmount)}
           </span>
         )}
       </div>

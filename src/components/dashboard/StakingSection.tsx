@@ -40,7 +40,7 @@ function PositionRow({ position }: { position: Position }) {
           </Link>
         </td>
         <td className="py-3 pr-4 text-sm font-semibold text-right">
-          {formatTokenAmount(position.amount)} SAFE
+          {formatTokenAmount(position.amount)}
         </td>
         <td className="py-3 pr-4 text-sm text-right text-muted-foreground">
           {metadata ? `${metadata.uptime}%` : "—"}
@@ -148,7 +148,7 @@ export function StakingSection() {
           <div className="flex items-center justify-between rounded-lg border p-3">
             <div>
               <span className="text-sm text-muted-foreground">Claimable SAFE</span>
-              <p className="font-semibold">{formatTokenAmount(rewards.claimable)} SAFE</p>
+              <p className="font-semibold">{formatTokenAmount(rewards.claimable)}</p>
               {rewards.rootStale ? (
                 <p className="text-xs text-amber-600 mt-0.5">
                   Rewards data is being updated. Claiming will be available again shortly.
@@ -183,7 +183,7 @@ export function StakingSection() {
                 <thead>
                   <tr className="border-b text-xs text-muted-foreground">
                     <th className="pb-2 pr-4 text-left font-medium">Validator</th>
-                    <th className="pb-2 pr-4 text-right font-medium">Amount</th>
+                    <th className="pb-2 pr-4 text-right font-medium">SAFE Amount</th>
                     <th className="pb-2 pr-4 text-right font-medium">Uptime</th>
                     <th className="pb-2 pr-4 text-right font-medium">Status</th>
                     <th className="pb-2 text-right font-medium">Action</th>
