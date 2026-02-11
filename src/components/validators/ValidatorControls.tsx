@@ -3,15 +3,12 @@ import { Button } from "@/components/ui/button"
 import Search from "lucide-react/dist/esm/icons/search"
 
 export type StatusFilter = "all" | "active" | "inactive"
-export type SortOption = "totalStake" | "commission" | "uptime"
 
 interface ValidatorControlsProps {
   search: string
   onSearchChange: (value: string) => void
   statusFilter: StatusFilter
   onStatusFilterChange: (value: StatusFilter) => void
-  sortBy: SortOption
-  onSortChange: (value: SortOption) => void
 }
 
 const statusOptions: { label: string; value: StatusFilter }[] = [
@@ -20,19 +17,11 @@ const statusOptions: { label: string; value: StatusFilter }[] = [
   { label: "Inactive", value: "inactive" },
 ]
 
-const sortOptions: { label: string; value: SortOption }[] = [
-  { label: "Total Stake", value: "totalStake" },
-  { label: "Commission", value: "commission" },
-  { label: "Uptime", value: "uptime" },
-]
-
 export function ValidatorControls({
   search,
   onSearchChange,
   statusFilter,
   onStatusFilterChange,
-  sortBy,
-  onSortChange,
 }: ValidatorControlsProps) {
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -59,18 +48,6 @@ export function ValidatorControls({
           </Button>
         ))}
       </div>
-      <select
-        aria-label="Sort validators"
-        className="h-8 rounded-md border bg-background px-3 text-sm"
-        value={sortBy}
-        onChange={(e) => onSortChange(e.target.value as SortOption)}
-      >
-        {sortOptions.map((opt) => (
-          <option key={opt.value} value={opt.value}>
-            Sort: {opt.label}
-          </option>
-        ))}
-      </select>
     </div>
   )
 }
