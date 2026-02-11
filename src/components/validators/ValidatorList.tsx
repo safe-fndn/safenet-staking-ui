@@ -1,11 +1,13 @@
 import { useMemo, useState, useTransition } from "react"
 import { useValidators } from "@/hooks/useValidators"
+import { useValidatorTotalStakes } from "@/hooks/useStakingReads"
 import { ValidatorCard } from "./ValidatorCard"
 import { ValidatorControls, type StatusFilter, type SortOption } from "./ValidatorControls"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Button } from "@/components/ui/button"
 import RefreshCw from "lucide-react/dist/esm/icons/refresh-cw"
 import validatorData from "@/data/validators.json"
+import type { Address } from "viem"
 
 const metadata = validatorData as Record<string, { label: string; commission: number; uptime: number }>
 
@@ -15,6 +17,19 @@ function getMetadata(address: string) {
 
 export function ValidatorList({ autoOpenDelegate }: { autoOpenDelegate?: string }) {
   const { data: validators, isLoading, error, refetch } = useValidators()
+  const validatorAddresses = useMemo(() => (validators ?? []).map((v) => v.address), [validators])
+  const { data: totalStakesData, isLoading: loadingTotalStakes } = useValidatorTotalStakes(validatorAddresses)
+  const totalStakeMap = useMemo(() => {
+    const map = new Map<Address, bigint>()
+    if (!totalStakesData || !validators) return map
+    for (let i = 0; i < validators.length; i++) {
+      const result = totalStakesData[i]
+      if (result?.status === "success") {
+        map.set(validators[i].address, result.result as bigint)
+      }
+    }
+    return map
+  }, [totalStakesData, validators])
   const [search, setSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all")
   const [sortBy, setSortBy] = useState<SortOption>("totalStake")
@@ -134,6 +149,8 @@ export function ValidatorList({ autoOpenDelegate }: { autoOpenDelegate?: string 
               validator={v.address}
               isActive={v.isActive}
               autoOpenDelegate={autoOpenDelegate?.toLowerCase() === v.address.toLowerCase()}
+              totalStake={totalStakeMap.get(v.address)}
+              loadingTotalStake={loadingTotalStakes}
             />
           ))}
         </div>

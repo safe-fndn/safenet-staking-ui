@@ -1,3 +1,4 @@
+import { useState, useRef, useEffect } from "react"
 import { useAccount } from "wagmi"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -79,9 +80,34 @@ function TxList({ transactions }: { transactions: TransactionRecord[] }) {
   )
 }
 
+function useIsVisible(ref: React.RefObject<HTMLElement | null>) {
+  const [visible, setVisible] = useState(false)
+
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setVisible(true)
+          observer.disconnect()
+        }
+      },
+      { rootMargin: "200px" },
+    )
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [ref])
+
+  return visible
+}
+
 export function TransactionHistory() {
   const { isConnected } = useAccount()
-  const { data: transactions, isLoading } = useTransactionHistory()
+  const cardRef = useRef<HTMLDivElement>(null)
+  const isVisible = useIsVisible(cardRef)
+  const { data: transactions, isLoading } = useTransactionHistory(undefined, { enabled: isVisible })
 
   if (!isConnected) return null
 
@@ -90,12 +116,12 @@ export function TransactionHistory() {
   const withdrawals = all.filter((tx) => tx.type === "withdrawal_initiated" || tx.type === "withdrawal_claimed")
 
   return (
-    <Card>
+    <Card ref={cardRef}>
       <CardHeader>
         <CardTitle>Transaction History</CardTitle>
       </CardHeader>
       <CardContent>
-        {isLoading ? (
+        {!isVisible || isLoading ? (
           <div className="space-y-3">
             {Array.from({ length: 3 }).map((_, i) => (
               <Skeleton key={i} className="h-12" />

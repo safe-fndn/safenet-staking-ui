@@ -5,12 +5,28 @@ import { getContractAddresses, deployBlock } from "@/config/contracts"
 import { activeChain } from "@/config/chains"
 
 const MAX_BLOCK_RANGE = 49_999n
+const CONCURRENCY = 5
 
 const EVENT = parseAbiItem("event ValidatorUpdated(address indexed validator, bool isRegistered)")
 
 export interface ValidatorInfo {
   address: Address
   isActive: boolean
+}
+
+async function runWithConcurrency<T>(tasks: (() => Promise<T>)[], concurrency: number): Promise<T[]> {
+  const results: T[] = new Array(tasks.length)
+  let nextIndex = 0
+
+  async function worker() {
+    while (nextIndex < tasks.length) {
+      const index = nextIndex++
+      results[index] = await tasks[index]()
+    }
+  }
+
+  await Promise.all(Array.from({ length: Math.min(concurrency, tasks.length) }, () => worker()))
+  return results
 }
 
 export function useValidators() {
@@ -34,26 +50,32 @@ export function useValidators() {
         })
       } catch {
         const latestBlock = await client.getBlockNumber()
-        logs = []
-        let toBlock = latestBlock
         const minBlock = deployBlock > 0n ? deployBlock : 0n
 
+        const chunks: { fromBlock: bigint; toBlock: bigint }[] = []
+        let toBlock = latestBlock
         while (toBlock >= minBlock) {
           const fromBlock = toBlock - MAX_BLOCK_RANGE > minBlock ? toBlock - MAX_BLOCK_RANGE : minBlock
+          chunks.push({ fromBlock, toBlock })
+          if (fromBlock === minBlock) break
+          toBlock = fromBlock - 1n
+        }
+
+        const tasks = chunks.map(({ fromBlock, toBlock }) => async () => {
           try {
-            const chunk = await client.getLogs({
+            return await client.getLogs({
               address: staking,
               event: EVENT,
               fromBlock,
               toBlock,
             })
-            logs.unshift(...chunk)
           } catch {
-            // skip chunk on error
+            return [] as Log[]
           }
-          if (fromBlock === minBlock) break
-          toBlock = fromBlock - 1n
-        }
+        })
+
+        const results = await runWithConcurrency(tasks, CONCURRENCY)
+        logs = results.flat()
       }
 
       const validators = new Map<Address, boolean>()

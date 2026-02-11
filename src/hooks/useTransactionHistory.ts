@@ -21,6 +21,23 @@ export interface TransactionRecord {
   timestamp?: number
 }
 
+const CONCURRENCY = 5
+
+async function runWithConcurrency<T>(tasks: (() => Promise<T>)[], concurrency: number): Promise<T[]> {
+  const results: T[] = new Array(tasks.length)
+  let nextIndex = 0
+
+  async function worker() {
+    while (nextIndex < tasks.length) {
+      const index = nextIndex++
+      results[index] = await tasks[index]()
+    }
+  }
+
+  await Promise.all(Array.from({ length: Math.min(concurrency, tasks.length) }, () => worker()))
+  return results
+}
+
 async function fetchLogsChunked(
   client: NonNullable<ReturnType<typeof usePublicClient>>,
   params: { address: Address; event: ReturnType<typeof parseAbiItem>; args: Record<string, unknown>; fromBlock: bigint; toBlock: string | bigint },
@@ -29,30 +46,35 @@ async function fetchLogsChunked(
     return await client.getLogs(params as Parameters<typeof client.getLogs>[0])
   } catch {
     const latestBlock = await client.getBlockNumber()
-    const logs: Log[] = []
-    let toBlock = latestBlock
     const minBlock = deployBlock > 0n ? deployBlock : 0n
 
-    while (toBlock >= minBlock) {
-      const fromBlock = toBlock - MAX_BLOCK_RANGE > minBlock ? toBlock - MAX_BLOCK_RANGE : minBlock
+    const chunks: { fromBlock: bigint; toBlock: bigint }[] = []
+    let to = latestBlock
+    while (to >= minBlock) {
+      const from = to - MAX_BLOCK_RANGE > minBlock ? to - MAX_BLOCK_RANGE : minBlock
+      chunks.push({ fromBlock: from, toBlock: to })
+      if (from === minBlock) break
+      to = from - 1n
+    }
+
+    const tasks = chunks.map(({ fromBlock, toBlock }) => async () => {
       try {
-        const chunk = await client.getLogs({
+        return await client.getLogs({
           ...params,
           fromBlock,
           toBlock,
         } as Parameters<typeof client.getLogs>[0])
-        logs.unshift(...chunk)
       } catch {
-        // skip chunk on error
+        return [] as Log[]
       }
-      if (fromBlock === minBlock) break
-      toBlock = fromBlock - 1n
-    }
-    return logs
+    })
+
+    const results = await runWithConcurrency(tasks, CONCURRENCY)
+    return results.flat()
   }
 }
 
-export function useTransactionHistory(validatorFilter?: Address) {
+export function useTransactionHistory(validatorFilter?: Address, { enabled = true }: { enabled?: boolean } = {}) {
   const client = usePublicClient()
   const { address } = useAccount()
   const { staking } = getContractAddresses(activeChain.id)
@@ -122,6 +144,6 @@ export function useTransactionHistory(validatorFilter?: Address) {
         .slice(0, 50)
     },
     staleTime: 60_000,
-    enabled: !!client && !!address,
+    enabled: !!client && !!address && enabled,
   })
 }
