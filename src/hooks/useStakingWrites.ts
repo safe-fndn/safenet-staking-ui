@@ -1,10 +1,11 @@
 import { useEffect } from "react"
-import { useWriteContract, useWaitForTransactionReceipt } from "wagmi"
+import { useWriteContract, useWaitForTransactionReceipt, useSendCalls, useCallsStatus, useCapabilities } from "wagmi"
+import { encodeFunctionData, type Address } from "viem"
 import { stakingAbi } from "@/abi/stakingAbi"
+import { erc20Abi } from "@/abi/erc20Abi"
 import { getContractAddresses } from "@/config/contracts"
 import { activeChain } from "@/config/chains"
 import { queryClient } from "@/main"
-import type { Address } from "viem"
 
 const addresses = getContractAddresses(activeChain.id)
 
@@ -38,6 +39,80 @@ export function useStake() {
   }
 
   return { stake, isSigningTx: isPending, isConfirmingTx: isConfirming, isSuccess, error, reset, txHash }
+}
+
+export function useBatchStake() {
+  const { data: capabilities, isError: capabilitiesError } = useCapabilities({
+    query: { retry: false },
+  })
+  const chainId = activeChain.id
+
+  const supportsBatching =
+    !capabilitiesError &&
+    capabilities?.[chainId]?.atomicBatch?.supported === true
+
+  const {
+    mutate: sendCalls,
+    data: callsResult,
+    isPending,
+    error,
+    reset,
+  } = useSendCalls()
+
+  const batchId = callsResult?.id
+
+  const { data: callsStatus } = useCallsStatus({
+    id: batchId ?? "",
+    query: {
+      enabled: !!batchId,
+      refetchInterval: (data) =>
+        data.state.data?.status === "success" || data.state.data?.status === "failure"
+          ? false
+          : 2000,
+    },
+  })
+
+  const isConfirming = !!batchId && callsStatus?.status !== "success" && callsStatus?.status !== "failure"
+  const isSuccess = callsStatus?.status === "success"
+  const isReverted = callsStatus?.status === "failure"
+  const txHash = callsStatus?.receipts?.[0]?.transactionHash
+
+  useInvalidateOnSuccess(isSuccess, STAKING_EXTRA_KEYS)
+
+  function batchApproveAndStake(validator: Address, amount: bigint) {
+    sendCalls({
+      calls: [
+        {
+          to: addresses.token,
+          data: encodeFunctionData({
+            abi: erc20Abi,
+            functionName: "approve",
+            args: [addresses.staking, amount],
+          }),
+        },
+        {
+          to: addresses.staking,
+          data: encodeFunctionData({
+            abi: stakingAbi,
+            functionName: "stake",
+            args: [validator, amount],
+          }),
+        },
+      ],
+    })
+  }
+
+  return {
+    batchApproveAndStake,
+    supportsBatching,
+    isSigningTx: isPending,
+    isConfirmingTx: isConfirming,
+    isSuccess,
+    isReverted,
+    error,
+    reset,
+    txHash,
+  }
 }
 
 export function useInitiateWithdrawal() {
