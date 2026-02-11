@@ -14,7 +14,6 @@ import { useValidatorMetadata } from "@/hooks/useValidatorMetadata"
 import { formatTokenAmount, truncateAddress } from "@/lib/format"
 import { copyToClipboard } from "@/lib/clipboard"
 import { useToast } from "@/hooks/useToast"
-import { activeChain } from "@/config/chains"
 import ArrowLeft from "lucide-react/dist/esm/icons/arrow-left"
 import Copy from "lucide-react/dist/esm/icons/copy"
 export function ValidatorDetailPage() {
