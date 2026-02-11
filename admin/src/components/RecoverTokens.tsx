@@ -17,6 +17,7 @@ export function RecoverTokens() {
   useEffect(() => {
     if (isSuccess) {
       toast({ variant: "success", title: "Tokens recovered", description: `Tokens sent to ${recipientAddress.slice(0, 10)}...`, txHash: txHash! })
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- reset form after successful tx
       setTokenAddress("")
       setRecipientAddress("")
       reset()

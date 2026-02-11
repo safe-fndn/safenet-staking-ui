@@ -1,0 +1,12 @@
+{
+  "name": "Safe Staking",
+  "description": "Stake SAFE tokens to validators and manage your staking rewards",
+  "iconPath": "logo.svg",
+  "icons": [
+    {
+      "src": "/logo.svg",
+      "type": "image/svg+xml",
+      "sizes": "any"
+    }
+  ]
+}

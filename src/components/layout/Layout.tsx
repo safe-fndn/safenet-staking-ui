@@ -11,7 +11,7 @@ export function Layout() {
         Skip to main content
       </a>
       <Header />
-      <main id="main-content" className="container mx-auto flex-1 px-4 py-8">
+      <main id="main-content" className="container mx-auto max-w-5xl flex-1 px-4 py-8">
         <Suspense fallback={<div className="flex items-center justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>}>
           <Outlet />
         </Suspense>

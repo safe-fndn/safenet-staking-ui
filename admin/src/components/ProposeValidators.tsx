@@ -21,6 +21,7 @@ export function ProposeValidators() {
   useEffect(() => {
     if (isSuccess) {
       toast({ variant: "success", title: "Validator proposal submitted", description: `Proposed ${rows.length} validator change(s)`, txHash: txHash! })
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- reset form after successful tx
       setRows([{ address: "", register: true }])
       reset()
     }

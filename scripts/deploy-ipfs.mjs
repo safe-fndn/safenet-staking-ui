@@ -88,6 +88,8 @@ const upload = await pinata.upload.public
 const cid = upload.cid;
 const gatewayUrl = `https://${gateway}/ipfs/${cid}`;
 
-console.log(`\nCID:      ${cid}`);
-console.log(`Gateway:  ${gatewayUrl}`);
-console.log(`IPFS:     ipfs://${cid}`);
+console.log(`\nCID:        ${cid}`);
+console.log(`IPFS:       ipfs://${cid}`);
+console.log(`Pinata:     ${gatewayUrl}`);
+console.log(`dweb.link:  https://${cid}.ipfs.dweb.link/`);
+console.log(`cf-ipfs:    https://cloudflare-ipfs.com/ipfs/${cid}`);

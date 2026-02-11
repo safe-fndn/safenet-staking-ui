@@ -46,11 +46,11 @@ async function setupPage(page: Page, connected: boolean): Promise<Page> {
 export const test = base.extend<TestFixtures>({
   connectedPage: async ({ page }, use) => {
     const p = await setupPage(page, true)
-    await use(p)
+    await use(p) // eslint-disable-line react-hooks/rules-of-hooks -- Playwright fixture API, not a React hook
   },
   disconnectedPage: async ({ page }, use) => {
     const p = await setupPage(page, false)
-    await use(p)
+    await use(p) // eslint-disable-line react-hooks/rules-of-hooks -- Playwright fixture API, not a React hook
   },
 })
 

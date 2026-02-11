@@ -76,7 +76,7 @@ export function ValidatorCard({ validator, isActive, autoOpenDelegate }: Validat
           )}
 
           <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">Total Delegated</span>
+            <span className="text-muted-foreground">Total Staked</span>
             {loadingTotal ? (
               <Skeleton className="h-4 w-24" />
             ) : (
@@ -88,7 +88,7 @@ export function ValidatorCard({ validator, isActive, autoOpenDelegate }: Validat
 
           {isConnected && (
             <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Your Delegation</span>
+              <span className="text-muted-foreground">Your Stake</span>
               {loadingUser ? (
                 <Skeleton className="h-4 w-24" />
               ) : (
@@ -106,7 +106,7 @@ export function ValidatorCard({ validator, isActive, autoOpenDelegate }: Validat
           {isConnected && (
             <div className="flex gap-2 pt-2">
               <Button size="sm" className="flex-1" onClick={() => setDelegateOpen(true)} disabled={!isActive}>
-                Delegate
+                Stake
               </Button>
               <Button
                 size="sm"
@@ -115,7 +115,7 @@ export function ValidatorCard({ validator, isActive, autoOpenDelegate }: Validat
                 disabled={!hasStake}
                 onClick={() => setUndelegateOpen(true)}
               >
-                Undelegate
+                Unstake
               </Button>
             </div>
           )}
