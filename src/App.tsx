@@ -5,6 +5,7 @@ import { Layout } from "@/components/layout/Layout"
 import { Toaster } from "@/components/ui/toaster"
 import { RestrictedScreen } from "@/components/RestrictedScreen"
 import { useSanctionsCheck } from "@/hooks/useSanctionsCheck"
+import { useGeoblockCheck } from "@/hooks/useGeoblockCheck"
 import { useWalletSanctionsCheck } from "@/hooks/useWalletSanctionsCheck"
 import { useToast } from "@/hooks/useToast"
 import Loader2 from "lucide-react/dist/esm/icons/loader-2"
@@ -76,9 +77,10 @@ function WalletSanctionsGate({ children }: { children: ReactNode }) {
 }
 
 function App() {
-  const { allowed, isLoading } = useSanctionsCheck()
+  const { allowed: sanctionsAllowed, isLoading: sanctionsLoading } = useSanctionsCheck()
+  const { allowed: geoAllowed, isLoading: geoLoading } = useGeoblockCheck()
 
-  if (isLoading) {
+  if (sanctionsLoading || geoLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center" role="status" aria-live="polite">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" aria-hidden="true" />
@@ -86,7 +88,7 @@ function App() {
     )
   }
 
-  if (!allowed) {
+  if (!sanctionsAllowed || !geoAllowed) {
     return <RestrictedScreen title="Access Restricted" description="SAFE Staking and Rewards are unavailable in your region." linkText="Learn more about eligibility here" />
   }
 

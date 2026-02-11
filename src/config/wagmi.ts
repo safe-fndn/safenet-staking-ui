@@ -4,9 +4,13 @@ import { activeChain, transports } from "./chains"
 
 const projectId = import.meta.env.VITE_WALLETCONNECT_PROJECT_ID
 
-const connectors = projectId && projectId.length > 0
-  ? [safe(), injected(), walletConnect({ projectId })]
-  : [safe(), injected()]
+const isSafeApp = window.self !== window.top
+
+const connectors = [
+  ...(isSafeApp ? [safe()] : []),
+  injected(),
+  ...(projectId && projectId.length > 0 ? [walletConnect({ projectId })] : []),
+]
 
 export const config = createConfig({
   chains: [activeChain],

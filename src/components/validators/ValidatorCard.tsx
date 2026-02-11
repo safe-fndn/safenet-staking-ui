@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { DelegateDialog } from "@/components/staking/DelegateDialog"
 import { UndelegateDialog } from "@/components/staking/UndelegateDialog"
-import { useValidatorTotalStake, useUserStakeOnValidator } from "@/hooks/useStakingReads"
+import { useUserStakeOnValidator } from "@/hooks/useStakingReads"
 import { useValidatorMetadata } from "@/hooks/useValidatorMetadata"
 import { truncateAddress, formatTokenAmount } from "@/lib/format"
 import { copyToClipboard } from "@/lib/clipboard"
@@ -18,11 +18,13 @@ interface ValidatorCardProps {
   validator: Address
   isActive: boolean
   autoOpenDelegate?: boolean
+  totalStake?: bigint
+  loadingTotalStake?: boolean
 }
 
-export function ValidatorCard({ validator, isActive, autoOpenDelegate }: ValidatorCardProps) {
+export function ValidatorCard({ validator, isActive, autoOpenDelegate, totalStake, loadingTotalStake }: ValidatorCardProps) {
   const { isConnected } = useAccount()
-  const { data: totalStake, isLoading: loadingTotal } = useValidatorTotalStake(validator)
+  const loadingTotal = loadingTotalStake ?? false
   const { data: userStake, isLoading: loadingUser } = useUserStakeOnValidator(validator)
   const metadata = useValidatorMetadata(validator)
   const { toast } = useToast()
@@ -81,7 +83,7 @@ export function ValidatorCard({ validator, isActive, autoOpenDelegate }: Validat
               <Skeleton className="h-4 w-24" />
             ) : (
               <span className="font-medium">
-                {formatTokenAmount(totalStake as bigint ?? 0n)} SAFE
+                {formatTokenAmount(totalStake ?? 0n)} SAFE
               </span>
             )}
           </div>
