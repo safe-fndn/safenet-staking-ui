@@ -4,7 +4,7 @@ import { parseAbiItem, type Address, type Log } from "viem"
 import { getContractAddresses, deployBlock } from "@/config/contracts"
 import { activeChain } from "@/config/chains"
 
-const MAX_BLOCK_RANGE = 49_999n
+const MAX_BLOCK_RANGE = 9_999n
 
 const STAKE_EVENT = parseAbiItem("event StakeIncreased(address indexed staker, address indexed validator, uint256 amount)")
 const WITHDRAWAL_INITIATED_EVENT = parseAbiItem("event WithdrawalInitiated(address indexed staker, address indexed validator, uint64 indexed withdrawalId, uint256 amount)")
