@@ -129,17 +129,16 @@ export function StakingSection() {
                 </button>
               </TooltipTrigger>
               <TooltipContent className="max-w-xs text-xs">
-                <p>Rewards are subject to a minimum payout threshold.{" "}
-                  <a
-                    href={rewardsDocsUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-primary underline hover:text-primary/80"
-                  >
-                    Learn more
-                  </a>
-                </p>
+                <p>Rewards are subject to a minimum payout threshold.</p>
                 <p className="mt-1">KYC may be required to claim rewards.</p>
+                <a
+                  href={rewardsDocsUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-1 inline-block underline text-primary-foreground/80 hover:text-primary-foreground"
+                >
+                  Learn more
+                </a>
               </TooltipContent>
             </Tooltip>
           </div>

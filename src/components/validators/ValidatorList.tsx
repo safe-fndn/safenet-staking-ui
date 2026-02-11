@@ -2,7 +2,7 @@ import { useMemo, useState, useTransition } from "react"
 import { useValidators } from "@/hooks/useValidators"
 import { useValidatorTotalStakes } from "@/hooks/useStakingReads"
 import { ValidatorCard } from "./ValidatorCard"
-import { ValidatorControls, type StatusFilter, type SortOption } from "./ValidatorControls"
+import { ValidatorControls, type StatusFilter } from "./ValidatorControls"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Button } from "@/components/ui/button"
 import RefreshCw from "lucide-react/dist/esm/icons/refresh-cw"
@@ -32,7 +32,6 @@ export function ValidatorList({ autoOpenDelegate }: { autoOpenDelegate?: string 
   }, [totalStakesData, validators])
   const [search, setSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all")
-  const [sortBy, setSortBy] = useState<SortOption>("totalStake")
   const [, startTransition] = useTransition()
 
   const handleSearchChange = (value: string) => {
@@ -40,9 +39,6 @@ export function ValidatorList({ autoOpenDelegate }: { autoOpenDelegate?: string 
   }
   const handleStatusFilterChange = (value: StatusFilter) => {
     startTransition(() => setStatusFilter(value))
-  }
-  const handleSortChange = (value: SortOption) => {
-    startTransition(() => setSortBy(value))
   }
 
   const filtered = useMemo(() => {
@@ -69,21 +65,8 @@ export function ValidatorList({ autoOpenDelegate }: { autoOpenDelegate?: string 
       })
     }
 
-    // Sort
-    return result.toSorted((a, b) => {
-      const metaA = getMetadata(a.address)
-      const metaB = getMetadata(b.address)
-
-      if (sortBy === "commission") {
-        return (metaA?.commission ?? 100) - (metaB?.commission ?? 100)
-      }
-      if (sortBy === "uptime") {
-        return (metaB?.uptime ?? 0) - (metaA?.uptime ?? 0)
-      }
-      // totalStake — active first is the default from the hook, keep that
-      return a.isActive === b.isActive ? 0 : a.isActive ? -1 : 1
-    })
-  }, [validators, search, statusFilter, sortBy])
+    return result
+  }, [validators, search, statusFilter])
 
   if (isLoading) {
     return (
@@ -93,9 +76,7 @@ export function ValidatorList({ autoOpenDelegate }: { autoOpenDelegate?: string 
           onSearchChange={handleSearchChange}
           statusFilter={statusFilter}
           onStatusFilterChange={handleStatusFilterChange}
-          sortBy={sortBy}
-          onSortChange={handleSortChange}
-        />
+/>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {Array.from({ length: 3 }).map((_, i) => (
             <Skeleton key={i} className="h-48" />
@@ -134,9 +115,7 @@ export function ValidatorList({ autoOpenDelegate }: { autoOpenDelegate?: string 
         onSearchChange={setSearch}
         statusFilter={statusFilter}
         onStatusFilterChange={setStatusFilter}
-        sortBy={sortBy}
-        onSortChange={setSortBy}
-      />
+/>
       {filtered.length === 0 ? (
         <div className="rounded-lg border p-8 text-center text-muted-foreground">
           No validators match your search criteria.
