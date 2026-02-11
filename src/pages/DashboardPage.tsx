@@ -2,7 +2,6 @@ import { StatsOverview } from "@/components/dashboard/StatsOverview"
 import { QuickActions } from "@/components/dashboard/QuickActions"
 import { StakingSection } from "@/components/dashboard/StakingSection"
 import { StakeDistribution } from "@/components/dashboard/StakeDistribution"
-import { TransactionHistory } from "@/components/dashboard/TransactionHistory"
 import { OnboardingBanner } from "@/components/onboarding/OnboardingBanner"
 
 export function DashboardPage() {
@@ -17,7 +16,6 @@ export function DashboardPage() {
       <QuickActions />
       <StakingSection />
       <StakeDistribution />
-      <TransactionHistory />
     </div>
   )
 }
