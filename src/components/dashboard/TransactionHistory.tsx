@@ -20,8 +20,8 @@ function getExplorerTxUrl(hash: string): string {
 }
 
 const typeConfig: Record<TxType, { label: string; icon: typeof ArrowUpRight; color: string }> = {
-  delegation: { label: "Delegated", icon: ArrowUpRight, color: "text-success" },
-  withdrawal_initiated: { label: "Undelegated", icon: ArrowDownLeft, color: "text-warning" },
+  delegation: { label: "Staked", icon: ArrowUpRight, color: "text-success" },
+  withdrawal_initiated: { label: "Unstaked", icon: ArrowDownLeft, color: "text-warning" },
   withdrawal_claimed: { label: "Claimed", icon: HandCoins, color: "text-info" },
 }
 
@@ -86,7 +86,7 @@ export function TransactionHistory() {
   if (!isConnected) return null
 
   const all = transactions ?? []
-  const delegations = all.filter((tx) => tx.type === "delegation")
+  const stakes = all.filter((tx) => tx.type === "delegation")
   const withdrawals = all.filter((tx) => tx.type === "withdrawal_initiated" || tx.type === "withdrawal_claimed")
 
   return (
@@ -105,14 +105,14 @@ export function TransactionHistory() {
           <Tabs defaultValue="all">
             <TabsList>
               <TabsTrigger value="all">All</TabsTrigger>
-              <TabsTrigger value="delegations">Delegations</TabsTrigger>
+              <TabsTrigger value="stakes">Stakes</TabsTrigger>
               <TabsTrigger value="withdrawals">Withdrawals</TabsTrigger>
             </TabsList>
             <TabsContent value="all">
               <TxList transactions={all} />
             </TabsContent>
-            <TabsContent value="delegations">
-              <TxList transactions={delegations} />
+            <TabsContent value="stakes">
+              <TxList transactions={stakes} />
             </TabsContent>
             <TabsContent value="withdrawals">
               <TxList transactions={withdrawals} />

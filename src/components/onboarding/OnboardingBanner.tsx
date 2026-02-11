@@ -27,7 +27,7 @@ export function OnboardingBanner() {
 
   const steps = [
     { icon: Wallet, title: "Connect your wallet", description: "Connect your Ethereum wallet to get started" },
-    { icon: Users, title: "Choose a validator", description: "Browse validators and delegate your SAFE tokens" },
+    { icon: Users, title: "Choose a validator", description: "Browse validators and stake your SAFE tokens" },
     { icon: BarChart3, title: "Track your rewards", description: "Monitor your rewards and manage withdrawals" },
   ]
 

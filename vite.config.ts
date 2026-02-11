@@ -2,14 +2,28 @@ import path from "path"
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
+import basicSsl from '@vitejs/plugin-basic-ssl'
+
+const safeAppHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET",
+  "Access-Control-Allow-Headers": "X-Requested-With, content-type, Authorization",
+  "Content-Security-Policy": "frame-ancestors 'self' https://app.safe.global",
+}
 
 export default defineConfig({
   base: './',
-  plugins: [react(), tailwindcss()],
+  plugins: [react(), tailwindcss(), basicSsl()],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
+  },
+  server: {
+    headers: safeAppHeaders,
+  },
+  preview: {
+    headers: safeAppHeaders,
   },
   build: {
     rollupOptions: {

@@ -6,6 +6,7 @@ import { ExecuteDelay } from "@/components/ExecuteDelay"
 import { ProposeValidators } from "@/components/ProposeValidators"
 import { ExecuteValidators } from "@/components/ExecuteValidators"
 import { RecoverTokens } from "@/components/RecoverTokens"
+import { MintToken } from "@/components/MintToken"
 import { EventLog } from "@/components/EventLog"
 import { ConnectButton } from "@/components/wallet/ConnectButton"
 
@@ -50,8 +51,11 @@ export function AdminPage() {
           </section>
 
           <section className="space-y-4">
-            <h2 className="text-xl font-semibold">Token Recovery</h2>
-            <RecoverTokens />
+            <h2 className="text-xl font-semibold">Token Operations</h2>
+            <div className="grid gap-4 lg:grid-cols-2">
+              <MintToken />
+              <RecoverTokens />
+            </div>
           </section>
 
           <section className="space-y-4">

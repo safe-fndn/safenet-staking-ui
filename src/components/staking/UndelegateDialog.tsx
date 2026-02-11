@@ -39,7 +39,7 @@ export function UndelegateDialog({ validator, open, onOpenChange }: UndelegateDi
 
   useEffect(() => {
     if (isSuccess) {
-      toast({ variant: "success", title: "Undelegation initiated", description: `Queued withdrawal of ${amount} SAFE from ${truncateAddress(validator)}`, txHash: txHash! })
+      toast({ variant: "success", title: "Unstaking initiated", description: `Queued withdrawal of ${amount} SAFE from ${truncateAddress(validator)}`, txHash: txHash! })
       setAmount("")
       reset()
       onOpenChange(false)
@@ -48,7 +48,7 @@ export function UndelegateDialog({ validator, open, onOpenChange }: UndelegateDi
 
   useEffect(() => {
     if (error) {
-      toast({ variant: "error", title: "Undelegation failed", description: formatContractError(error) })
+      toast({ variant: "error", title: "Unstaking failed", description: formatContractError(error) })
     }
   }, [error, toast])
 
@@ -64,7 +64,7 @@ export function UndelegateDialog({ validator, open, onOpenChange }: UndelegateDi
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Undelegate SAFE</DialogTitle>
+          <DialogTitle>Unstake SAFE</DialogTitle>
           <DialogDescription>
             Initiate withdrawal from validator {truncateAddress(validator)}. Tokens enter a withdrawal queue with a time delay before they can be claimed.
           </DialogDescription>
@@ -74,7 +74,7 @@ export function UndelegateDialog({ validator, open, onOpenChange }: UndelegateDi
           value={amount}
           onChange={setAmount}
           maxAmount={userStake as bigint | undefined}
-          label="Undelegate Amount"
+          label="Unstake Amount"
         />
 
         {gasEstimate && (

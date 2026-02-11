@@ -1,5 +1,4 @@
 import { test, expect } from "../fixtures/base.fixture"
-import { VALIDATORS } from "../fixtures/test-data"
 
 test.describe("Delegation Dialog", () => {
   test("opens delegate dialog from validator card", async ({ connectedPage: page }) => {

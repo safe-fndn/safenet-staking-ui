@@ -12,7 +12,7 @@ import { Stepper } from "@/components/ui/stepper"
 import { AmountInput } from "./AmountInput"
 import { useTokenBalance } from "@/hooks/useTokenBalance"
 import { useTokenAllowance } from "@/hooks/useTokenAllowance"
-import { useStake } from "@/hooks/useStakingWrites"
+import { useStake, useBatchStake } from "@/hooks/useStakingWrites"
 import { useWithdrawDelay } from "@/hooks/useStakingReads"
 import { useToast } from "@/hooks/useToast"
 import { truncateAddress, formatCountdown } from "@/lib/format"
@@ -51,6 +51,17 @@ export function DelegateDialog({ validator, open, onOpenChange }: DelegateDialog
     reset: resetStake,
     txHash: stakeTxHash,
   } = useStake()
+  const {
+    batchApproveAndStake,
+    supportsBatching,
+    isSigningTx: isBatchSigning,
+    isConfirmingTx: isBatchConfirming,
+    isSuccess: isBatchSuccess,
+    isReverted: isBatchReverted,
+    error: batchError,
+    reset: resetBatch,
+    txHash: batchTxHash,
+  } = useBatchStake()
   const { data: withdrawDelay } = useWithdrawDelay()
   const { toast } = useToast()
 
@@ -64,15 +75,27 @@ export function DelegateDialog({ validator, open, onOpenChange }: DelegateDialog
   const isApprovalPending = isSigningApproval || isConfirmingApproval
   const { estimatedCost: gasEstimate } = useGasEstimate("stake", validator, parsedAmount)
 
+  const isBatchFlow = supportsBatching && needsApproval
+
   // Stepper logic
   const steps = useMemo(
-    () => (needsApproval ? ["Approve", "Delegate", "Done"] : ["Delegate", "Done"]),
-    [needsApproval],
+    () => {
+      if (isBatchFlow) return ["Delegate", "Done"]
+      if (needsApproval) return ["Approve", "Stake", "Done"]
+      return ["Stake", "Done"]
+    },
+    [needsApproval, isBatchFlow],
   )
 
   const { currentStep, completedSteps } = useMemo(() => {
-    if (isStaked) {
+    if (isStaked || isBatchSuccess) {
       return { currentStep: steps.length - 1, completedSteps: steps.map((_, i) => i) }
+    }
+    if (isBatchFlow) {
+      if (isBatchSigning || isBatchConfirming) {
+        return { currentStep: 0, completedSteps: [] as number[] }
+      }
+      return { currentStep: 0, completedSteps: [] as number[] }
     }
     if (needsApproval) {
       if (isSigningApproval || isConfirmingApproval) {
@@ -87,11 +110,11 @@ export function DelegateDialog({ validator, open, onOpenChange }: DelegateDialog
       return { currentStep: 0, completedSteps: [] as number[] }
     }
     return { currentStep: 0, completedSteps: [] as number[] }
-  }, [needsApproval, isSigningApproval, isConfirmingApproval, isSigningTx, isConfirmingTx, isStaked, steps])
+  }, [needsApproval, isBatchFlow, isSigningApproval, isConfirmingApproval, isSigningTx, isConfirmingTx, isStaked, isBatchSuccess, isBatchSigning, isBatchConfirming, steps])
 
   useEffect(() => {
     if (isApproved) {
-      toast({ variant: "success", title: "Approval confirmed", description: "You can now delegate your SAFE tokens", txHash: approvalTxHash! })
+      toast({ variant: "success", title: "Approval confirmed", description: "You can now stake your SAFE tokens", txHash: approvalTxHash! })
       resetApproval()
     }
   }, [isApproved, resetApproval, toast, approvalTxHash])
@@ -104,7 +127,7 @@ export function DelegateDialog({ validator, open, onOpenChange }: DelegateDialog
 
   useEffect(() => {
     if (isStaked) {
-      toast({ variant: "success", title: "Delegation successful", description: `Delegated ${amount} SAFE to ${truncateAddress(validator)}`, txHash: stakeTxHash! })
+      toast({ variant: "success", title: "Staking successful", description: `Staked ${amount} SAFE to ${truncateAddress(validator)}`, txHash: stakeTxHash! })
       setAmount("")
       resetStake()
       onOpenChange(false)
@@ -113,26 +136,49 @@ export function DelegateDialog({ validator, open, onOpenChange }: DelegateDialog
 
   useEffect(() => {
     if (stakeError) {
-      toast({ variant: "error", title: "Delegation failed", description: formatContractError(stakeError) })
+      toast({ variant: "error", title: "Staking failed", description: formatContractError(stakeError) })
     }
   }, [stakeError, toast])
+
+  useEffect(() => {
+    if (isBatchSuccess) {
+      toast({ variant: "success", title: "Delegation successful", description: `Approved and staked ${amount} SAFE to ${truncateAddress(validator)}`, txHash: batchTxHash })
+      setAmount("")
+      resetBatch()
+      onOpenChange(false)
+    }
+  }, [isBatchSuccess, resetBatch, onOpenChange, toast, amount, validator, batchTxHash])
+
+  useEffect(() => {
+    if (batchError) {
+      toast({ variant: "error", title: "Delegation failed", description: formatContractError(batchError) })
+    }
+  }, [batchError, toast])
+
+  useEffect(() => {
+    if (isBatchReverted) {
+      toast({ variant: "error", title: "Transaction reverted", description: "The batch transaction was reverted on-chain" })
+      resetBatch()
+    }
+  }, [isBatchReverted, resetBatch, toast])
 
   useEffect(() => {
     if (!open) {
       setAmount("")
       resetStake()
+      resetBatch()
     }
-  }, [open, resetStake])
+  }, [open, resetStake, resetBatch])
 
-  const showStepper = parsedAmount > 0n && (needsApproval || isSigningTx || isConfirmingTx)
+  const showStepper = parsedAmount > 0n && (needsApproval || isSigningTx || isConfirmingTx || isBatchSigning || isBatchConfirming)
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Delegate SAFE</DialogTitle>
+          <DialogTitle>Stake SAFE</DialogTitle>
           <DialogDescription>
-            Delegate tokens toward validator {truncateAddress(validator)}
+            Stake tokens toward validator {truncateAddress(validator)}
           </DialogDescription>
         </DialogHeader>
 
@@ -149,17 +195,17 @@ export function DelegateDialog({ validator, open, onOpenChange }: DelegateDialog
 
         {hasZeroBalance && (
           <p className="text-sm text-destructive">
-            You do not have enough SAFE to delegate.
+            You do not have enough SAFE to stake.
           </p>
         )}
 
         {insufficientBalance && !hasZeroBalance && (
           <p className="text-sm text-destructive">
-            You do not have enough SAFE to delegate this amount.
+            You do not have enough SAFE to stake this amount.
           </p>
         )}
 
-        {gasEstimate && (
+        {!isBatchFlow && gasEstimate && (
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <Fuel className="h-3.5 w-3.5" aria-hidden="true" />
             <span>Estimated gas: ~{parseFloat(gasEstimate).toFixed(6)} ETH</span>
@@ -174,7 +220,26 @@ export function DelegateDialog({ validator, open, onOpenChange }: DelegateDialog
         )}
 
         <div className="flex flex-col gap-2">
-          {needsApproval ? (
+          {isBatchFlow ? (
+            <Button
+              onClick={() => batchApproveAndStake(validator, parsedAmount)}
+              disabled={parsedAmount === 0n || insufficientBalance || isBatchSigning || isBatchConfirming}
+            >
+              {isBatchSigning ? (
+                <>
+                  <Loader2 className="animate-spin" aria-hidden="true" />
+                  Confirm in Safe…
+                </>
+              ) : isBatchConfirming ? (
+                <>
+                  <Loader2 className="animate-spin" aria-hidden="true" />
+                  Confirming on chain…
+                </>
+              ) : (
+                "Delegate"
+              )}
+            </Button>
+          ) : needsApproval ? (
             <>
               <Button onClick={() => approve(parsedAmount)} disabled={isApprovalPending || parsedAmount === 0n}>
                 {isSigningApproval ? (
@@ -220,7 +285,7 @@ export function DelegateDialog({ validator, open, onOpenChange }: DelegateDialog
                   Confirming on chain…
                 </>
               ) : (
-                "Delegate"
+                "Stake"
               )}
             </Button>
           )}

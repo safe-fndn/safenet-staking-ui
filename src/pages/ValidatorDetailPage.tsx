@@ -30,8 +30,8 @@ function getExplorerTxUrl(hash: string): string {
 }
 
 const typeLabels = {
-  delegation: { label: "Delegated", icon: ArrowUpRight, color: "text-success" },
-  withdrawal_initiated: { label: "Undelegated", icon: ArrowDownLeft, color: "text-warning" },
+  delegation: { label: "Staked", icon: ArrowUpRight, color: "text-success" },
+  withdrawal_initiated: { label: "Unstaked", icon: ArrowDownLeft, color: "text-warning" },
   withdrawal_claimed: { label: "Claimed", icon: HandCoins, color: "text-info" },
 } as const
 
@@ -145,7 +145,7 @@ export function ValidatorDetailPage() {
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="rounded-lg border p-4">
-              <p className="text-sm text-muted-foreground">Total Delegated</p>
+              <p className="text-sm text-muted-foreground">Total Staked</p>
               {loadingTotal ? (
                 <Skeleton className="h-7 w-32 mt-1" />
               ) : (
@@ -154,7 +154,7 @@ export function ValidatorDetailPage() {
             </div>
             {isConnected && (
               <div className="rounded-lg border p-4">
-                <p className="text-sm text-muted-foreground">Your Delegation</p>
+                <p className="text-sm text-muted-foreground">Your Stake</p>
                 {loadingUser ? (
                   <Skeleton className="h-7 w-32 mt-1" />
                 ) : (
@@ -167,10 +167,10 @@ export function ValidatorDetailPage() {
           {isConnected && (
             <div className="flex gap-3">
               <Button onClick={() => setDelegateOpen(true)} disabled={!isActive}>
-                Delegate
+                Stake
               </Button>
               <Button variant="outline" disabled={!hasStake} onClick={() => setUndelegateOpen(true)}>
-                Undelegate
+                Unstake
               </Button>
             </div>
           )}

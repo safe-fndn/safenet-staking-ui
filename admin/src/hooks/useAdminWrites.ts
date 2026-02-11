@@ -1,5 +1,6 @@
 import { useWriteContract, useWaitForTransactionReceipt } from "wagmi"
 import { stakingAbi } from "@/abi/stakingAbi"
+import { erc20Abi } from "@/abi/erc20Abi"
 import { getContractAddresses } from "@/config/contracts"
 import { activeChain } from "@/config/chains"
 import type { Address } from "viem"
@@ -83,4 +84,20 @@ export function useRecoverTokens() {
   }
 
   return { recoverTokens, isPending: isPending || isConfirming, isSuccess, error, reset, txHash }
+}
+
+export function useMintToken() {
+  const { writeContract, data: txHash, isPending, reset, error } = useWriteContract()
+  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash: txHash })
+
+  function mintToken(to: Address, amount: bigint) {
+    writeContract({
+      address: addresses.token,
+      abi: erc20Abi,
+      functionName: "mint",
+      args: [to, amount],
+    })
+  }
+
+  return { mintToken, isPending: isPending || isConfirming, isSuccess, error, reset, txHash }
 }
