@@ -22,7 +22,7 @@ export function RewardsSection() {
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between">
             <span className="text-sm text-muted-foreground">Claimable SAFE</span>
-            <span className="font-semibold">{formatTokenAmount(rewards.claimable)} SAFE</span>
+            <span className="font-semibold">{formatTokenAmount(rewards.claimable)}</span>
           </div>
 
           {rewards.rootStale ? (

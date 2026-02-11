@@ -15,15 +15,15 @@ export function StatsOverview() {
 
   const stats = [
     {
-      title: "Total Value Staked",
-      value: l1 ? null : `${formatTokenAmount(totalStaked as bigint ?? 0n, 18, 0)} SAFE`,
+      title: "Total SAFE Staked",
+      value: l1 ? null : `${formatTokenAmount(totalStaked as bigint ?? 0n, 18, 0)}`,
       loading: l1,
     },
     ...(isConnected
       ? [
           {
             title: "Your Staked SAFE",
-            value: l2 ? null : `${formatTokenAmount(userTotalStake as bigint ?? 0n)} SAFE`,
+            value: l2 ? null : `${formatTokenAmount(userTotalStake as bigint ?? 0n)}`,
             loading: l2,
           },
         ]
