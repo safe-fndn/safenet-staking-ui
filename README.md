@@ -1,73 +1,123 @@
-# React + TypeScript + Vite
+# Safe{Staking}
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A web application for delegating SAFE tokens to validators on Ethereum. Built as a [Safe App](https://docs.safe.global/apps/overview) that runs natively inside Safe Wallet, with full support for EOA wallets via injected providers and WalletConnect.
 
-Currently, two official plugins are available:
+## Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- **Delegate & Undelegate** SAFE tokens to validators with a multi-step approval flow
+- **Batch transactions** for Safe wallets — approve + stake in a single multisig proposal via [EIP-5792](https://eips.ethereum.org/EIPS/eip-5792)
+- **Withdrawal queue** with FIFO ordering, cooldown progress bars, and claim actions
+- **Dashboard** with delegation stats, portfolio breakdown, rewards calculator, and transaction history
+- **Validator discovery** with search, filter (active/inactive), and sort controls
+- **Deep-linking** — open the delegate dialog for a specific validator via `?delegate=0x...`
+- **IPFS deployable** for censorship-resistant hosting
 
-## React Compiler
+## Quick Start
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+cp .env .env.local   # adjust values as needed
+npm install
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+The app will be available at `http://localhost:5173`.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## Environment Variables
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `VITE_CHAIN_ID` | Yes | Target chain ID (`1` for mainnet, `11155111` for Sepolia) |
+| `VITE_RPC_URL` | Yes | JSON-RPC endpoint |
+| `VITE_STAKING_DEPLOY_BLOCK` | Yes | Block number to start scanning validator events from |
+| `VITE_WALLETCONNECT_PROJECT_ID` | No | Enables WalletConnect connector |
+| `VITE_SANCTIONS_API_URL` | No | Sanctions check endpoint (HTTP 403 = blocked) |
+| `VITE_TOU_URL` / `VITE_DOCS_URL` / `VITE_FAQ_URL` | No | Footer links |
+
+## Scripts
+
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Start development server |
+| `npm run build` | Type-check and production build |
+| `npm run lint` | Run ESLint |
+| `npm run preview` | Preview production build locally |
+| `npm run deploy:ipfs` | Deploy build to IPFS via Pinata |
+| `npm run test:e2e` | Run Playwright end-to-end tests |
+
+## Tech Stack
+
+- **React 19** with TypeScript
+- **Vite 7** with Tailwind CSS 4
+- **wagmi 3** / **viem** for wallet and contract interactions
+- **React Router 7** with hash-based routing (for IPFS compatibility)
+- **Radix UI** primitives (dialog, tabs, tooltip) styled with [shadcn/ui](https://ui.shadcn.com/) conventions
+- **Recharts** for data visualization
+- **Playwright** for end-to-end testing
+
+## Architecture
+
 ```
+src/
+├── abi/            # Contract ABIs (parseAbi with human-readable signatures)
+├── components/
+│   ├── dashboard/  # Stats, rewards, portfolio, transaction history
+│   ├── layout/     # Header, footer, shared layout
+│   ├── onboarding/ # First-time visitor banner
+│   ├── staking/    # DelegateDialog, UndelegateDialog, AmountInput
+│   ├── ui/         # Radix + CVA primitives (button, card, dialog, etc.)
+│   ├── validators/ # ValidatorCard, ValidatorList, ValidatorControls
+│   ├── wallet/     # ConnectButton
+│   └── withdrawals/# WithdrawalQueue, WithdrawalCard, CountdownTimer
+├── config/         # Chain, contract addresses, wagmi config
+├── data/           # Static validator metadata (JSON)
+├── hooks/          # Contract reads, writes, gas estimation, rewards
+├── lib/            # Utilities (formatting, error handling, clipboard)
+└── pages/          # Route components
+```
+
+### Wallet Support
+
+The app connects via three wagmi connectors, resolved in order:
+
+1. **Safe** — auto-detected when running inside the Safe Wallet iframe
+2. **Injected** — MetaMask, Rabby, and other browser extension wallets
+3. **WalletConnect** — enabled when `VITE_WALLETCONNECT_PROJECT_ID` is set
+
+When connected through Safe, the app detects [EIP-5792](https://eips.ethereum.org/EIPS/eip-5792) `atomicBatch` capability and batches approve + stake into a single transaction proposal, reducing multisig signing rounds from 2 to 1.
+
+### Contract Integration
+
+The UI uses "delegate/undelegate" terminology while the smart contract uses "stake/initiateWithdrawal". Hook and function names reflect the contract; component labels reflect the user-facing language.
+
+- **Read hooks** (`useStakingReads.ts`) poll every 15 seconds via `refetchInterval`
+- **Write hooks** (`useStakingWrites.ts`) return a unified `{ action, isSigningTx, isConfirmingTx, isSuccess, error, reset, txHash }` interface
+- **Validator discovery** fetches `ValidatorUpdated` events from the deploy block with automatic chunked fallback for RPC block-range limits
+
+### Adding a New Chain
+
+1. Add the chain object to `chainMap` in `src/config/chains.ts`
+2. Add contract addresses for the chain ID in `src/config/contracts.ts`
+3. Set `VITE_CHAIN_ID` and `VITE_RPC_URL` in your environment
+
+## Deployment
+
+### IPFS
+
+```bash
+npm run build
+npm run deploy:ipfs
+```
+
+Requires `PINATA_JWT` and `PINATA_GATEWAY` environment variables. The build uses hash-based routing (`HashRouter`) for compatibility with IPFS gateways.
+
+### Safe App
+
+The app includes a `/manifest.json` for Safe App discovery. To run inside Safe Wallet:
+
+1. Deploy to any static host (Vercel, IPFS, etc.)
+2. In Safe Wallet, go to Apps > Add Custom App
+3. Enter the deployment URL
+
+## License
+
+See [LICENSE](LICENSE) for details.
