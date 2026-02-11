@@ -1,5 +1,5 @@
 const touUrl = import.meta.env.VITE_TOU_URL || "#"
-const docsUrl = import.meta.env.VITE_DOCS_URL || "#"
+const docsUrl = import.meta.env.VITE_DOCS_URL || "https://docs.safefoundation.org/safenet/introduction"
 const faqUrl = import.meta.env.VITE_FAQ_URL || "#"
 
 export function Footer() {
