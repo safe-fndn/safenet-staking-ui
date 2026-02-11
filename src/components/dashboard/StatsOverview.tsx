@@ -15,8 +15,8 @@ export function StatsOverview() {
 
   const stats = [
     {
-      title: "Total SAFE Staked",
-      value: l1 ? null : `${formatTokenAmount(totalStaked as bigint ?? 0n)} SAFE`,
+      title: "Total Value Staked",
+      value: l1 ? null : `${formatTokenAmount(totalStaked as bigint ?? 0n, 18, 0)} SAFE`,
       loading: l1,
     },
     ...(isConnected

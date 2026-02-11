@@ -80,13 +80,7 @@ export function StakingSection() {
   const [claimOpen, setClaimOpen] = useState(false)
 
   if (!isConnected) {
-    return (
-      <Card>
-        <CardContent className="p-8 text-center text-muted-foreground">
-          Connect your wallet to view your stakes.
-        </CardContent>
-      </Card>
-    )
+    return null
   }
 
   if (isLoading || !validators) {

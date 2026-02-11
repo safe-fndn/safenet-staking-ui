@@ -9,8 +9,8 @@ export function DashboardPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">SAFE Staking</h1>
-        <p className="text-muted-foreground">Manage your SAFE token staking and rewards</p>
+        <h1 className="text-3xl font-bold">Safe Staking App</h1>
+        <p className="text-muted-foreground">Stake your Safe to earn rewards for helping secure the Safenet Beta</p>
       </div>
       <OnboardingBanner />
       <StatsOverview />

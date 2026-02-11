@@ -2,7 +2,6 @@ import path from "path"
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
-import basicSsl from '@vitejs/plugin-basic-ssl'
 
 const safeAppHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -13,7 +12,7 @@ const safeAppHeaders = {
 
 export default defineConfig({
   base: './',
-  plugins: [react(), tailwindcss(), basicSsl()],
+  plugins: [react(), tailwindcss()],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),

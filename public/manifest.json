@@ -1,12 +1,20 @@
 {
   "name": "Safe Staking",
+  "short_name": "Safe Staking",
   "description": "Stake SAFE tokens to validators and manage your staking rewards",
-  "iconPath": "logo.svg",
   "icons": [
     {
-      "src": "/logo.svg",
-      "type": "image/svg+xml",
-      "sizes": "any"
+      "src": "/android-chrome-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/android-chrome-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
     }
-  ]
+  ],
+  "theme_color": "#12ff80",
+  "background_color": "#121312",
+  "display": "standalone"
 }

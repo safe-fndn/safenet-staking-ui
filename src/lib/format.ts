@@ -3,7 +3,7 @@ import { formatUnits } from "viem"
 export function formatTokenAmount(amount: bigint, decimals = 18, maxDecimals = 4): string {
   const formatted = formatUnits(amount, decimals)
   const [whole, decimal] = formatted.split(".")
-  if (!decimal) return whole
+  if (!decimal || maxDecimals === 0) return whole
   return `${whole}.${decimal.slice(0, maxDecimals)}`
 }
 

@@ -80,7 +80,7 @@ function TxList({ transactions }: { transactions: TransactionRecord[] }) {
   )
 }
 
-function useIsVisible(ref: React.RefObject<HTMLElement | null>) {
+function useIsVisible(ref: React.RefObject<HTMLElement | null>, ...deps: unknown[]) {
   const [visible, setVisible] = useState(false)
 
   useEffect(() => {
@@ -98,7 +98,8 @@ function useIsVisible(ref: React.RefObject<HTMLElement | null>) {
     )
     observer.observe(el)
     return () => observer.disconnect()
-  }, [ref])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ref, ...deps])
 
   return visible
 }
@@ -106,7 +107,7 @@ function useIsVisible(ref: React.RefObject<HTMLElement | null>) {
 export function TransactionHistory() {
   const { isConnected } = useAccount()
   const cardRef = useRef<HTMLDivElement>(null)
-  const isVisible = useIsVisible(cardRef)
+  const isVisible = useIsVisible(cardRef, isConnected)
   const { data: transactions, isLoading } = useTransactionHistory(undefined, { enabled: isVisible })
 
   if (!isConnected) return null
