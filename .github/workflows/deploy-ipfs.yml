@@ -38,6 +38,15 @@ jobs:
         run: npm audit --audit-level=high
 
       - name: Build
+        env:
+          VITE_CHAIN_ID: ${{ vars.VITE_CHAIN_ID }}
+          VITE_RPC_URL: ${{ secrets.VITE_RPC_URL }}
+          VITE_STAKING_DEPLOY_BLOCK: ${{ vars.VITE_STAKING_DEPLOY_BLOCK }}
+          VITE_WALLETCONNECT_PROJECT_ID: ${{ secrets.VITE_WALLETCONNECT_PROJECT_ID }}
+          VITE_SANCTIONS_API_URL: ${{ vars.VITE_SANCTIONS_API_URL }}
+          VITE_TOU_URL: ${{ vars.VITE_TOU_URL }}
+          VITE_DOCS_URL: ${{ vars.VITE_DOCS_URL }}
+          VITE_FAQ_URL: ${{ vars.VITE_FAQ_URL }}
         run: npm run build
 
       - name: Compute build checksum
