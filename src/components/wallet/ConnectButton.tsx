@@ -10,7 +10,8 @@ import Copy from "lucide-react/dist/esm/icons/copy"
 
 export function ConnectButton() {
   const { address, isConnected, chain } = useAccount()
-  const { connect, connectors, error: connectError } = useConnect()
+  const { connect, connectors: allConnectors, error: connectError } = useConnect()
+  const connectors = allConnectors.filter((c) => ["browserWallet", "walletConnect", "safe"].includes(c.id))
   const { disconnect } = useDisconnect()
   const { switchChain } = useSwitchChain()
   const { data: balance } = useTokenBalance()

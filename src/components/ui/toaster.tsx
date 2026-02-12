@@ -7,9 +7,9 @@ import Info from "lucide-react/dist/esm/icons/info"
 import { activeChain } from "@/config/chains"
 
 const variantStyles: Record<ToastVariant, string> = {
-  success: "border-success/50 bg-success/10 text-success",
-  error: "border-destructive/50 bg-destructive/10 text-destructive",
-  info: "border-info/50 bg-info/10 text-info",
+  success: "border-success/50 bg-card text-success",
+  error: "border-destructive/50 bg-card text-destructive",
+  info: "border-info/50 bg-card text-info",
 }
 
 const variantIcons: Record<ToastVariant, typeof CheckCircle> = {
@@ -30,7 +30,7 @@ export function Toaster() {
   if (toasts.length === 0) return null
 
   return (
-    <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2 max-w-sm w-full" aria-live="polite" role="status">
+    <div className="fixed bottom-4 right-4 z-[100] flex flex-col gap-2 max-w-sm w-full" aria-live="polite" role="status">
       {toasts.map((toast) => {
         const Icon = variantIcons[toast.variant]
         return (

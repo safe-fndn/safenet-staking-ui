@@ -8,7 +8,7 @@ const isSafeApp = window.self !== window.top
 
 const connectors = [
   ...(isSafeApp ? [safe()] : []),
-  injected(),
+  injected({ target: { id: "browserWallet", name: "Browser Wallet", provider: () => window.ethereum } }),
   ...(projectId && projectId.length > 0 ? [walletConnect({ projectId })] : []),
 ]
 
