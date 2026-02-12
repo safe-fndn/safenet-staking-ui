@@ -50,12 +50,12 @@ const LazyPieChart = lazy(() =>
 const metadata = validatorData as Record<string, { label: string; commission: number; uptime: number }>
 
 const COLORS = [
-  "hsl(142, 76%, 36%)", // green
-  "hsl(221, 83%, 53%)", // blue
-  "hsl(262, 83%, 58%)", // purple
-  "hsl(24, 95%, 53%)",  // orange
-  "hsl(350, 89%, 60%)", // red
-  "hsl(173, 80%, 40%)", // teal
+  "#12FF80", // Safe Green
+  "#5FDDFF", // Safe Blue
+  "#FF8061", // Safe Orange
+  "#00B460", // Safe Dark Green
+  "#FF5F72", // Safe Red
+  "#B0FFC9", // Safe Light Green
 ]
 
 function getLabel(address: string): string {
