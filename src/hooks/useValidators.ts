@@ -9,6 +9,8 @@ const CONCURRENCY = 5
 
 const EVENT = parseAbiItem("event ValidatorUpdated(address indexed validator, bool isRegistered)")
 
+type ValidatorLog = Log<bigint, number, false, typeof EVENT, true>
+
 export interface ValidatorInfo {
   address: Address
   isActive: boolean
@@ -38,7 +40,7 @@ export function useValidators() {
     queryFn: async (): Promise<ValidatorInfo[]> => {
       if (!client) throw new Error("No public client")
 
-      let logs: Log[]
+      let logs: ValidatorLog[]
 
       // Try full range first, fall back to chunked on RPC block-range limits
       try {
@@ -47,6 +49,7 @@ export function useValidators() {
           event: EVENT,
           fromBlock: deployBlock,
           toBlock: "latest",
+          strict: true,
         })
       } catch {
         const latestBlock = await client.getBlockNumber()
@@ -68,9 +71,10 @@ export function useValidators() {
               event: EVENT,
               fromBlock,
               toBlock,
+              strict: true,
             })
           } catch {
-            return [] as Log[]
+            return [] as ValidatorLog[]
           }
         })
 
@@ -80,8 +84,7 @@ export function useValidators() {
 
       const validators = new Map<Address, boolean>()
       for (const log of logs) {
-        const args = (log as unknown as { args: { validator: Address; isRegistered: boolean } }).args
-        validators.set(args.validator, args.isRegistered)
+        validators.set(log.args.validator, log.args.isRegistered)
       }
 
       const result: ValidatorInfo[] = []

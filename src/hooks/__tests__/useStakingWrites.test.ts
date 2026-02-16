@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest"
 import { renderHook, act } from "@testing-library/react"
 import { useStake, useInitiateWithdrawal, useClaimWithdrawal, useInvalidateOnSuccess } from "../useStakingWrites"
 import { TEST_ACCOUNTS, MOCK_TX_HASH } from "@/__tests__/test-data"
+import { mockWriteContractReturn, mockWaitForReceiptReturn } from "@/__tests__/mock-wagmi"
 
 // Mock wagmi
 const mockWriteContract = vi.fn()
@@ -76,13 +77,13 @@ describe("useStake", () => {
   })
 
   it("reflects signing state when isPending is true", () => {
-    wagmi.useWriteContract.mockReturnValue({
-      writeContract: mockWriteContract,
-      data: undefined,
-      isPending: true,
-      reset: mockReset,
-      error: null,
-    } as unknown as ReturnType<typeof wagmi.useWriteContract>)
+    wagmi.useWriteContract.mockReturnValue(
+      mockWriteContractReturn({
+        writeContract: mockWriteContract,
+        isPending: true,
+        reset: mockReset,
+      })
+    )
 
     const { result } = renderHook(() => useStake())
     expect(result.current.isSigningTx).toBe(true)
@@ -90,18 +91,17 @@ describe("useStake", () => {
   })
 
   it("reflects confirming state when tx hash exists and waiting", () => {
-    wagmi.useWriteContract.mockReturnValue({
-      writeContract: mockWriteContract,
-      data: MOCK_TX_HASH,
-      isPending: false,
-      reset: mockReset,
-      error: null,
-    } as unknown as ReturnType<typeof wagmi.useWriteContract>)
+    wagmi.useWriteContract.mockReturnValue(
+      mockWriteContractReturn({
+        writeContract: mockWriteContract,
+        data: MOCK_TX_HASH,
+        reset: mockReset,
+      })
+    )
 
-    wagmi.useWaitForTransactionReceipt.mockReturnValue({
-      isLoading: true,
-      isSuccess: false,
-    } as ReturnType<typeof wagmi.useWaitForTransactionReceipt>)
+    wagmi.useWaitForTransactionReceipt.mockReturnValue(
+      mockWaitForReceiptReturn({ isLoading: true })
+    )
 
     const { result } = renderHook(() => useStake())
     expect(result.current.isSigningTx).toBe(false)
@@ -110,18 +110,17 @@ describe("useStake", () => {
   })
 
   it("reflects success state", () => {
-    wagmi.useWriteContract.mockReturnValue({
-      writeContract: mockWriteContract,
-      data: MOCK_TX_HASH,
-      isPending: false,
-      reset: mockReset,
-      error: null,
-    } as unknown as ReturnType<typeof wagmi.useWriteContract>)
+    wagmi.useWriteContract.mockReturnValue(
+      mockWriteContractReturn({
+        writeContract: mockWriteContract,
+        data: MOCK_TX_HASH,
+        reset: mockReset,
+      })
+    )
 
-    wagmi.useWaitForTransactionReceipt.mockReturnValue({
-      isLoading: false,
-      isSuccess: true,
-    } as ReturnType<typeof wagmi.useWaitForTransactionReceipt>)
+    wagmi.useWaitForTransactionReceipt.mockReturnValue(
+      mockWaitForReceiptReturn({ isSuccess: true })
+    )
 
     const { result } = renderHook(() => useStake())
     expect(result.current.isSuccess).toBe(true)
@@ -130,13 +129,13 @@ describe("useStake", () => {
 
   it("reflects error state on user rejection", () => {
     const error = new Error("User rejected the request")
-    wagmi.useWriteContract.mockReturnValue({
-      writeContract: mockWriteContract,
-      data: undefined,
-      isPending: false,
-      reset: mockReset,
-      error,
-    } as unknown as ReturnType<typeof wagmi.useWriteContract>)
+    wagmi.useWriteContract.mockReturnValue(
+      mockWriteContractReturn({
+        writeContract: mockWriteContract,
+        reset: mockReset,
+        error,
+      })
+    )
 
     const { result } = renderHook(() => useStake())
     expect(result.current.error).toBe(error)
@@ -155,17 +154,15 @@ describe("useStake", () => {
 describe("useInitiateWithdrawal", () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    wagmi.useWriteContract.mockReturnValue({
-      writeContract: mockWriteContract,
-      data: undefined,
-      isPending: false,
-      reset: mockReset,
-      error: null,
-    } as unknown as ReturnType<typeof wagmi.useWriteContract>)
-    wagmi.useWaitForTransactionReceipt.mockReturnValue({
-      isLoading: false,
-      isSuccess: false,
-    } as ReturnType<typeof wagmi.useWaitForTransactionReceipt>)
+    wagmi.useWriteContract.mockReturnValue(
+      mockWriteContractReturn({
+        writeContract: mockWriteContract,
+        reset: mockReset,
+      })
+    )
+    wagmi.useWaitForTransactionReceipt.mockReturnValue(
+      mockWaitForReceiptReturn()
+    )
   })
 
   it("returns idle state initially", () => {
@@ -196,17 +193,15 @@ describe("useInitiateWithdrawal", () => {
 describe("useClaimWithdrawal", () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    wagmi.useWriteContract.mockReturnValue({
-      writeContract: mockWriteContract,
-      data: undefined,
-      isPending: false,
-      reset: mockReset,
-      error: null,
-    } as unknown as ReturnType<typeof wagmi.useWriteContract>)
-    wagmi.useWaitForTransactionReceipt.mockReturnValue({
-      isLoading: false,
-      isSuccess: false,
-    } as ReturnType<typeof wagmi.useWaitForTransactionReceipt>)
+    wagmi.useWriteContract.mockReturnValue(
+      mockWriteContractReturn({
+        writeContract: mockWriteContract,
+        reset: mockReset,
+      })
+    )
+    wagmi.useWaitForTransactionReceipt.mockReturnValue(
+      mockWaitForReceiptReturn()
+    )
   })
 
   it("returns idle state initially", () => {

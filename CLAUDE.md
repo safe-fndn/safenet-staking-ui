@@ -13,6 +13,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Watch mode:** `npm run test:watch`
 - **Coverage:** `npm run test:coverage`
 
+## Pre-push Checklist
+
+Before pushing code to the remote, always run these checks in order and fix any failures:
+
+1. `npm run lint` — ESLint must pass with zero errors
+2. `npm test` — All unit/integration tests must pass
+3. `npm run build` — Production build must succeed (includes `tsc -b`)
+
 ## Architecture
 
 Safenet Staking UI is a React 19 + TypeScript dApp for delegating SAFE tokens to validators on Ethereum. It uses Vite 7, Tailwind CSS 4 (via `@tailwindcss/vite`), wagmi 3 / viem for wallet and contract interactions, and recharts for data visualization.

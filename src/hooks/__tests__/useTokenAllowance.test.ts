@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest"
 import { renderHook, act } from "@testing-library/react"
 import { useTokenAllowance } from "../useTokenAllowance"
 import { AMOUNTS } from "@/__tests__/test-data"
+import { mockWriteContractReturn, mockReadContractReturn, mockWaitForReceiptReturn } from "@/__tests__/mock-wagmi"
 
 const mockWriteContract = vi.fn()
 const mockReset = vi.fn()
@@ -42,20 +43,18 @@ describe("useTokenAllowance", () => {
   })
 
   it("returns allowance from read contract", () => {
-    wagmi.useReadContract.mockReturnValue({
-      data: 500n * 10n ** 18n,
-      refetch: vi.fn(),
-    } as unknown as ReturnType<typeof wagmi.useReadContract>)
+    wagmi.useReadContract.mockReturnValue(
+      mockReadContractReturn({ data: 500n * 10n ** 18n })
+    )
 
     const { result } = renderHook(() => useTokenAllowance())
     expect(result.current.allowance).toBe(500n * 10n ** 18n)
   })
 
   it("returns undefined allowance when disconnected", () => {
-    wagmi.useReadContract.mockReturnValue({
-      data: undefined,
-      refetch: vi.fn(),
-    } as unknown as ReturnType<typeof wagmi.useReadContract>)
+    wagmi.useReadContract.mockReturnValue(
+      mockReadContractReturn()
+    )
 
     const { result } = renderHook(() => useTokenAllowance())
     expect(result.current.allowance).toBeUndefined()
@@ -92,33 +91,31 @@ describe("useTokenAllowance", () => {
   })
 
   it("reflects signing state", () => {
-    wagmi.useWriteContract.mockReturnValue({
-      writeContract: mockWriteContract,
-      data: undefined,
-      isPending: true,
-      reset: mockReset,
-      error: null,
-    } as unknown as ReturnType<typeof wagmi.useWriteContract>)
+    wagmi.useWriteContract.mockReturnValue(
+      mockWriteContractReturn({
+        writeContract: mockWriteContract,
+        isPending: true,
+        reset: mockReset,
+      })
+    )
 
     const { result } = renderHook(() => useTokenAllowance())
     expect(result.current.isSigningApproval).toBe(true)
   })
 
   it("reflects confirming state", () => {
-    wagmi.useWaitForTransactionReceipt.mockReturnValue({
-      isLoading: true,
-      isSuccess: false,
-    } as ReturnType<typeof wagmi.useWaitForTransactionReceipt>)
+    wagmi.useWaitForTransactionReceipt.mockReturnValue(
+      mockWaitForReceiptReturn({ isLoading: true })
+    )
 
     const { result } = renderHook(() => useTokenAllowance())
     expect(result.current.isConfirmingApproval).toBe(true)
   })
 
   it("reflects approved state and invalidates queries", () => {
-    wagmi.useWaitForTransactionReceipt.mockReturnValue({
-      isLoading: false,
-      isSuccess: true,
-    } as ReturnType<typeof wagmi.useWaitForTransactionReceipt>)
+    wagmi.useWaitForTransactionReceipt.mockReturnValue(
+      mockWaitForReceiptReturn({ isSuccess: true })
+    )
 
     renderHook(() => useTokenAllowance())
     expect(mockInvalidateQueries).toHaveBeenCalledWith({ queryKey: ["readContract"] })
@@ -127,13 +124,13 @@ describe("useTokenAllowance", () => {
 
   it("exposes approval error", () => {
     const error = new Error("User rejected")
-    wagmi.useWriteContract.mockReturnValue({
-      writeContract: mockWriteContract,
-      data: undefined,
-      isPending: false,
-      reset: mockReset,
-      error,
-    } as unknown as ReturnType<typeof wagmi.useWriteContract>)
+    wagmi.useWriteContract.mockReturnValue(
+      mockWriteContractReturn({
+        writeContract: mockWriteContract,
+        reset: mockReset,
+        error,
+      })
+    )
 
     const { result } = renderHook(() => useTokenAllowance())
     expect(result.current.approvalError).toBe(error)

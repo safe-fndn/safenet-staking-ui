@@ -4,7 +4,7 @@ import userEvent from "@testing-library/user-event"
 import { AmountInput } from "../staking/AmountInput"
 
 describe("AmountInput", () => {
-  const mockOnChange = vi.fn()
+  const mockOnChange = vi.fn<(value: string) => void>()
   const maxAmount = 1000n * 10n ** 18n // 1000 SAFE
 
   beforeEach(() => {
