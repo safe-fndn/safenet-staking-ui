@@ -12,21 +12,14 @@ vi.mock("wagmi", () => ({
   })),
 }))
 
+// Capture queryFn from each useQuery call so tests can invoke it directly.
+let capturedQueryFn: (() => Promise<unknown>) | undefined
+
 vi.mock("@tanstack/react-query", () => ({
-  useQuery: vi.fn(({ queryFn, enabled }: { queryFn: () => Promise<unknown>; enabled: boolean }) => {
-    if (!enabled) return { data: undefined, isLoading: false }
-
-    let data: unknown
-    let error: unknown
-    let isLoading = true
-
-    const promise = queryFn()
-      .then((result) => { data = result; isLoading = false })
-      .catch((err) => { error = err; isLoading = false })
-
-    // For sync test assertions, we need to handle the async nature
-    // Return a function that resolves
-    return { data, error, isLoading, _promise: promise }
+  useQuery: vi.fn((opts: { queryFn?: () => Promise<unknown>; enabled?: boolean }) => {
+    capturedQueryFn = opts.queryFn
+    if (opts.enabled === false) return { data: undefined, isLoading: false }
+    return { data: undefined, isLoading: true }
   }),
 }))
 
@@ -45,6 +38,7 @@ const reactQuery = vi.mocked(await import("@tanstack/react-query"))
 describe("useValidators", () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    capturedQueryFn = undefined
   })
 
   it("calls useQuery with validators key", () => {
@@ -66,13 +60,6 @@ describe("useValidators", () => {
     ]
     mockGetLogs.mockResolvedValue(mockLogs)
 
-    // Capture the queryFn
-    let capturedQueryFn: (() => Promise<unknown>) | undefined
-    reactQuery.useQuery.mockImplementation(({ queryFn }: { queryFn: () => Promise<unknown> }) => {
-      capturedQueryFn = queryFn
-      return { data: undefined, isLoading: true } as ReturnType<typeof reactQuery.useQuery>
-    })
-
     renderHook(() => useValidators())
 
     expect(capturedQueryFn).toBeDefined()
@@ -91,14 +78,9 @@ describe("useValidators", () => {
       .mockResolvedValue([])
     mockGetBlockNumber.mockResolvedValue(5_100_000n)
 
-    let capturedQueryFn: (() => Promise<unknown>) | undefined
-    reactQuery.useQuery.mockImplementation(({ queryFn }: { queryFn: () => Promise<unknown> }) => {
-      capturedQueryFn = queryFn
-      return { data: undefined, isLoading: true } as ReturnType<typeof reactQuery.useQuery>
-    })
-
     renderHook(() => useValidators())
 
+    expect(capturedQueryFn).toBeDefined()
     const result = await capturedQueryFn!()
     expect(result).toEqual([])
     // First call fails (full range), then chunked calls happen
@@ -113,14 +95,9 @@ describe("useValidators", () => {
     ]
     mockGetLogs.mockResolvedValue(mockLogs)
 
-    let capturedQueryFn: (() => Promise<unknown>) | undefined
-    reactQuery.useQuery.mockImplementation(({ queryFn }: { queryFn: () => Promise<unknown> }) => {
-      capturedQueryFn = queryFn
-      return { data: undefined, isLoading: true } as ReturnType<typeof reactQuery.useQuery>
-    })
-
     renderHook(() => useValidators())
 
+    expect(capturedQueryFn).toBeDefined()
     const result = await capturedQueryFn!()
     expect(result).toEqual([{ address: "0xaaa", isActive: false }])
   })
@@ -128,14 +105,9 @@ describe("useValidators", () => {
   it("queryFn returns empty array when no events", async () => {
     mockGetLogs.mockResolvedValue([])
 
-    let capturedQueryFn: (() => Promise<unknown>) | undefined
-    reactQuery.useQuery.mockImplementation(({ queryFn }: { queryFn: () => Promise<unknown> }) => {
-      capturedQueryFn = queryFn
-      return { data: undefined, isLoading: true } as ReturnType<typeof reactQuery.useQuery>
-    })
-
     renderHook(() => useValidators())
 
+    expect(capturedQueryFn).toBeDefined()
     const result = await capturedQueryFn!()
     expect(result).toEqual([])
   })
