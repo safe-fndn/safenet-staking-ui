@@ -9,8 +9,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Lint:** `npm run lint`
 - **Type check only:** `npx tsc --noEmit`
 - **Preview production build:** `npm run preview`
-
-No test framework is configured.
+- **Run unit/integration tests:** `npm test` (vitest run)
+- **Watch mode:** `npm run test:watch`
+- **Coverage:** `npm run test:coverage`
 
 ## Architecture
 
