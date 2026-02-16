@@ -16,13 +16,6 @@ vi.mock("@/hooks/useValidatorMetadata", () => ({
   useValidatorMetadata: vi.fn(() => ({ label: "Gnosis Validator" })),
 }))
 
-vi.mock("lucide-react/dist/esm/icons/loader-2", () => ({
-  default: () => <span data-testid="loader-icon" />,
-}))
-vi.mock("lucide-react/dist/esm/icons/check-circle", () => ({
-  default: () => <span data-testid="check-icon" />,
-}))
-
 describe("WithdrawalCard", () => {
   const mockOnClaim = vi.fn()
   const pastClaimableAt = Math.floor(Date.now() / 1000) - 3600 // 1 hour ago

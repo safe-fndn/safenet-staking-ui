@@ -75,17 +75,6 @@ vi.mock("@/hooks/useGasEstimate", () => ({
   useGasEstimate: vi.fn(() => ({ estimatedCost: null, isLoading: false })),
 }))
 
-// Stub lucide icons to simple elements
-vi.mock("lucide-react/dist/esm/icons/loader-2", () => ({
-  default: () => <span data-testid="loader-icon" />,
-}))
-vi.mock("lucide-react/dist/esm/icons/info", () => ({
-  default: () => <span data-testid="info-icon" />,
-}))
-vi.mock("lucide-react/dist/esm/icons/fuel", () => ({
-  default: () => <span data-testid="fuel-icon" />,
-}))
-
 describe("DelegateDialog", () => {
   const defaultProps = {
     validator: TEST_ACCOUNTS.validator1,

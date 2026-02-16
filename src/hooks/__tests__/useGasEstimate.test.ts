@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest"
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
 import { renderHook, act } from "@testing-library/react"
 import type { Address } from "viem"
 
@@ -20,22 +20,14 @@ const { useGasEstimate } = await import("../useGasEstimate")
 const VALIDATOR = "0x1234567890abcdef1234567890abcdef12345678" as Address
 const AMOUNT = 100n * 10n ** 18n
 
-function delay(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms))
-}
-
-async function waitForMockCall(mock: ReturnType<typeof vi.fn>, timeout = 3000) {
-  const start = Date.now()
-  while (Date.now() - start < timeout) {
-    if (mock.mock.calls.length > 0) return
-    await act(async () => { await delay(50) })
-  }
-  throw new Error(`Mock not called within ${timeout}ms`)
-}
-
 describe("useGasEstimate", () => {
   beforeEach(() => {
+    vi.useFakeTimers()
     vi.clearAllMocks()
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
   })
 
   it("returns null and not loading for zero amount", () => {
@@ -55,8 +47,10 @@ describe("useGasEstimate", () => {
     // estimateGas not called immediately (debounced)
     expect(mockEstimateGas).not.toHaveBeenCalled()
 
-    // Wait for the 500ms debounce to fire
-    await waitForMockCall(mockEstimateGas)
+    // Advance past the 500ms debounce
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(500)
+    })
 
     expect(mockEstimateGas).toHaveBeenCalledTimes(1)
     expect(mockGetGasPrice).toHaveBeenCalledTimes(1)
@@ -75,10 +69,9 @@ describe("useGasEstimate", () => {
 
     const { result } = renderHook(() => useGasEstimate("stake", VALIDATOR, AMOUNT))
 
-    await waitForMockCall(mockEstimateGas)
-
-    // Allow async catch/finally to run
-    await act(async () => { await delay(50) })
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(500)
+    })
 
     // Should not throw, estimatedCost stays null
     expect(result.current.estimatedCost).toBeNull()
@@ -97,7 +90,9 @@ describe("useGasEstimate", () => {
     rerender({ amount: 50n * 10n ** 18n })
     rerender({ amount: 100n * 10n ** 18n })
 
-    await waitForMockCall(mockEstimateGas)
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(500)
+    })
 
     // Only called once despite 3 different amounts
     expect(mockEstimateGas).toHaveBeenCalledTimes(1)
