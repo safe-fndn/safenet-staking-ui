@@ -41,9 +41,9 @@ const mockUseStake = {
   isSigningTx: false,
   isConfirmingTx: false,
   isSuccess: false,
-  error: null,
+  error: null as Error | null,
   reset: mockResetStake,
-  txHash: undefined,
+  txHash: undefined as `0x${string}` | undefined,
 }
 
 const mockUseBatchStake = {
@@ -271,5 +271,59 @@ describe("DelegateDialog", () => {
 
     // Restore for subsequent tests
     vi.mocked(mod.useTokenBalance).mockReturnValue({ data: AMOUNTS.userBalance } as ReturnType<typeof mod.useTokenBalance>)
+  })
+
+  it("shows signing approval state on approve buttons", async () => {
+    mockTokenAllowance.allowance = 0n
+    mockTokenAllowance.isSigningApproval = true
+
+    const user = userEvent.setup()
+    render(<DelegateDialog {...defaultProps} />)
+
+    await user.type(screen.getByPlaceholderText("0.0"), "100")
+
+    expect(screen.getAllByText("Confirm Approval in Wallet…").length).toBeGreaterThan(0)
+  })
+
+  it("shows confirming approval state on approve buttons", async () => {
+    mockTokenAllowance.allowance = 0n
+    mockTokenAllowance.isConfirmingApproval = true
+
+    const user = userEvent.setup()
+    render(<DelegateDialog {...defaultProps} />)
+
+    await user.type(screen.getByPlaceholderText("0.0"), "100")
+
+    expect(screen.getAllByText("Approval confirming…").length).toBeGreaterThan(0)
+  })
+
+  it("shows success toast after stake completes", () => {
+    mockUseStake.isSuccess = true
+    mockUseStake.txHash = "0xbbbb" as `0x${string}`
+
+    render(<DelegateDialog {...defaultProps} />)
+
+    expect(mockToast).toHaveBeenCalledWith(
+      expect.objectContaining({
+        variant: "success",
+        title: "Staking successful",
+      })
+    )
+  })
+
+  it("uses batch approve and stake when batching is supported", async () => {
+    mockUseBatchStake.supportsBatching = true
+    mockTokenAllowance.allowance = 0n
+
+    const user = userEvent.setup()
+    render(<DelegateDialog {...defaultProps} />)
+
+    await user.type(screen.getByPlaceholderText("0.0"), "100")
+    await user.click(screen.getByRole("button", { name: "Delegate" }))
+
+    expect(mockBatchApproveAndStake).toHaveBeenCalledWith(
+      TEST_ACCOUNTS.validator1,
+      100n * 10n ** 18n,
+    )
   })
 })
