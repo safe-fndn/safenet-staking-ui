@@ -120,4 +120,70 @@ describe("UndelegateDialog", () => {
 
     expect(mockReset).toHaveBeenCalled()
   })
+
+  it("shows signing state", async () => {
+    const mod = await import("@/hooks/useStakingWrites")
+    vi.mocked(mod.useInitiateWithdrawal).mockReturnValue({
+      initiateWithdrawal: mockInitiateWithdrawal,
+      isSigningTx: true,
+      isConfirmingTx: false,
+      isSuccess: false,
+      error: null,
+      reset: mockReset,
+      txHash: undefined,
+    })
+
+    render(<UndelegateDialog {...defaultProps} />)
+
+    expect(screen.getByText("Confirm in Wallet…")).toBeInTheDocument()
+
+    // Restore
+    vi.mocked(mod.useInitiateWithdrawal).mockReturnValue({
+      initiateWithdrawal: mockInitiateWithdrawal,
+      isSigningTx: false,
+      isConfirmingTx: false,
+      isSuccess: false,
+      error: null,
+      reset: mockReset,
+      txHash: undefined,
+    })
+  })
+
+  it("shows confirming state", async () => {
+    const mod = await import("@/hooks/useStakingWrites")
+    vi.mocked(mod.useInitiateWithdrawal).mockReturnValue({
+      initiateWithdrawal: mockInitiateWithdrawal,
+      isSigningTx: false,
+      isConfirmingTx: true,
+      isSuccess: false,
+      error: null,
+      reset: mockReset,
+      txHash: undefined,
+    })
+
+    render(<UndelegateDialog {...defaultProps} />)
+
+    expect(screen.getByText("Confirming on chain…")).toBeInTheDocument()
+
+    // Restore
+    vi.mocked(mod.useInitiateWithdrawal).mockReturnValue({
+      initiateWithdrawal: mockInitiateWithdrawal,
+      isSigningTx: false,
+      isConfirmingTx: false,
+      isSuccess: false,
+      error: null,
+      reset: mockReset,
+      txHash: undefined,
+    })
+  })
+
+  it("shows insufficient balance message when amount exceeds stake", async () => {
+    const user = userEvent.setup()
+    render(<UndelegateDialog {...defaultProps} />)
+
+    await user.type(screen.getByPlaceholderText("0.0"), "400")
+
+    // Button should be disabled
+    expect(screen.getByRole("button", { name: "Initiate Withdrawal" })).toBeDisabled()
+  })
 })

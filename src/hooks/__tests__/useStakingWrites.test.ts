@@ -188,6 +188,75 @@ describe("useInitiateWithdrawal", () => {
       })
     )
   })
+
+  it("reflects signing state when isPending is true", () => {
+    wagmi.useWriteContract.mockReturnValue(
+      mockWriteContractReturn({
+        writeContract: mockWriteContract,
+        isPending: true,
+        reset: mockReset,
+      })
+    )
+
+    const { result } = renderHook(() => useInitiateWithdrawal())
+    expect(result.current.isSigningTx).toBe(true)
+    expect(result.current.isConfirmingTx).toBe(false)
+  })
+
+  it("reflects confirming state when tx hash exists and waiting", () => {
+    wagmi.useWriteContract.mockReturnValue(
+      mockWriteContractReturn({
+        writeContract: mockWriteContract,
+        data: MOCK_TX_HASH,
+        reset: mockReset,
+      })
+    )
+    wagmi.useWaitForTransactionReceipt.mockReturnValue(
+      mockWaitForReceiptReturn({ isLoading: true })
+    )
+
+    const { result } = renderHook(() => useInitiateWithdrawal())
+    expect(result.current.isConfirmingTx).toBe(true)
+    expect(result.current.txHash).toBe(MOCK_TX_HASH)
+  })
+
+  it("reflects success state", () => {
+    wagmi.useWriteContract.mockReturnValue(
+      mockWriteContractReturn({
+        writeContract: mockWriteContract,
+        data: MOCK_TX_HASH,
+        reset: mockReset,
+      })
+    )
+    wagmi.useWaitForTransactionReceipt.mockReturnValue(
+      mockWaitForReceiptReturn({ isSuccess: true })
+    )
+
+    const { result } = renderHook(() => useInitiateWithdrawal())
+    expect(result.current.isSuccess).toBe(true)
+  })
+
+  it("reflects error state", () => {
+    const error = new Error("User rejected the request")
+    wagmi.useWriteContract.mockReturnValue(
+      mockWriteContractReturn({
+        writeContract: mockWriteContract,
+        reset: mockReset,
+        error,
+      })
+    )
+
+    const { result } = renderHook(() => useInitiateWithdrawal())
+    expect(result.current.error).toBe(error)
+  })
+
+  it("exposes reset function", () => {
+    const { result } = renderHook(() => useInitiateWithdrawal())
+    act(() => {
+      result.current.reset()
+    })
+    expect(mockReset).toHaveBeenCalled()
+  })
 })
 
 describe("useClaimWithdrawal", () => {
@@ -225,6 +294,75 @@ describe("useClaimWithdrawal", () => {
         functionName: "claimWithdrawal",
       })
     )
+  })
+
+  it("reflects signing state when isPending is true", () => {
+    wagmi.useWriteContract.mockReturnValue(
+      mockWriteContractReturn({
+        writeContract: mockWriteContract,
+        isPending: true,
+        reset: mockReset,
+      })
+    )
+
+    const { result } = renderHook(() => useClaimWithdrawal())
+    expect(result.current.isSigningTx).toBe(true)
+    expect(result.current.isConfirmingTx).toBe(false)
+  })
+
+  it("reflects confirming state when tx hash exists and waiting", () => {
+    wagmi.useWriteContract.mockReturnValue(
+      mockWriteContractReturn({
+        writeContract: mockWriteContract,
+        data: MOCK_TX_HASH,
+        reset: mockReset,
+      })
+    )
+    wagmi.useWaitForTransactionReceipt.mockReturnValue(
+      mockWaitForReceiptReturn({ isLoading: true })
+    )
+
+    const { result } = renderHook(() => useClaimWithdrawal())
+    expect(result.current.isConfirmingTx).toBe(true)
+    expect(result.current.txHash).toBe(MOCK_TX_HASH)
+  })
+
+  it("reflects success state", () => {
+    wagmi.useWriteContract.mockReturnValue(
+      mockWriteContractReturn({
+        writeContract: mockWriteContract,
+        data: MOCK_TX_HASH,
+        reset: mockReset,
+      })
+    )
+    wagmi.useWaitForTransactionReceipt.mockReturnValue(
+      mockWaitForReceiptReturn({ isSuccess: true })
+    )
+
+    const { result } = renderHook(() => useClaimWithdrawal())
+    expect(result.current.isSuccess).toBe(true)
+  })
+
+  it("reflects error state", () => {
+    const error = new Error("Transaction reverted")
+    wagmi.useWriteContract.mockReturnValue(
+      mockWriteContractReturn({
+        writeContract: mockWriteContract,
+        reset: mockReset,
+        error,
+      })
+    )
+
+    const { result } = renderHook(() => useClaimWithdrawal())
+    expect(result.current.error).toBe(error)
+  })
+
+  it("exposes reset function", () => {
+    const { result } = renderHook(() => useClaimWithdrawal())
+    act(() => {
+      result.current.reset()
+    })
+    expect(mockReset).toHaveBeenCalled()
   })
 })
 

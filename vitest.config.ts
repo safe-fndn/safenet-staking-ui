@@ -15,7 +15,8 @@ export default defineConfig({
     include: ["src/**/*.test.{ts,tsx}"],
     coverage: {
       provider: "v8",
-      include: ["src/lib/**", "src/hooks/**", "src/components/**"],
+      include: ["src/lib/**", "src/hooks/**", "src/components/**", "src/pages/**"],
+      exclude: ["src/config/**", "src/abi/**", "src/data/**"],
     },
   },
 })

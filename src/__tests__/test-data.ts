@@ -15,3 +15,21 @@ export const AMOUNTS = {
 } as const
 
 export const MOCK_TX_HASH = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" as Hash
+
+/** Pending withdrawal fixture (cooldown not yet expired) */
+export const MOCK_WITHDRAWAL_PENDING = {
+  amount: 50n * 10n ** 18n,
+  claimableAt: BigInt(Math.floor(Date.now() / 1000) + 3600), // 1 hour from now
+}
+
+/** Claimable withdrawal fixture (cooldown expired) */
+export const MOCK_WITHDRAWAL_CLAIMABLE = {
+  amount: 100n * 10n ** 18n,
+  claimableAt: BigInt(Math.floor(Date.now() / 1000) - 3600), // 1 hour ago
+}
+
+/** Validator info fixtures matching useValidators return type */
+export const MOCK_VALIDATORS = [
+  { address: TEST_ACCOUNTS.validator1, isActive: true },
+  { address: TEST_ACCOUNTS.validator2, isActive: true },
+] as const
