@@ -1,0 +1,105 @@
+import { describe, it, expect, vi, beforeEach } from "vitest"
+import { render, screen } from "@testing-library/react"
+import userEvent from "@testing-library/user-event"
+import { WithdrawalCard } from "../withdrawals/WithdrawalCard"
+import { AMOUNTS, TEST_ACCOUNTS } from "@/__tests__/test-data"
+
+vi.mock("@/hooks/useCountdown", () => ({
+  useCountdown: vi.fn(() => 0), // default: claimable (0 seconds left)
+}))
+
+vi.mock("@/hooks/useStakingReads", () => ({
+  useWithdrawDelay: vi.fn(() => ({ data: AMOUNTS.withdrawDelay })),
+}))
+
+vi.mock("@/hooks/useValidatorMetadata", () => ({
+  useValidatorMetadata: vi.fn(() => ({ label: "Gnosis Validator" })),
+}))
+
+vi.mock("lucide-react/dist/esm/icons/loader-2", () => ({
+  default: () => <span data-testid="loader-icon" />,
+}))
+vi.mock("lucide-react/dist/esm/icons/check-circle", () => ({
+  default: () => <span data-testid="check-icon" />,
+}))
+
+describe("WithdrawalCard", () => {
+  const mockOnClaim = vi.fn()
+  const pastClaimableAt = Math.floor(Date.now() / 1000) - 3600 // 1 hour ago
+  const futureClaimableAt = Math.floor(Date.now() / 1000) + 86400 // 1 day from now
+
+  const defaultProps = {
+    amount: AMOUNTS.pendingWithdrawalAmount,
+    claimableAt: pastClaimableAt,
+    isFirst: true,
+    onClaim: mockOnClaim,
+    isSigningTx: false,
+    isConfirmingTx: false,
+    validator: TEST_ACCOUNTS.validator1,
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it("renders withdrawal amount", () => {
+    render(<WithdrawalCard {...defaultProps} />)
+
+    expect(screen.getByText(/50/)).toBeInTheDocument()
+    expect(screen.getByText(/SAFE/)).toBeInTheDocument()
+  })
+
+  it("renders validator label", () => {
+    render(<WithdrawalCard {...defaultProps} />)
+
+    expect(screen.getByText(/Gnosis Validator/)).toBeInTheDocument()
+  })
+
+  it("shows 'Ready to claim' and Claim button when claimable", () => {
+    render(<WithdrawalCard {...defaultProps} />)
+
+    expect(screen.getByText("Ready to claim")).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Claim" })).toBeEnabled()
+  })
+
+  it("calls onClaim when Claim button clicked", async () => {
+    const user = userEvent.setup()
+    render(<WithdrawalCard {...defaultProps} />)
+
+    await user.click(screen.getByRole("button", { name: "Claim" }))
+
+    expect(mockOnClaim).toHaveBeenCalled()
+  })
+
+  it("disables Claim button when not first in queue", () => {
+    render(<WithdrawalCard {...defaultProps} isFirst={false} />)
+
+    // Not first in queue = no Claim button (canClaim = isFirst && secondsLeft === 0)
+    expect(screen.queryByRole("button", { name: "Claim" })).not.toBeInTheDocument()
+  })
+
+  it("shows signing state on Claim button", () => {
+    render(<WithdrawalCard {...defaultProps} isSigningTx={true} />)
+
+    expect(screen.getByText("Confirm in Wallet…")).toBeInTheDocument()
+    expect(screen.getByRole("button")).toBeDisabled()
+  })
+
+  it("shows confirming state on Claim button", () => {
+    render(<WithdrawalCard {...defaultProps} isConfirmingTx={true} />)
+
+    expect(screen.getByText("Confirming on chain…")).toBeInTheDocument()
+  })
+
+  it("shows countdown and progress bar when in cooldown", async () => {
+    const { useCountdown } = await import("@/hooks/useCountdown")
+    vi.mocked(useCountdown).mockReturnValue(86400) // 1 day remaining
+
+    render(<WithdrawalCard {...defaultProps} claimableAt={futureClaimableAt} />)
+
+    // Should show progress bar (cooldown in progress)
+    expect(screen.getByText("Cooldown progress")).toBeInTheDocument()
+    // Should NOT show claim button (not claimable yet)
+    expect(screen.queryByRole("button", { name: "Claim" })).not.toBeInTheDocument()
+  })
+})
