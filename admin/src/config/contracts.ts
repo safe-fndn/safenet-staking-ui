@@ -7,7 +7,7 @@ type ContractAddresses = {
 
 const addresses: Record<number, ContractAddresses> = {
   11155111: {
-    staking: "0x6E4D214A7FA04be157b1Aae498b395bd21Da0aF5",
+    staking: "0x6386F7F53878eA973f2272a7e88D93B6A2b32CA2",
     token: "0xef98bcc90b1373b2ae0d23ec318d3ee70ea61af4",
   },
 }
