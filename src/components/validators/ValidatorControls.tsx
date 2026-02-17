@@ -1,27 +1,14 @@
 import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
 import Search from "lucide-react/dist/esm/icons/search"
-
-export type StatusFilter = "all" | "active" | "inactive"
 
 interface ValidatorControlsProps {
   search: string
   onSearchChange: (value: string) => void
-  statusFilter: StatusFilter
-  onStatusFilterChange: (value: StatusFilter) => void
 }
-
-const statusOptions: { label: string; value: StatusFilter }[] = [
-  { label: "All", value: "all" },
-  { label: "Active", value: "active" },
-  { label: "Inactive", value: "inactive" },
-]
 
 export function ValidatorControls({
   search,
   onSearchChange,
-  statusFilter,
-  onStatusFilterChange,
 }: ValidatorControlsProps) {
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -35,18 +22,6 @@ export function ValidatorControls({
           onChange={(e) => onSearchChange(e.target.value)}
           className="pl-9"
         />
-      </div>
-      <div className="flex gap-2">
-        {statusOptions.map((opt) => (
-          <Button
-            key={opt.value}
-            variant={statusFilter === opt.value ? "default" : "outline"}
-            size="sm"
-            onClick={() => onStatusFilterChange(opt.value)}
-          >
-            {opt.label}
-          </Button>
-        ))}
       </div>
     </div>
   )

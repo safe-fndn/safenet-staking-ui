@@ -75,6 +75,15 @@ export function ConnectButton() {
   )
 
   if (!isConnected) {
+    // Single connector (e.g. Safe App): connect directly without menu
+    if (connectors.length === 1) {
+      return (
+        <Button onClick={() => connect({ connector: connectors[0] })}>
+          Connect Wallet
+        </Button>
+      )
+    }
+
     return (
       <div className="relative" ref={menuRef} onKeyDown={handleKeyDown}>
         <Button

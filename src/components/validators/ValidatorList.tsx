@@ -2,7 +2,7 @@ import { useMemo, useState, useTransition } from "react"
 import { useValidators } from "@/hooks/useValidators"
 import { useValidatorTotalStakes } from "@/hooks/useStakingReads"
 import { ValidatorCard } from "./ValidatorCard"
-import { ValidatorControls, type StatusFilter } from "./ValidatorControls"
+import { ValidatorControls } from "./ValidatorControls"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Button } from "@/components/ui/button"
 import RefreshCw from "lucide-react/dist/esm/icons/refresh-cw"
@@ -31,42 +31,26 @@ export function ValidatorList({ autoOpenDelegate }: { autoOpenDelegate?: string 
     return map
   }, [totalStakesData, validators])
   const [search, setSearch] = useState("")
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all")
   const [, startTransition] = useTransition()
 
   const handleSearchChange = (value: string) => {
     startTransition(() => setSearch(value))
   }
-  const handleStatusFilterChange = (value: StatusFilter) => {
-    startTransition(() => setStatusFilter(value))
-  }
 
   const filtered = useMemo(() => {
     if (!validators) return []
 
-    let result = [...validators]
+    if (!search.trim()) return validators
 
-    // Status filter
-    if (statusFilter === "active") {
-      result = result.filter((v) => v.isActive)
-    } else if (statusFilter === "inactive") {
-      result = result.filter((v) => !v.isActive)
-    }
-
-    // Search filter
-    if (search.trim()) {
-      const q = search.toLowerCase()
-      result = result.filter((v) => {
-        const meta = getMetadata(v.address)
-        return (
-          v.address.toLowerCase().includes(q) ||
-          (meta && meta.label.toLowerCase().includes(q))
-        )
-      })
-    }
-
-    return result
-  }, [validators, search, statusFilter])
+    const q = search.toLowerCase()
+    return validators.filter((v) => {
+      const meta = getMetadata(v.address)
+      return (
+        v.address.toLowerCase().includes(q) ||
+        (meta && meta.label.toLowerCase().includes(q))
+      )
+    })
+  }, [validators, search])
 
   if (isLoading) {
     return (
@@ -74,9 +58,7 @@ export function ValidatorList({ autoOpenDelegate }: { autoOpenDelegate?: string 
         <ValidatorControls
           search={search}
           onSearchChange={handleSearchChange}
-          statusFilter={statusFilter}
-          onStatusFilterChange={handleStatusFilterChange}
-/>
+        />
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {Array.from({ length: 3 }).map((_, i) => (
             <Skeleton key={i} className="h-48" />
@@ -113,9 +95,7 @@ export function ValidatorList({ autoOpenDelegate }: { autoOpenDelegate?: string 
       <ValidatorControls
         search={search}
         onSearchChange={setSearch}
-        statusFilter={statusFilter}
-        onStatusFilterChange={setStatusFilter}
-/>
+      />
       {filtered.length === 0 ? (
         <div className="rounded-lg border p-8 text-center text-muted-foreground">
           No validators match your search criteria.

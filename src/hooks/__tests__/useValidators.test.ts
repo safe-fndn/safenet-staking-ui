@@ -52,7 +52,7 @@ describe("useValidators", () => {
     )
   })
 
-  it("queryFn parses ValidatorUpdated events and sorts active first", async () => {
+  it("queryFn parses ValidatorUpdated events and excludes deregistered", async () => {
     const mockLogs = [
       { args: { validator: "0xaaa" as Address, isRegistered: false } },
       { args: { validator: "0xbbb" as Address, isRegistered: true } },
@@ -68,7 +68,6 @@ describe("useValidators", () => {
     expect(result).toEqual([
       { address: "0xbbb", isActive: true },
       { address: "0xccc", isActive: true },
-      { address: "0xaaa", isActive: false },
     ])
   })
 
@@ -88,10 +87,10 @@ describe("useValidators", () => {
     expect(mockGetBlockNumber).toHaveBeenCalled()
   })
 
-  it("queryFn handles duplicate validator events (last event wins)", async () => {
+  it("queryFn handles duplicate validator events (last event wins, deregistered excluded)", async () => {
     const mockLogs = [
       { args: { validator: "0xaaa" as Address, isRegistered: true } },
-      { args: { validator: "0xaaa" as Address, isRegistered: false } }, // later event deactivates
+      { args: { validator: "0xaaa" as Address, isRegistered: false } }, // later event deregisters
     ]
     mockGetLogs.mockResolvedValue(mockLogs)
 
@@ -99,7 +98,7 @@ describe("useValidators", () => {
 
     expect(capturedQueryFn).toBeDefined()
     const result = await capturedQueryFn!()
-    expect(result).toEqual([{ address: "0xaaa", isActive: false }])
+    expect(result).toEqual([])
   })
 
   it("queryFn returns empty array when no events", async () => {

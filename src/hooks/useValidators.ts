@@ -79,6 +79,9 @@ export function useValidators() {
         })
 
         const results = await runWithConcurrency(tasks, CONCURRENCY)
+        // Chunks are built newest-first; reverse so logs are chronological
+        // (oldest first) and the last Map.set() per validator wins correctly.
+        results.reverse()
         logs = results.flat()
       }
 
@@ -89,11 +92,11 @@ export function useValidators() {
 
       const result: ValidatorInfo[] = []
       for (const [addr, isRegistered] of validators) {
-        result.push({ address: addr, isActive: isRegistered })
+        if (!isRegistered) continue
+        result.push({ address: addr, isActive: true })
       }
 
-      // Sort: active first, then inactive
-      return result.toSorted((a, b) => (a.isActive === b.isActive ? 0 : a.isActive ? -1 : 1))
+      return result
     },
     staleTime: 60_000,
     enabled: !!client,

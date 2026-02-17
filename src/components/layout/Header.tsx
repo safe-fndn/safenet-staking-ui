@@ -27,7 +27,7 @@ const navItems = [
 
 export function Header() {
   const { pathname } = useLocation()
-  const { isDark, toggle } = useDarkMode()
+  const { isDark, toggle, isSafeApp } = useDarkMode()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   const closeMobileMenu = () => setMobileMenuOpen(false)
@@ -59,14 +59,16 @@ export function Header() {
           </nav>
         </div>
         <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={toggle}
-            aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
-          >
-            {isDark ? <Sun className="h-5 w-5" aria-hidden="true" /> : <Moon className="h-5 w-5" aria-hidden="true" />}
-          </Button>
+          {!isSafeApp && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={toggle}
+              aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
+            >
+              {isDark ? <Sun className="h-5 w-5" aria-hidden="true" /> : <Moon className="h-5 w-5" aria-hidden="true" />}
+            </Button>
+          )}
           <div className="hidden md:block">
             <ConnectButton />
           </div>

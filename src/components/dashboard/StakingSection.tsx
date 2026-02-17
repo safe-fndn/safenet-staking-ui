@@ -87,7 +87,7 @@ export function StakingSection() {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Staking</CardTitle>
+          <CardTitle>Your Rewards</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           {Array.from({ length: 2 }).map((_, i) => (
@@ -121,7 +121,7 @@ export function StakingSection() {
       <Card>
         <CardHeader>
           <div className="flex items-center gap-2">
-            <CardTitle>Staking</CardTitle>
+            <CardTitle>Your Rewards</CardTitle>
             <Tooltip>
               <TooltipTrigger asChild>
                 <button className="text-muted-foreground hover:text-foreground" aria-label="Rewards info">
