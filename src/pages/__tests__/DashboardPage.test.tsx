@@ -27,8 +27,8 @@ describe("DashboardPage", () => {
   it("renders heading and description", () => {
     render(<DashboardPage />)
 
-    expect(screen.getByText("Safe Staking App")).toBeInTheDocument()
-    expect(screen.getByText(/Stake your SAFE to earn rewards/)).toBeInTheDocument()
+    expect(screen.getByText("Stake your SAFE")).toBeInTheDocument()
+    expect(screen.getByText(/Earn rewards for helping secure/)).toBeInTheDocument()
   })
 
   it("renders all child sections", () => {

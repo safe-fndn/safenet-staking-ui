@@ -19,8 +19,8 @@ describe("ValidatorsPage", () => {
       </MemoryRouter>,
     )
 
-    expect(screen.getByText("Validators")).toBeInTheDocument()
-    expect(screen.getByText(/Browse validators and stake your SAFE/)).toBeInTheDocument()
+    expect(screen.getByText("Safenet Validators")).toBeInTheDocument()
+    expect(screen.getByText(/Select a validator to stake your SAFE/)).toBeInTheDocument()
   })
 
   it("renders ValidatorList", () => {

@@ -103,7 +103,7 @@ describe("ValidatorList", () => {
     expect(screen.getByTestId(`validator-card-${TEST_ACCOUNTS.validator2}`)).toBeInTheDocument()
   })
 
-  it("shows search and filter controls", () => {
+  it("shows search controls", () => {
     mockUseValidators.mockReturnValue({
       data: [
         { address: TEST_ACCOUNTS.validator1, isActive: true },
@@ -120,7 +120,5 @@ describe("ValidatorList", () => {
     )
 
     expect(screen.getByPlaceholderText("Search by name or address…")).toBeInTheDocument()
-    expect(screen.getByRole("button", { name: "All" })).toBeInTheDocument()
-    expect(screen.getByRole("button", { name: "Active" })).toBeInTheDocument()
   })
 })

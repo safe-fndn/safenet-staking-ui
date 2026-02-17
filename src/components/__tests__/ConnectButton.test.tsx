@@ -49,7 +49,7 @@ describe("ConnectButton", () => {
     expect(screen.getByRole("button", { name: "Connect Wallet" })).toBeInTheDocument()
   })
 
-  it("opens connector menu on click", async () => {
+  it("connects directly with single connector on click", async () => {
     mockUseAccount.mockReturnValue({ isConnected: false, address: undefined, chain: undefined })
     const user = userEvent.setup()
 
@@ -57,7 +57,9 @@ describe("ConnectButton", () => {
 
     await user.click(screen.getByRole("button", { name: "Connect Wallet" }))
 
-    expect(screen.getByText("Browser Wallet")).toBeInTheDocument()
+    expect(mockConnect).toHaveBeenCalledWith({
+      connector: { id: "browserWallet", uid: "bw-1", name: "Browser Wallet" },
+    })
   })
 
   it("shows switch chain button when on wrong chain", () => {

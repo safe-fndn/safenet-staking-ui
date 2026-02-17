@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
 import { render, screen } from "@testing-library/react"
-import userEvent from "@testing-library/user-event"
 import { OnboardingBanner } from "../onboarding/OnboardingBanner"
 
 const mockUseAccount = vi.fn()
@@ -17,7 +16,6 @@ vi.mock("@/hooks/useStakingReads", () => ({
 describe("OnboardingBanner", () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    localStorage.clear()
     mockUseAccount.mockReturnValue({ isConnected: false })
     mockUseUserTotalStake.mockReturnValue({ data: undefined })
   })
@@ -28,14 +26,6 @@ describe("OnboardingBanner", () => {
     expect(screen.getByText("Connect your wallet")).toBeInTheDocument()
     expect(screen.getByText("Select a validator to stake your tokens")).toBeInTheDocument()
     expect(screen.getByText("Track your rewards")).toBeInTheDocument()
-  })
-
-  it("returns null when dismissed", () => {
-    localStorage.setItem("onboarding_dismissed", "true")
-
-    const { container } = render(<OnboardingBanner />)
-
-    expect(container.firstChild).toBeNull()
   })
 
   it("returns null when connected with existing stake", () => {
@@ -54,15 +44,5 @@ describe("OnboardingBanner", () => {
     render(<OnboardingBanner />)
 
     expect(screen.getByText("Connect your wallet")).toBeInTheDocument()
-  })
-
-  it("dismiss button sets localStorage and hides banner", async () => {
-    const user = userEvent.setup()
-    render(<OnboardingBanner />)
-
-    await user.click(screen.getByLabelText("Dismiss onboarding"))
-
-    expect(localStorage.getItem("onboarding_dismissed")).toBe("true")
-    expect(screen.queryByText("Connect your wallet")).not.toBeInTheDocument()
   })
 })

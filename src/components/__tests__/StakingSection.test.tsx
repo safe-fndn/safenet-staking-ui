@@ -71,7 +71,7 @@ describe("StakingSection", () => {
 
     renderSection()
 
-    expect(screen.getByText("Staking")).toBeInTheDocument()
+    expect(screen.getByText("Your Rewards")).toBeInTheDocument()
     expect(screen.getByText("Claimable SAFE")).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "Claim Rewards" })).toBeInTheDocument()
   })
