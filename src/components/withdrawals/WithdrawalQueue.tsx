@@ -14,7 +14,7 @@ export function WithdrawalQueue() {
   const { isConnected } = useAccount()
   const { data: withdrawals, isLoading } = usePendingWithdrawals()
   const { data: validators } = useWithdrawalValidators()
-  const { claimWithdrawal, isSigningTx, isConfirmingTx, isSuccess: isClaimed, error: claimError, txHash: claimTxHash } = useClaimWithdrawal()
+  const { claimWithdrawal, isSigningTx, isConfirmingTx, isSuccess: isClaimed, isSafeQueued: isClaimSafeQueued, error: claimError, txHash: claimTxHash } = useClaimWithdrawal()
   const { toast } = useToast()
 
   useEffect(() => {
@@ -28,6 +28,16 @@ export function WithdrawalQueue() {
       toast({ variant: "error", title: "Claim failed", description: formatContractError(claimError) })
     }
   }, [claimError, toast])
+
+  useEffect(() => {
+    if (isClaimSafeQueued) {
+      toast({
+        variant: "success",
+        title: "Transaction queued in Safe",
+        description: "Your claim has been sent to Safe Wallet for signing.",
+      })
+    }
+  }, [isClaimSafeQueued, toast])
 
   if (!isConnected) {
     return (

@@ -28,7 +28,7 @@ interface UndelegateDialogProps {
 export function UndelegateDialog({ validator, open, onOpenChange }: UndelegateDialogProps) {
   const [amount, setAmount] = useState("")
   const { data: userStake } = useUserStakeOnValidator(validator)
-  const { initiateWithdrawal, isSigningTx, isConfirmingTx, isSuccess, error, reset, txHash } = useInitiateWithdrawal()
+  const { initiateWithdrawal, isSigningTx, isConfirmingTx, isSuccess, isSafeQueued, error, reset, txHash } = useInitiateWithdrawal()
   const { data: withdrawDelay } = useWithdrawDelay()
   const { toast } = useToast()
 
@@ -51,6 +51,19 @@ export function UndelegateDialog({ validator, open, onOpenChange }: UndelegateDi
       toast({ variant: "error", title: "Unstaking failed", description: formatContractError(error) })
     }
   }, [error, toast])
+
+  useEffect(() => {
+    if (isSafeQueued) {
+      toast({
+        variant: "success",
+        title: "Transaction queued in Safe",
+        description: "Your withdrawal request has been sent to Safe Wallet for signing.",
+      })
+      setAmount("")
+      reset()
+      onOpenChange(false)
+    }
+  }, [isSafeQueued, reset, onOpenChange, toast])
 
   // Reset form state on close
   useEffect(() => {

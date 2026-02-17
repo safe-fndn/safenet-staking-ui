@@ -21,7 +21,7 @@ function getInitialDark(): boolean {
 export function useDarkMode() {
   const [isDark, setIsDark] = useState(getInitialDark)
 
-  // Listen for theme messages from Safe Wallet parent
+  // Listen for theme messages from Safe Wallet parent and request initial theme
   useEffect(() => {
     if (!isSafeApp) return
 
@@ -29,13 +29,16 @@ export function useDarkMode() {
       const data = event.data
       if (typeof data !== "object" || data === null) return
 
-      // Safe Wallet sends { darkMode: boolean } directly or
-      // wraps it in a response with data: { darkMode: boolean }
+      // Safe Wallet sends { darkMode: boolean } directly,
+      // wraps it in { data: { darkMode: boolean } },
+      // or responds to getEnvironmentInfo with { data: { theme: { darkMode: boolean } } }
       let darkMode: boolean | undefined
       if (typeof data.darkMode === "boolean") {
         darkMode = data.darkMode
       } else if (typeof data.data?.darkMode === "boolean") {
         darkMode = data.data.darkMode
+      } else if (typeof data.data?.theme?.darkMode === "boolean") {
+        darkMode = data.data.theme.darkMode
       }
 
       if (darkMode !== undefined) {
@@ -45,6 +48,14 @@ export function useDarkMode() {
     }
 
     window.addEventListener("message", handleMessage)
+
+    // Request current environment info (including theme) from Safe Wallet parent.
+    // Safe Apps SDK uses this RPC-style format.
+    window.parent.postMessage(
+      { id: Date.now().toString(), data: { method: "getEnvironmentInfo" } },
+      "*",
+    )
+
     return () => window.removeEventListener("message", handleMessage)
   }, [])
 

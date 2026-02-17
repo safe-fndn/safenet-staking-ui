@@ -6,6 +6,8 @@ import { getContractAddresses } from "@/config/contracts"
 import { activeChain } from "@/config/chains"
 import { queryClient } from "@/main"
 
+const isSafeApp = window.self !== window.top
+
 export function useTokenAllowance() {
   const { address } = useAccount()
   const { token, staking } = getContractAddresses(activeChain.id)
@@ -18,11 +20,15 @@ export function useTokenAllowance() {
     query: { enabled: !!address },
   })
 
-  const { writeContract, data: txHash, isPending, reset, error } = useWriteContract()
+  const { writeContract, data: txHash, isPending, isSuccess: isSubmitted, reset, error } = useWriteContract()
 
   const { isLoading: isWaitingForApproval, isSuccess: isApproved } = useWaitForTransactionReceipt({
     hash: txHash,
   })
+
+  // In Safe App mode, the approval tx is queued in Safe (not yet on-chain), so
+  // isApproved never fires. Detect this so the UI can inform the user.
+  const isSafeApprovalQueued = isSafeApp && isSubmitted && !isApproved
 
   useEffect(() => {
     if (isApproved) {
@@ -57,6 +63,7 @@ export function useTokenAllowance() {
     isSigningApproval: isPending,
     isConfirmingApproval: isWaitingForApproval,
     isApproved,
+    isSafeApprovalQueued,
     approvalError: error,
     approvalTxHash: txHash,
     resetApproval: reset,

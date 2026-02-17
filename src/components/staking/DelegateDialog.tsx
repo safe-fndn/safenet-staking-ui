@@ -38,6 +38,7 @@ export function DelegateDialog({ validator, open, onOpenChange }: DelegateDialog
     isSigningApproval,
     isConfirmingApproval,
     isApproved,
+    isSafeApprovalQueued,
     approvalError,
     approvalTxHash,
     resetApproval,
@@ -47,6 +48,7 @@ export function DelegateDialog({ validator, open, onOpenChange }: DelegateDialog
     isSigningTx,
     isConfirmingTx,
     isSuccess: isStaked,
+    isSafeQueued: isStakeSafeQueued,
     error: stakeError,
     reset: resetStake,
     txHash: stakeTxHash,
@@ -139,6 +141,30 @@ export function DelegateDialog({ validator, open, onOpenChange }: DelegateDialog
       toast({ variant: "error", title: "Staking failed", description: formatContractError(stakeError) })
     }
   }, [stakeError, toast])
+
+  useEffect(() => {
+    if (isStakeSafeQueued) {
+      toast({
+        variant: "success",
+        title: "Transaction queued in Safe",
+        description: "Your delegation has been sent to Safe Wallet for signing.",
+      })
+      setAmount("")
+      resetStake()
+      onOpenChange(false)
+    }
+  }, [isStakeSafeQueued, resetStake, onOpenChange, toast])
+
+  useEffect(() => {
+    if (isSafeApprovalQueued) {
+      toast({
+        variant: "success",
+        title: "Approval queued in Safe",
+        description: "Once signed and executed in Safe Wallet, return here to complete your delegation.",
+      })
+      resetApproval()
+    }
+  }, [isSafeApprovalQueued, resetApproval, toast])
 
   useEffect(() => {
     if (isBatchSuccess) {

@@ -8,6 +8,7 @@ import { activeChain } from "@/config/chains"
 import { queryClient } from "@/main"
 
 const addresses = getContractAddresses(activeChain.id)
+const isSafeApp = window.self !== window.top
 
 export function useInvalidateOnSuccess(isSuccess: boolean, extraKeys: string[][] = []) {
   useEffect(() => {
@@ -24,8 +25,13 @@ export function useInvalidateOnSuccess(isSuccess: boolean, extraKeys: string[][]
 const STAKING_EXTRA_KEYS = [["validators"]]
 
 export function useStake() {
-  const { writeContract, data: txHash, isPending, reset, error } = useWriteContract()
+  const { writeContract, data: txHash, isPending, isSuccess: isSubmitted, reset, error } = useWriteContract()
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash: txHash })
+
+  // When running as a Safe App, writeContract resolves with a Safe tx hash (not an
+  // on-chain hash). useWaitForTransactionReceipt never resolves, so detect the
+  // "queued in Safe" state via useWriteContract's own isSuccess.
+  const isSafeQueued = isSafeApp && isSubmitted && !isSuccess
 
   useInvalidateOnSuccess(isSuccess, STAKING_EXTRA_KEYS)
 
@@ -38,7 +44,7 @@ export function useStake() {
     })
   }
 
-  return { stake, isSigningTx: isPending, isConfirmingTx: isConfirming, isSuccess, error, reset, txHash }
+  return { stake, isSigningTx: isPending, isConfirmingTx: isConfirming, isSuccess, isSafeQueued, error, reset, txHash }
 }
 
 export function useBatchStake() {
@@ -116,8 +122,10 @@ export function useBatchStake() {
 }
 
 export function useInitiateWithdrawal() {
-  const { writeContract, data: txHash, isPending, reset, error } = useWriteContract()
+  const { writeContract, data: txHash, isPending, isSuccess: isSubmitted, reset, error } = useWriteContract()
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash: txHash })
+
+  const isSafeQueued = isSafeApp && isSubmitted && !isSuccess
 
   useInvalidateOnSuccess(isSuccess, STAKING_EXTRA_KEYS)
 
@@ -130,12 +138,14 @@ export function useInitiateWithdrawal() {
     })
   }
 
-  return { initiateWithdrawal, isSigningTx: isPending, isConfirmingTx: isConfirming, isSuccess, error, reset, txHash }
+  return { initiateWithdrawal, isSigningTx: isPending, isConfirmingTx: isConfirming, isSuccess, isSafeQueued, error, reset, txHash }
 }
 
 export function useClaimWithdrawal() {
-  const { writeContract, data: txHash, isPending, reset, error } = useWriteContract()
+  const { writeContract, data: txHash, isPending, isSuccess: isSubmitted, reset, error } = useWriteContract()
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash: txHash })
+
+  const isSafeQueued = isSafeApp && isSubmitted && !isSuccess
 
   useInvalidateOnSuccess(isSuccess, STAKING_EXTRA_KEYS)
 
@@ -147,5 +157,5 @@ export function useClaimWithdrawal() {
     })
   }
 
-  return { claimWithdrawal, isSigningTx: isPending, isConfirmingTx: isConfirming, isSuccess, error, reset, txHash }
+  return { claimWithdrawal, isSigningTx: isPending, isConfirmingTx: isConfirming, isSuccess, isSafeQueued, error, reset, txHash }
 }
