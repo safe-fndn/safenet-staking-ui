@@ -4,6 +4,7 @@ import { useAccount } from "wagmi"
 import { Layout } from "@/components/layout/Layout"
 import { Toaster } from "@/components/ui/toaster"
 import { RestrictedScreen } from "@/components/RestrictedScreen"
+import { useAutoConnect } from "@/hooks/useAutoConnect"
 import { useSanctionsCheck } from "@/hooks/useSanctionsCheck"
 import { useGeoblockCheck } from "@/hooks/useGeoblockCheck"
 import { useWalletSanctionsCheck } from "@/hooks/useWalletSanctionsCheck"
@@ -77,6 +78,7 @@ function WalletSanctionsGate({ children }: { children: ReactNode }) {
 }
 
 function App() {
+  useAutoConnect()
   const { allowed: sanctionsAllowed, isLoading: sanctionsLoading } = useSanctionsCheck()
   const { allowed: geoAllowed, isLoading: geoLoading } = useGeoblockCheck()
 
