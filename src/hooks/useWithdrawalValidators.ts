@@ -6,6 +6,7 @@ import { getContractAddresses, deployBlock } from "@/config/contracts"
 import { activeChain } from "@/config/chains"
 
 const MAX_BLOCK_RANGE = 49_999n
+const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000" as Address
 
 const WITHDRAWAL_INITIATED_EVENT = parseAbiItem(
   "event WithdrawalInitiated(address indexed staker, address indexed validator, uint64 indexed withdrawalId, uint256 amount)"
@@ -14,11 +15,13 @@ const WITHDRAWAL_INITIATED_EVENT = parseAbiItem(
 const addresses = getContractAddresses(activeChain.id)
 
 /**
- * Maps pending withdrawal indices to validator addresses using on-chain events.
+ * Maps pending withdrawals to validator addresses.
  *
- * `getPendingWithdrawals(staker)` returns `(amount, claimableAt)[]` but no validator address.
- * We fetch `WithdrawalInitiated` events and align them with the FIFO queue
- * (IDs `head` through `tail - 1`) to determine which validator each withdrawal belongs to.
+ * The on-chain withdrawal queue is a doubly linked list keyed by global
+ * withdrawal IDs. `getPendingWithdrawals` returns `(amount, claimableAt)[]`
+ * but no validator. This hook traverses the linked list from `head` to
+ * collect the node IDs, then matches them against `WithdrawalInitiated`
+ * events to resolve each withdrawal's validator.
  */
 export function useWithdrawalValidators() {
   const client = usePublicClient()
@@ -40,9 +43,25 @@ export function useWithdrawalValidators() {
     queryFn: async (): Promise<Address[]> => {
       if (!client || !address || head === undefined || tail === undefined) return []
 
-      if (head >= tail) return []
+      // head == 0 means the queue is empty
+      if (head === 0n) return []
 
-      // Fetch WithdrawalInitiated events for this user
+      // 1. Traverse the linked list to collect node IDs in queue order.
+      const nodeIds: bigint[] = []
+      let currentId = head
+      while (currentId !== 0n) {
+        nodeIds.push(currentId)
+        const node = await client.readContract({
+          address: addresses.staking,
+          abi: stakingAbi,
+          functionName: "withdrawalNodes",
+          args: [address, currentId],
+        })
+        // node = [amount, claimableAt, previous, next]
+        currentId = node[3]
+      }
+
+      // 2. Fetch WithdrawalInitiated events and build withdrawalId → validator map.
       let logs
       try {
         logs = await client.getLogs({
@@ -78,28 +97,17 @@ export function useWithdrawalValidators() {
         }
       }
 
-      // Build a map from withdrawalId → validator
       const idToValidator = new Map<bigint, Address>()
       for (const log of logs) {
         if (log.args.withdrawalId !== undefined && log.args.validator) {
-          idToValidator.set(log.args.withdrawalId, log.args.validator)
+          idToValidator.set(BigInt(log.args.withdrawalId), log.args.validator)
         }
       }
 
-      // Pending items are IDs head through tail - 1
-      const validators: Address[] = []
-      for (let id = head; id < tail; id++) {
-        const validator = idToValidator.get(id)
-        if (validator) {
-          validators.push(validator)
-        } else {
-          validators.push("0x0000000000000000000000000000000000000000" as Address)
-        }
-      }
-
-      return validators
+      // 3. Map each linked-list node ID to its validator.
+      return nodeIds.map((id) => idToValidator.get(id) ?? ZERO_ADDRESS)
     },
     staleTime: 60_000,
-    enabled: !!client && !!address && head !== undefined && tail !== undefined,
+    enabled: !!client && !!address && head !== undefined && tail !== undefined && head !== 0n,
   })
 }
