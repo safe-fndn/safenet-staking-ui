@@ -9,6 +9,7 @@ lerna-debug.log*
 .env
 
 node_modules
+package-lock.json
 dist
 dist-ssr
 *.local
@@ -25,3 +26,4 @@ dist-ssr
 *.sw?
 .claude
 .agents
+coverage

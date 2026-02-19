@@ -4,20 +4,20 @@ A web application for delegating SAFE tokens to validators on Ethereum. Built as
 
 ## Features
 
-- **Delegate & Undelegate** SAFE tokens to validators with a multi-step approval flow
+- **Stake & Unstake** SAFE tokens to validators with a multi-step approval flow
 - **Batch transactions** for Safe wallets — approve + stake in a single multisig proposal via [EIP-5792](https://eips.ethereum.org/EIPS/eip-5792)
 - **Withdrawal queue** with FIFO ordering, cooldown progress bars, and claim actions
-- **Dashboard** with delegation stats, portfolio breakdown, rewards calculator, and transaction history
+- **Dashboard** with staking stats, portfolio breakdown, rewards calculator, and transaction history
 - **Validator discovery** with search, filter (active/inactive), and sort controls
-- **Deep-linking** — open the delegate dialog for a specific validator via `?delegate=0x...`
+- **Deep-linking** — open the stake dialog for a specific validator via `?delegate=0x...`
 - **IPFS deployable** for censorship-resistant hosting
 
 ## Quick Start
 
 ```bash
 cp .env .env.local   # adjust values as needed
-npm install
-npm run dev
+yarn install
+yarn dev
 ```
 
 The app will be available at `http://localhost:5173`.
@@ -31,18 +31,18 @@ The app will be available at `http://localhost:5173`.
 | `VITE_STAKING_DEPLOY_BLOCK` | Yes | Block number to start scanning validator events from |
 | `VITE_WALLETCONNECT_PROJECT_ID` | No | Enables WalletConnect connector |
 | `VITE_SANCTIONS_API_URL` | No | Sanctions check endpoint (HTTP 403 = blocked) |
-| `VITE_TOU_URL` / `VITE_DOCS_URL` / `VITE_FAQ_URL` | No | Footer links |
+| `VITE_DOCS_URL` | No | Documentation link in footer (defaults to Safe docs) |
 
 ## Scripts
 
 | Command | Description |
 |---------|-------------|
-| `npm run dev` | Start development server |
-| `npm run build` | Type-check and production build |
-| `npm run lint` | Run ESLint |
-| `npm run preview` | Preview production build locally |
-| `npm run deploy:ipfs` | Deploy build to IPFS via Pinata |
-| `npm run test:e2e` | Run Playwright end-to-end tests |
+| `yarn dev` | Start development server |
+| `yarn build` | Type-check and production build |
+| `yarn lint` | Run ESLint |
+| `yarn preview` | Preview production build locally |
+| `yarn deploy:ipfs` | Deploy build to IPFS via Pinata |
+| `yarn test:e2e` | Run Playwright end-to-end tests |
 
 ## Tech Stack
 
@@ -87,7 +87,7 @@ When connected through Safe, the app detects [EIP-5792](https://eips.ethereum.or
 
 ### Contract Integration
 
-The UI uses "delegate/undelegate" terminology while the smart contract uses "stake/initiateWithdrawal". Hook and function names reflect the contract; component labels reflect the user-facing language.
+The UI and contract both use "stake" terminology. Write hooks wrap `stake()`, `initiateWithdrawal()`, and `claimWithdrawal()` contract functions.
 
 - **Read hooks** (`useStakingReads.ts`) poll every 15 seconds via `refetchInterval`
 - **Write hooks** (`useStakingWrites.ts`) return a unified `{ action, isSigningTx, isConfirmingTx, isSuccess, error, reset, txHash }` interface
@@ -104,8 +104,8 @@ The UI uses "delegate/undelegate" terminology while the smart contract uses "sta
 ### IPFS
 
 ```bash
-npm run build
-npm run deploy:ipfs
+yarn build
+yarn deploy:ipfs
 ```
 
 Requires `PINATA_JWT` and `PINATA_GATEWAY` environment variables. The build uses hash-based routing (`HashRouter`) for compatibility with IPFS gateways.
