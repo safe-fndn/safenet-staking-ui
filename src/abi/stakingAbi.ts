@@ -15,6 +15,7 @@ export const stakingAbi = parseAbi([
   "function withdrawalQueues(address staker) view returns (uint64 head, uint64 tail)",
   "function getPendingWithdrawals(address staker) view returns ((uint256 amount, uint256 claimableAt)[])",
   "function getNextClaimableWithdrawal(address staker) view returns (uint256 amount, uint256 claimableAt)",
+  "function withdrawalNodes(address staker, uint64 withdrawalId) view returns (uint256 amount, uint128 claimableAt, uint64 previous, uint64 next)",
 
   // Write functions
   "function stake(address validator, uint256 amount)",

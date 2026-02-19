@@ -24,8 +24,11 @@ vi.mock("@/hooks/useWithdrawalValidators", () => ({
   useWithdrawalValidators: () => mockUseWithdrawalValidators(),
 }))
 
+const mockUseBatchClaimWithdrawals = vi.fn()
+
 vi.mock("@/hooks/useStakingWrites", () => ({
   useClaimWithdrawal: () => mockUseClaimWithdrawal(),
+  useBatchClaimWithdrawals: () => mockUseBatchClaimWithdrawals(),
 }))
 
 vi.mock("@/hooks/useToast", () => ({
@@ -48,7 +51,19 @@ describe("WithdrawalQueue", () => {
       isSigningTx: false,
       isConfirmingTx: false,
       isSuccess: false,
+      isSafeQueued: false,
       error: null,
+      txHash: undefined,
+    })
+    mockUseBatchClaimWithdrawals.mockReturnValue({
+      batchClaimWithdrawals: vi.fn(),
+      supportsBatching: false,
+      isSigningTx: false,
+      isConfirmingTx: false,
+      isSuccess: false,
+      isReverted: false,
+      error: null,
+      reset: vi.fn(),
       txHash: undefined,
     })
     mockUseWithdrawalValidators.mockReturnValue({ data: undefined })

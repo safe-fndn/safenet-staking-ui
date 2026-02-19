@@ -7,6 +7,7 @@ import { useTokenBalance } from "@/hooks/useTokenBalance"
 import { useToast } from "@/hooks/useToast"
 import { copyToClipboard } from "@/lib/clipboard"
 import Copy from "lucide-react/dist/esm/icons/copy"
+import { SafeTokenBadge } from "@/components/ui/SafeTokenBadge"
 
 export function ConnectButton() {
   const { address, isConnected, chain } = useAccount()
@@ -129,12 +130,15 @@ export function ConnectButton() {
                 ref={(el) => { itemRefs.current[i] = el }}
                 role="menuitem"
                 tabIndex={-1}
-                className="flex w-full items-center rounded-md px-3 py-2.5 text-sm font-medium hover:bg-accent focus:bg-accent focus:outline-none transition-colors text-left"
+                className="flex w-full items-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium hover:bg-accent focus:bg-accent focus:outline-none transition-colors text-left"
                 onClick={() => {
                   setMenuOpen(false)
                   connect({ connector })
                 }}
               >
+                {connector.icon && (
+                  <img src={connector.icon} alt="" className="h-5 w-5 shrink-0 rounded" aria-hidden="true" />
+                )}
                 {connector.name}
               </button>
             ))}
@@ -156,7 +160,7 @@ export function ConnectButton() {
     <div className="flex items-center gap-3">
       {balance !== undefined && (
         <span className="text-sm text-muted-foreground">
-          {formatTokenAmount(balance as bigint)} SAFE
+          {formatTokenAmount(balance as bigint, 18, 0)} <SafeTokenBadge />
         </span>
       )}
       <button
@@ -170,9 +174,11 @@ export function ConnectButton() {
         {truncateAddress(address!)}
         <Copy className="h-3 w-3 text-muted-foreground" aria-hidden="true" />
       </button>
-      <Button variant="outline" size="sm" onClick={() => disconnect()}>
-        Disconnect
-      </Button>
+      {!isIframe && (
+        <Button variant="outline" size="sm" onClick={() => disconnect()}>
+          Disconnect
+        </Button>
+      )}
     </div>
   )
 }

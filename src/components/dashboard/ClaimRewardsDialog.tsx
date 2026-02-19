@@ -110,7 +110,7 @@ export function ClaimRewardsDialog({ open, onOpenChange }: ClaimRewardsDialogPro
             ) : isConfirmingTx ? (
               <>
                 <Loader2 className="animate-spin" aria-hidden="true" />
-                Confirming on chain…
+                Confirming onchain…
               </>
             ) : (
               "Claim Rewards"

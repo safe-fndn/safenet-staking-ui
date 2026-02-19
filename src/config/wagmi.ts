@@ -5,10 +5,7 @@ import { activeChain, transports } from "./chains"
 const projectId = import.meta.env.VITE_WALLETCONNECT_PROJECT_ID
 
 const connectors = [
-  safe({
-    allowedDomains: [/^app\.safe\.global$/],
-    debug: false,
-  }),
+  safe({ debug: false }),
   injected({
     target: {
       id: "browserWallet",

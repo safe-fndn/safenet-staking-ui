@@ -4,22 +4,22 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Commands
 
-- **Build:** `npm run build` (runs `tsc -b && vite build`)
-- **Dev server:** `npm run dev`
-- **Lint:** `npm run lint`
+- **Build:** `yarn build` (runs `tsc -b && vite build`)
+- **Dev server:** `yarn dev`
+- **Lint:** `yarn lint`
 - **Type check only:** `npx tsc --noEmit`
-- **Preview production build:** `npm run preview`
-- **Run unit/integration tests:** `npm test` (vitest run)
-- **Watch mode:** `npm run test:watch`
-- **Coverage:** `npm run test:coverage`
+- **Preview production build:** `yarn preview`
+- **Run unit/integration tests:** `yarn test` (vitest run)
+- **Watch mode:** `yarn test:watch`
+- **Coverage:** `yarn test:coverage`
 
 ## Pre-push Checklist
 
 Before pushing code to the remote, always run these checks in order and fix any failures:
 
-1. `npm run lint` — ESLint must pass with zero errors
-2. `npm test` — All unit/integration tests must pass
-3. `npm run build` — Production build must succeed (includes `tsc -b`)
+1. `yarn lint` — ESLint must pass with zero errors
+2. `yarn test` — All unit/integration tests must pass
+3. `yarn build` — Production build must succeed (includes `tsc -b`)
 
 ## Architecture
 

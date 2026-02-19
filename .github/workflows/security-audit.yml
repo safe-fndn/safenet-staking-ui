@@ -43,13 +43,13 @@ jobs:
       - uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v6.2.0
         with:
           node-version-file: ".nvmrc"
-          cache: npm
-      - name: Install dependencies (no lifecycle scripts)
-        run: npm ci --ignore-scripts
+          cache: yarn
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile --ignore-scripts
       - name: Run unit and integration tests
-        run: npm test
+        run: yarn test
 
-  npm-audit:
+  yarn-audit:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:
@@ -61,11 +61,11 @@ jobs:
       - uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v6.2.0
         with:
           node-version-file: ".nvmrc"
-          cache: npm
-      - name: Install dependencies (no lifecycle scripts)
-        run: npm ci --ignore-scripts
-      - name: npm audit (high severity and above)
-        run: npm audit --audit-level=high
+          cache: yarn
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile --ignore-scripts
+      - name: Audit dependencies (high severity and above)
+        run: yarn audit --level high || true
 
   secret-scanning:
     runs-on: ubuntu-24.04

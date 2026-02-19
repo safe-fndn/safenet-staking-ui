@@ -23,7 +23,7 @@ export function StatsOverview() {
       ? [
           {
             title: "Your Staked SAFE",
-            value: l2 ? null : `${formatTokenAmount(userTotalStake as bigint ?? 0n)}`,
+            value: l2 ? null : `${formatTokenAmount(userTotalStake as bigint ?? 0n, 18, 0)}`,
             loading: l2,
           },
         ]

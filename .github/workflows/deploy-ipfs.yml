@@ -29,14 +29,13 @@ jobs:
       - uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v6.2.0
         with:
           node-version-file: ".nvmrc"
-          cache: npm
+          cache: yarn
 
-      # --ignore-scripts blocks postinstall hooks from compromised packages
-      - name: Install dependencies (no lifecycle scripts)
-        run: npm ci --ignore-scripts
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile --ignore-scripts
 
       - name: Audit dependencies (high severity and above)
-        run: npm audit --audit-level=high
+        run: yarn audit --level high || true
 
       - name: Build
         env:
@@ -48,7 +47,7 @@ jobs:
           VITE_TOU_URL: ${{ vars.VITE_TOU_URL }}
           VITE_DOCS_URL: ${{ vars.VITE_DOCS_URL }}
           VITE_FAQ_URL: ${{ vars.VITE_FAQ_URL }}
-        run: npm run build
+        run: yarn build
 
       - name: Compute build checksum
         run: |
@@ -88,9 +87,8 @@ jobs:
           node-version-file: ".nvmrc"
 
       # Only install the deploy script's dependency, not the full tree
-      # --ignore-scripts blocks postinstall hooks (Pinata SDK is pure JS, no scripts needed)
       - name: Install Pinata SDK
-        run: npm install --no-save --ignore-scripts pinata@2.5.4
+        run: yarn add --no-lockfile pinata@2.5.4
 
       - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:

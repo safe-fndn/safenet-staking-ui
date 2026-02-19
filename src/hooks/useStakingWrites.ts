@@ -159,3 +159,65 @@ export function useClaimWithdrawal() {
 
   return { claimWithdrawal, isSigningTx: isPending, isConfirmingTx: isConfirming, isSuccess, isSafeQueued, error, reset, txHash }
 }
+
+export function useBatchClaimWithdrawals() {
+  const { data: capabilities, isError: capabilitiesError } = useCapabilities({
+    query: { retry: false },
+  })
+  const chainId = activeChain.id
+
+  const supportsBatching =
+    !capabilitiesError &&
+    capabilities?.[chainId]?.atomicBatch?.supported === true
+
+  const {
+    mutate: sendCalls,
+    data: callsResult,
+    isPending,
+    error,
+    reset,
+  } = useSendCalls()
+
+  const batchId = callsResult?.id
+
+  const { data: callsStatus } = useCallsStatus({
+    id: batchId ?? "",
+    query: {
+      enabled: !!batchId,
+      refetchInterval: (data) =>
+        data.state.data?.status === "success" || data.state.data?.status === "failure"
+          ? false
+          : 2000,
+    },
+  })
+
+  const isConfirming = !!batchId && callsStatus?.status !== "success" && callsStatus?.status !== "failure"
+  const isSuccess = callsStatus?.status === "success"
+  const isReverted = callsStatus?.status === "failure"
+  const txHash = callsStatus?.receipts?.[0]?.transactionHash
+
+  useInvalidateOnSuccess(isSuccess, STAKING_EXTRA_KEYS)
+
+  function batchClaimWithdrawals(count: number) {
+    const calls = Array.from({ length: count }, () => ({
+      to: addresses.staking,
+      data: encodeFunctionData({
+        abi: stakingAbi,
+        functionName: "claimWithdrawal",
+      }),
+    }))
+    sendCalls({ calls })
+  }
+
+  return {
+    batchClaimWithdrawals,
+    supportsBatching,
+    isSigningTx: isPending,
+    isConfirmingTx: isConfirming,
+    isSuccess,
+    isReverted,
+    error,
+    reset,
+    txHash,
+  }
+}

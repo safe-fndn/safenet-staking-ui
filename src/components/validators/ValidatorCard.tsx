@@ -83,7 +83,7 @@ export function ValidatorCard({ validator, isActive, autoOpenDelegate, totalStak
               <Skeleton className="h-4 w-24" />
             ) : (
               <span className="font-medium">
-                {formatTokenAmount(totalStake ?? 0n)}
+                {formatTokenAmount(totalStake ?? 0n, 18, 0)}
               </span>
             )}
           </div>
@@ -95,7 +95,7 @@ export function ValidatorCard({ validator, isActive, autoOpenDelegate, totalStak
                 <Skeleton className="h-4 w-24" />
               ) : (
                 <span className="font-medium">
-                  {formatTokenAmount(userStakeAmount ?? 0n)}
+                  {formatTokenAmount(userStakeAmount ?? 0n, 18, 0)}
                 </span>
               )}
             </div>

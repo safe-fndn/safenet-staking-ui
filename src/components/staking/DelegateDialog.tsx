@@ -18,6 +18,7 @@ import { useToast } from "@/hooks/useToast"
 import { truncateAddress, formatCountdown } from "@/lib/format"
 import { formatContractError } from "@/lib/errorFormat"
 import { useGasEstimate } from "@/hooks/useGasEstimate"
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
 import Loader2 from "lucide-react/dist/esm/icons/loader-2"
 import Info from "lucide-react/dist/esm/icons/info"
 import Fuel from "lucide-react/dist/esm/icons/fuel"
@@ -83,7 +84,7 @@ export function DelegateDialog({ validator, open, onOpenChange }: DelegateDialog
   // Stepper logic
   const steps = useMemo(
     () => {
-      if (isBatchFlow) return ["Delegate", "Done"]
+      if (isBatchFlow) return ["Stake", "Done"]
       if (needsApproval) return ["Approve", "Stake", "Done"]
       return ["Stake", "Done"]
     },
@@ -186,7 +187,7 @@ export function DelegateDialog({ validator, open, onOpenChange }: DelegateDialog
 
   useEffect(() => {
     if (isBatchReverted) {
-      toast({ variant: "error", title: "Transaction reverted", description: "The batch transaction was reverted on-chain" })
+      toast({ variant: "error", title: "Transaction reverted", description: "The batch transaction was reverted onchain" })
       resetBatch()
     }
   }, [isBatchReverted, resetBatch, toast])
@@ -208,7 +209,7 @@ export function DelegateDialog({ validator, open, onOpenChange }: DelegateDialog
         <DialogHeader>
           <DialogTitle>Stake SAFE</DialogTitle>
           <DialogDescription>
-            Stake tokens toward validator {truncateAddress(validator)}
+            Stake tokens to validator {truncateAddress(validator)}
           </DialogDescription>
         </DialogHeader>
 
@@ -244,8 +245,18 @@ export function DelegateDialog({ validator, open, onOpenChange }: DelegateDialog
 
         {withdrawDelay !== undefined && (
           <div className="flex items-center gap-2 rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground">
-            <Info className="h-4 w-4 shrink-0" aria-hidden="true" />
-            <span>Unbonding period: {formatCountdown(Number(withdrawDelay))}</span>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button type="button" className="shrink-0" aria-label="Unstaking period info">
+                  <Info className="h-4 w-4" aria-hidden="true" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="max-w-xs text-xs">
+                <p>If you undelegate, your tokens will be locked during the unstaking period and will not earn rewards.</p>
+                <p className="mt-1">After the period ends, you must manually claim them from the Withdrawals page.</p>
+              </TooltipContent>
+            </Tooltip>
+            <span>Unstaking period: {formatCountdown(Number(withdrawDelay))}</span>
           </div>
         )}
 
@@ -263,10 +274,10 @@ export function DelegateDialog({ validator, open, onOpenChange }: DelegateDialog
               ) : isBatchConfirming ? (
                 <>
                   <Loader2 className="animate-spin" aria-hidden="true" />
-                  Confirming on chain…
+                  Confirming onchain…
                 </>
               ) : (
-                "Delegate"
+                "Stake"
               )}
             </Button>
           ) : needsApproval ? (
@@ -316,7 +327,7 @@ export function DelegateDialog({ validator, open, onOpenChange }: DelegateDialog
               ) : isConfirmingTx ? (
                 <>
                   <Loader2 className="animate-spin" aria-hidden="true" />
-                  Confirming on chain…
+                  Confirming onchain…
                 </>
               ) : (
                 "Stake"

@@ -28,7 +28,7 @@ export function ClaimableBanner() {
       <div className="flex items-center gap-3">
         <div className="h-2 w-2 rounded-full bg-success animate-pulse" />
         <p className="text-sm font-medium">
-          You have {formatTokenAmount(amount)} SAFE ready to claim
+          You have {formatTokenAmount(amount, 18, 0)} SAFE ready to claim
         </p>
       </div>
       <div className="flex items-center gap-2">

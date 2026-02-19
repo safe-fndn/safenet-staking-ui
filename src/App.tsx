@@ -17,6 +17,8 @@ const pageImports = {
   ValidatorDetail: () => import("@/pages/ValidatorDetailPage").then(m => ({ default: m.ValidatorDetailPage })),
   Withdrawals: () => import("@/pages/WithdrawalsPage").then(m => ({ default: m.WithdrawalsPage })),
   NotFound: () => import("@/pages/NotFoundPage").then(m => ({ default: m.NotFoundPage })),
+  TermsOfUse: () => import("@/pages/TermsOfUsePage").then(m => ({ default: m.TermsOfUsePage })),
+  Faq: () => import("@/pages/FaqPage").then(m => ({ default: m.FaqPage })),
 }
 
 const DashboardPage = lazy(pageImports.Dashboard)
@@ -24,6 +26,8 @@ const ValidatorsPage = lazy(pageImports.Validators)
 const ValidatorDetailPage = lazy(pageImports.ValidatorDetail)
 const WithdrawalsPage = lazy(pageImports.Withdrawals)
 const NotFoundPage = lazy(pageImports.NotFound)
+const TermsOfUsePage = lazy(pageImports.TermsOfUse)
+const FaqPage = lazy(pageImports.Faq)
 
 // Preload all route chunks after initial render so IPFS-hosted builds are warm
 function preloadAllRoutes() {
@@ -104,6 +108,8 @@ function App() {
             <Route path="/validators" element={<ValidatorsPage />} />
             <Route path="/validators/:address" element={<ValidatorDetailPage />} />
             <Route path="/withdrawals" element={<WithdrawalsPage />} />
+            <Route path="/terms" element={<TermsOfUsePage />} />
+            <Route path="/faq" element={<FaqPage />} />
             <Route path="*" element={<NotFoundPage />} />
           </Route>
         </Routes>

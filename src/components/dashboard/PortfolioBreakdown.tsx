@@ -17,7 +17,7 @@ function ValidatorRow({ address, amount, totalStake }: { address: Address; amoun
         {metadata ? metadata.label : <span className="font-mono">{truncateAddress(address)}</span>}
       </span>
       <div className="flex items-center gap-4 text-sm">
-        <span className="font-semibold">{formatTokenAmount(amount)}</span>
+        <span className="font-semibold">{formatTokenAmount(amount, 18, 0)}</span>
         <span className="text-muted-foreground w-16 text-right">{pct.toFixed(1)}%</span>
       </div>
     </div>
