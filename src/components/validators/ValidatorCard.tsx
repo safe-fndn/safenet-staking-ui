@@ -83,7 +83,7 @@ export function ValidatorCard({ validator, isActive, autoOpenDelegate, totalStak
               <Skeleton className="h-4 w-24" />
             ) : (
               <span className="font-medium">
-                {formatTokenAmount(totalStake ?? 0n)}
+                {formatTokenAmount(totalStake ?? 0n, 18, 0)}
               </span>
             )}
           </div>
@@ -95,7 +95,7 @@ export function ValidatorCard({ validator, isActive, autoOpenDelegate, totalStak
                 <Skeleton className="h-4 w-24" />
               ) : (
                 <span className="font-medium">
-                  {formatTokenAmount(userStakeAmount ?? 0n)}
+                  {formatTokenAmount(userStakeAmount ?? 0n, 18, 0)}
                 </span>
               )}
             </div>
@@ -108,7 +108,7 @@ export function ValidatorCard({ validator, isActive, autoOpenDelegate, totalStak
           {isConnected && (
             <div className="flex gap-2 pt-2">
               <Button size="sm" className="flex-1" onClick={() => setDelegateOpen(true)} disabled={!isActive}>
-                Stake
+                Delegate
               </Button>
               <Button
                 size="sm"
@@ -117,7 +117,7 @@ export function ValidatorCard({ validator, isActive, autoOpenDelegate, totalStak
                 disabled={!hasStake}
                 onClick={() => setUndelegateOpen(true)}
               >
-                Unstake
+                Undelegate
               </Button>
             </div>
           )}

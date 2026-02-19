@@ -40,7 +40,7 @@ function PositionRow({ position }: { position: Position }) {
           </Link>
         </td>
         <td className="py-3 pr-4 text-sm font-semibold text-right">
-          {formatTokenAmount(position.amount)}
+          {formatTokenAmount(position.amount, 18, 0)}
         </td>
         <td className="py-3 pr-4 text-sm text-right text-muted-foreground">
           {metadata ? `${metadata.uptime}%` : "—"}
@@ -58,7 +58,7 @@ function PositionRow({ position }: { position: Position }) {
             variant="outline"
             onClick={() => setUndelegateOpen(true)}
           >
-            Unstake
+            Undelegate
           </Button>
         </td>
       </tr>
@@ -148,7 +148,7 @@ export function StakingSection() {
           <div className="flex items-center justify-between rounded-lg border p-3">
             <div>
               <span className="text-sm text-muted-foreground">Claimable SAFE</span>
-              <p className="font-semibold">{formatTokenAmount(rewards.claimable)}</p>
+              <p className="font-semibold">{formatTokenAmount(rewards.claimable, 18, 0)}</p>
               {rewards.rootStale ? (
                 <p className="text-xs text-amber-600 mt-0.5">
                   Rewards data is being updated. Claiming will be available again shortly.

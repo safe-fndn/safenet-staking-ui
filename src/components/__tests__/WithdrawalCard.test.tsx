@@ -79,7 +79,7 @@ describe("WithdrawalCard", () => {
   it("shows confirming state on Claim button", () => {
     render(<WithdrawalCard {...defaultProps} isConfirmingTx={true} />)
 
-    expect(screen.getByText("Confirming on chain…")).toBeInTheDocument()
+    expect(screen.getByText("Confirming onchain…")).toBeInTheDocument()
   })
 
   it("shows countdown and progress bar when in cooldown", async () => {

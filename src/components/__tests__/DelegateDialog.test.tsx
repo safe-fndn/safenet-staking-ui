@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
 import { render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
+import { TooltipProvider } from "@radix-ui/react-tooltip"
 import { DelegateDialog } from "../staking/DelegateDialog"
 import { AMOUNTS, TEST_ACCOUNTS } from "@/__tests__/test-data"
 
@@ -110,48 +111,48 @@ describe("DelegateDialog", () => {
   })
 
   it("renders dialog with title and description", () => {
-    render(<DelegateDialog {...defaultProps} />)
+    render(<TooltipProvider><DelegateDialog {...defaultProps} /></TooltipProvider>)
 
-    expect(screen.getByText("Stake SAFE")).toBeInTheDocument()
-    expect(screen.getByText(/Stake tokens toward validator/)).toBeInTheDocument()
+    expect(screen.getByText("Delegate SAFE")).toBeInTheDocument()
+    expect(screen.getByText(/Delegate tokens to validator/)).toBeInTheDocument()
   })
 
   it("renders amount input with balance", () => {
-    render(<DelegateDialog {...defaultProps} />)
+    render(<TooltipProvider><DelegateDialog {...defaultProps} /></TooltipProvider>)
 
     expect(screen.getByPlaceholderText("0.0")).toBeInTheDocument()
     expect(screen.getByText(/SAFE Balance:/)).toBeInTheDocument()
   })
 
   it("shows Stake button when sufficient allowance", () => {
-    render(<DelegateDialog {...defaultProps} />)
+    render(<TooltipProvider><DelegateDialog {...defaultProps} /></TooltipProvider>)
 
-    expect(screen.getByRole("button", { name: "Stake" })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Delegate" })).toBeInTheDocument()
   })
 
   it("disables Stake button when amount is empty", () => {
-    render(<DelegateDialog {...defaultProps} />)
+    render(<TooltipProvider><DelegateDialog {...defaultProps} /></TooltipProvider>)
 
-    expect(screen.getByRole("button", { name: "Stake" })).toBeDisabled()
+    expect(screen.getByRole("button", { name: "Delegate" })).toBeDisabled()
   })
 
   it("enables Stake button when valid amount entered", async () => {
     const user = userEvent.setup()
-    render(<DelegateDialog {...defaultProps} />)
+    render(<TooltipProvider><DelegateDialog {...defaultProps} /></TooltipProvider>)
 
     const input = screen.getByPlaceholderText("0.0")
     await user.type(input, "100")
 
-    expect(screen.getByRole("button", { name: "Stake" })).toBeEnabled()
+    expect(screen.getByRole("button", { name: "Delegate" })).toBeEnabled()
   })
 
   it("calls stake with correct args when Stake button clicked", async () => {
     const user = userEvent.setup()
-    render(<DelegateDialog {...defaultProps} />)
+    render(<TooltipProvider><DelegateDialog {...defaultProps} /></TooltipProvider>)
 
     const input = screen.getByPlaceholderText("0.0")
     await user.type(input, "100")
-    await user.click(screen.getByRole("button", { name: "Stake" }))
+    await user.click(screen.getByRole("button", { name: "Delegate" }))
 
     expect(mockStake).toHaveBeenCalledWith(
       TEST_ACCOUNTS.validator1,
@@ -162,20 +163,20 @@ describe("DelegateDialog", () => {
   it("shows approval buttons when allowance is insufficient", () => {
     mockTokenAllowance.allowance = 0n
 
-    render(<DelegateDialog {...defaultProps} />)
+    render(<TooltipProvider><DelegateDialog {...defaultProps} /></TooltipProvider>)
 
     // Type amount to trigger approval flow rendering
     // The buttons won't show until amount > 0 and allowance < amount
     // But with allowance=0 and no amount typed, we should still see the Stake button
     // since parsedAmount is 0, needsApproval is false
-    expect(screen.getByRole("button", { name: "Stake" })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Delegate" })).toBeInTheDocument()
   })
 
   it("shows approve buttons when amount > allowance", async () => {
     mockTokenAllowance.allowance = 0n
 
     const user = userEvent.setup()
-    render(<DelegateDialog {...defaultProps} />)
+    render(<TooltipProvider><DelegateDialog {...defaultProps} /></TooltipProvider>)
 
     const input = screen.getByPlaceholderText("0.0")
     await user.type(input, "100")
@@ -188,7 +189,7 @@ describe("DelegateDialog", () => {
     mockTokenAllowance.allowance = 0n
 
     const user = userEvent.setup()
-    render(<DelegateDialog {...defaultProps} />)
+    render(<TooltipProvider><DelegateDialog {...defaultProps} /></TooltipProvider>)
 
     await user.type(screen.getByPlaceholderText("0.0"), "100")
     await user.click(screen.getByRole("button", { name: "Approve exact amount" }))
@@ -200,7 +201,7 @@ describe("DelegateDialog", () => {
     mockTokenAllowance.allowance = 0n
 
     const user = userEvent.setup()
-    render(<DelegateDialog {...defaultProps} />)
+    render(<TooltipProvider><DelegateDialog {...defaultProps} /></TooltipProvider>)
 
     await user.type(screen.getByPlaceholderText("0.0"), "100")
     await user.click(screen.getByRole("button", { name: "Approve unlimited" }))
@@ -211,7 +212,7 @@ describe("DelegateDialog", () => {
   it("shows signing state on Stake button", () => {
     mockUseStake.isSigningTx = true
 
-    render(<DelegateDialog {...defaultProps} />)
+    render(<TooltipProvider><DelegateDialog {...defaultProps} /></TooltipProvider>)
 
     expect(screen.getByText("Confirm in Wallet…")).toBeInTheDocument()
   })
@@ -219,20 +220,20 @@ describe("DelegateDialog", () => {
   it("shows confirming state on Stake button", () => {
     mockUseStake.isConfirmingTx = true
 
-    render(<DelegateDialog {...defaultProps} />)
+    render(<TooltipProvider><DelegateDialog {...defaultProps} /></TooltipProvider>)
 
-    expect(screen.getByText("Confirming on chain…")).toBeInTheDocument()
+    expect(screen.getByText("Confirming onchain…")).toBeInTheDocument()
   })
 
-  it("shows unbonding period info", () => {
-    render(<DelegateDialog {...defaultProps} />)
+  it("shows unstaking period info", () => {
+    render(<TooltipProvider><DelegateDialog {...defaultProps} /></TooltipProvider>)
 
-    expect(screen.getByText(/Unbonding period: 7d 0h 0m/)).toBeInTheDocument()
+    expect(screen.getByText(/Unstaking period: 7d 0h 0m/)).toBeInTheDocument()
   })
 
   it("percentage buttons set correct amounts", async () => {
     const user = userEvent.setup()
-    render(<DelegateDialog {...defaultProps} />)
+    render(<TooltipProvider><DelegateDialog {...defaultProps} /></TooltipProvider>)
 
     // Click 25%
     await user.click(screen.getByRole("button", { name: "25%" }))
@@ -245,7 +246,7 @@ describe("DelegateDialog", () => {
 
   it("shows insufficient balance error when amount exceeds balance", async () => {
     const user = userEvent.setup()
-    render(<DelegateDialog {...defaultProps} />)
+    render(<TooltipProvider><DelegateDialog {...defaultProps} /></TooltipProvider>)
 
     await user.type(screen.getByPlaceholderText("0.0"), "2000")
 
@@ -253,9 +254,9 @@ describe("DelegateDialog", () => {
   })
 
   it("resets form when dialog closes", () => {
-    const { rerender } = render(<DelegateDialog {...defaultProps} />)
+    const { rerender } = render(<TooltipProvider><DelegateDialog {...defaultProps} /></TooltipProvider>)
 
-    rerender(<DelegateDialog {...defaultProps} open={false} />)
+    rerender(<TooltipProvider><DelegateDialog {...defaultProps} open={false} /></TooltipProvider>)
 
     expect(mockResetStake).toHaveBeenCalled()
     expect(mockResetBatch).toHaveBeenCalled()
@@ -265,7 +266,7 @@ describe("DelegateDialog", () => {
     const mod = await import("@/hooks/useTokenBalance")
     vi.mocked(mod.useTokenBalance).mockReturnValue({ data: 0n } as ReturnType<typeof mod.useTokenBalance>)
 
-    render(<DelegateDialog {...defaultProps} />)
+    render(<TooltipProvider><DelegateDialog {...defaultProps} /></TooltipProvider>)
 
     expect(screen.getByText("You do not have enough SAFE to stake.")).toBeInTheDocument()
 
@@ -278,7 +279,7 @@ describe("DelegateDialog", () => {
     mockTokenAllowance.isSigningApproval = true
 
     const user = userEvent.setup()
-    render(<DelegateDialog {...defaultProps} />)
+    render(<TooltipProvider><DelegateDialog {...defaultProps} /></TooltipProvider>)
 
     await user.type(screen.getByPlaceholderText("0.0"), "100")
 
@@ -290,7 +291,7 @@ describe("DelegateDialog", () => {
     mockTokenAllowance.isConfirmingApproval = true
 
     const user = userEvent.setup()
-    render(<DelegateDialog {...defaultProps} />)
+    render(<TooltipProvider><DelegateDialog {...defaultProps} /></TooltipProvider>)
 
     await user.type(screen.getByPlaceholderText("0.0"), "100")
 
@@ -301,7 +302,7 @@ describe("DelegateDialog", () => {
     mockUseStake.isSuccess = true
     mockUseStake.txHash = "0xbbbb" as `0x${string}`
 
-    render(<DelegateDialog {...defaultProps} />)
+    render(<TooltipProvider><DelegateDialog {...defaultProps} /></TooltipProvider>)
 
     expect(mockToast).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -316,7 +317,7 @@ describe("DelegateDialog", () => {
     mockTokenAllowance.allowance = 0n
 
     const user = userEvent.setup()
-    render(<DelegateDialog {...defaultProps} />)
+    render(<TooltipProvider><DelegateDialog {...defaultProps} /></TooltipProvider>)
 
     await user.type(screen.getByPlaceholderText("0.0"), "100")
     await user.click(screen.getByRole("button", { name: "Delegate" }))

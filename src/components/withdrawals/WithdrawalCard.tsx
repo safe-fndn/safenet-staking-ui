@@ -2,12 +2,13 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { CountdownTimer } from "./CountdownTimer"
-import { formatTokenAmount, formatTimestamp, truncateAddress } from "@/lib/format"
+import { formatTokenAmount, formatCountdown, truncateAddress } from "@/lib/format"
 import { useCountdown } from "@/hooks/useCountdown"
 import { useWithdrawDelay } from "@/hooks/useStakingReads"
 import { useValidatorMetadata } from "@/hooks/useValidatorMetadata"
 import type { Address } from "viem"
 import Loader2 from "lucide-react/dist/esm/icons/loader-2"
+import { SafeTokenBadge } from "@/components/ui/SafeTokenBadge"
 
 
 interface WithdrawalCardProps {
@@ -22,10 +23,11 @@ interface WithdrawalCardProps {
 
 function ValidatorLabel({ address }: { address: Address }) {
   const metadata = useValidatorMetadata(address)
-  if (address === "0x0000000000000000000000000000000000000000") return null
+  const isZero = address === "0x0000000000000000000000000000000000000000"
+  const label = isZero ? "Unknown validator" : (metadata ? metadata.label : truncateAddress(address))
   return (
     <p className="text-xs text-muted-foreground">
-      Validator: {metadata ? metadata.label : truncateAddress(address)}
+      Validator: {label}
     </p>
   )
 }
@@ -45,10 +47,14 @@ export function WithdrawalCard({ amount, claimableAt, isFirst, onClaim, isSignin
         <div className="flex items-center justify-between">
           <div className="space-y-1">
             {validator && <ValidatorLabel address={validator} />}
-            <p className="text-lg font-semibold">{formatTokenAmount(amount)} SAFE</p>
-            <p className="text-xs text-muted-foreground">
-              Claimable at: {formatTimestamp(claimableAt)}
-            </p>
+            <p className="text-lg font-semibold">{formatTokenAmount(amount, 18, 0)} <SafeTokenBadge /></p>
+            {secondsLeft > 0 ? (
+              <p className="text-xs text-muted-foreground">
+                Claimable in {formatCountdown(secondsLeft)}
+              </p>
+            ) : (
+              <p className="text-xs text-success font-medium">Ready to withdraw</p>
+            )}
           </div>
           <div className="flex items-center gap-3">
             {secondsLeft > 0 && (
@@ -63,7 +69,7 @@ export function WithdrawalCard({ amount, claimableAt, isFirst, onClaim, isSignin
               ) : isConfirmingTx ? (
                 <>
                   <Loader2 className="animate-spin" aria-hidden="true" />
-                  Confirming on chain…
+                  Confirming onchain…
                 </>
               ) : (
                 "Claim"

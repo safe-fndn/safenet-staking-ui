@@ -15,6 +15,7 @@ import { useToast } from "@/hooks/useToast"
 import { truncateAddress, formatCountdown } from "@/lib/format"
 import { formatContractError } from "@/lib/errorFormat"
 import { useGasEstimate } from "@/hooks/useGasEstimate"
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
 import Loader2 from "lucide-react/dist/esm/icons/loader-2"
 import Info from "lucide-react/dist/esm/icons/info"
 import Fuel from "lucide-react/dist/esm/icons/fuel"
@@ -77,7 +78,7 @@ export function UndelegateDialog({ validator, open, onOpenChange }: UndelegateDi
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Unstake SAFE</DialogTitle>
+          <DialogTitle>Undelegate SAFE</DialogTitle>
           <DialogDescription>
             Initiate withdrawal from validator {truncateAddress(validator)}. Tokens enter a withdrawal queue with a time delay before they can be claimed.
           </DialogDescription>
@@ -99,8 +100,18 @@ export function UndelegateDialog({ validator, open, onOpenChange }: UndelegateDi
 
         {withdrawDelay !== undefined && (
           <div className="flex items-center gap-2 rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground">
-            <Info className="h-4 w-4 shrink-0" aria-hidden="true" />
-            <span>Unbonding period: {formatCountdown(Number(withdrawDelay))}. Tokens will be claimable after this period.</span>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button type="button" className="shrink-0" aria-label="Unstaking period info">
+                  <Info className="h-4 w-4" aria-hidden="true" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="max-w-xs text-xs">
+                <p>During the unstaking period, your tokens are locked and do not earn rewards.</p>
+                <p className="mt-1">After the period ends, you must manually claim them from the Withdrawals page.</p>
+              </TooltipContent>
+            </Tooltip>
+            <span>Unstaking period: {formatCountdown(Number(withdrawDelay))}. Tokens will be claimable after this period.</span>
           </div>
         )}
 
@@ -113,7 +124,7 @@ export function UndelegateDialog({ validator, open, onOpenChange }: UndelegateDi
           ) : isConfirmingTx ? (
             <>
               <Loader2 className="animate-spin" aria-hidden="true" />
-              Confirming on chain…
+              Confirming onchain…
             </>
           ) : (
             "Initiate Withdrawal"

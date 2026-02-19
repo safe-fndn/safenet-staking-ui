@@ -71,18 +71,18 @@ describe("ValidatorDetailPage", () => {
     expect(screen.getByText(/Uptime/)).toBeInTheDocument()
   })
 
-  it("shows stake and unstake buttons when connected", () => {
+  it("shows delegate and undelegate buttons when connected", () => {
     renderWithRoute(TEST_ACCOUNTS.validator1)
 
-    expect(screen.getByRole("button", { name: "Stake" })).toBeInTheDocument()
-    expect(screen.getByRole("button", { name: "Unstake" })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Delegate" })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Undelegate" })).toBeInTheDocument()
   })
 
   it("hides action buttons when disconnected", () => {
     mockUseAccount.mockReturnValue({ isConnected: false })
     renderWithRoute(TEST_ACCOUNTS.validator1)
 
-    expect(screen.queryByRole("button", { name: "Stake" })).not.toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "Delegate" })).not.toBeInTheDocument()
   })
 
   it("shows back link", () => {

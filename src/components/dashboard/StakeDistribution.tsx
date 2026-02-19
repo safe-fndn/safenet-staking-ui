@@ -100,7 +100,7 @@ export function StakeDistribution() {
   if (isLoading) {
     return (
       <Card>
-        <CardHeader><CardTitle>Stake Distribution</CardTitle></CardHeader>
+        <CardHeader><CardTitle>Your Stake Distribution</CardTitle></CardHeader>
         <CardContent><Skeleton className="h-48" /></CardContent>
       </Card>
     )
@@ -110,7 +110,7 @@ export function StakeDistribution() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Stake Distribution</CardTitle>
+        <CardTitle>Your Stake Distribution</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="h-64">

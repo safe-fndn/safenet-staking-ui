@@ -22,19 +22,19 @@ export function QuickActions() {
     <div className="flex flex-wrap gap-3">
       <Button variant="outline" onClick={() => navigate("/validators")}>
         <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
-        Stake
+        Delegate
       </Button>
       <Button variant="outline" onClick={() => navigate("/validators")}>
         <ArrowDownLeft className="h-4 w-4" aria-hidden="true" />
-        Unstake
+        Undelegate
       </Button>
       <Button
         variant={hasClaimable ? "default" : "outline"}
-        className={hasClaimable ? "bg-safe-green hover:bg-safe-green-dark text-primary-foreground" : ""}
+        className={hasClaimable ? "bg-safe-green hover:bg-safe-green-dark text-foreground" : ""}
         onClick={() => navigate("/withdrawals")}
       >
         <HandCoins className="h-4 w-4" aria-hidden="true" />
-        Claim Withdrawals
+        Withdraw
       </Button>
     </div>
   )

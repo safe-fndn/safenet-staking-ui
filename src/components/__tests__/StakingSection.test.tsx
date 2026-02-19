@@ -82,7 +82,7 @@ describe("StakingSection", () => {
     renderSection()
 
     expect(screen.getByText("Gnosis")).toBeInTheDocument()
-    expect(screen.getByRole("button", { name: "Unstake" })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Undelegate" })).toBeInTheDocument()
   })
 
   it("shows empty state when no positions", async () => {
