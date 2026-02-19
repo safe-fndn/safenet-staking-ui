@@ -22,11 +22,11 @@ export function QuickActions() {
     <div className="flex flex-wrap gap-3">
       <Button variant="outline" onClick={() => navigate("/validators")}>
         <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
-        Delegate
+        Stake
       </Button>
       <Button variant="outline" onClick={() => navigate("/validators")}>
         <ArrowDownLeft className="h-4 w-4" aria-hidden="true" />
-        Undelegate
+        Unstake
       </Button>
       <Button
         variant={hasClaimable ? "default" : "outline"}

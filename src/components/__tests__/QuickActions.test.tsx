@@ -49,12 +49,12 @@ describe("QuickActions", () => {
       </MemoryRouter>,
     )
 
-    expect(screen.getByRole("button", { name: /^Delegate$/i })).toBeInTheDocument()
-    expect(screen.getByRole("button", { name: /^Undelegate$/i })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: /^Stake$/i })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: /^Unstake$/i })).toBeInTheDocument()
     expect(screen.getByRole("button", { name: /Withdraw/i })).toBeInTheDocument()
   })
 
-  it("navigates to validators on Delegate click", async () => {
+  it("navigates to validators on Stake click", async () => {
     mockUseAccount.mockReturnValue({ isConnected: true })
     const user = userEvent.setup()
 
@@ -64,7 +64,7 @@ describe("QuickActions", () => {
       </MemoryRouter>,
     )
 
-    await user.click(screen.getByRole("button", { name: /^Delegate$/i }))
+    await user.click(screen.getByRole("button", { name: /^Stake$/i }))
     expect(mockNavigate).toHaveBeenCalledWith("/validators")
   })
 

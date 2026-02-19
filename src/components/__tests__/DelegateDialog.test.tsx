@@ -113,8 +113,8 @@ describe("DelegateDialog", () => {
   it("renders dialog with title and description", () => {
     render(<TooltipProvider><DelegateDialog {...defaultProps} /></TooltipProvider>)
 
-    expect(screen.getByText("Delegate SAFE")).toBeInTheDocument()
-    expect(screen.getByText(/Delegate tokens to validator/)).toBeInTheDocument()
+    expect(screen.getByText("Stake SAFE")).toBeInTheDocument()
+    expect(screen.getByText(/Stake tokens to validator/)).toBeInTheDocument()
   })
 
   it("renders amount input with balance", () => {
@@ -127,13 +127,13 @@ describe("DelegateDialog", () => {
   it("shows Stake button when sufficient allowance", () => {
     render(<TooltipProvider><DelegateDialog {...defaultProps} /></TooltipProvider>)
 
-    expect(screen.getByRole("button", { name: "Delegate" })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Stake" })).toBeInTheDocument()
   })
 
   it("disables Stake button when amount is empty", () => {
     render(<TooltipProvider><DelegateDialog {...defaultProps} /></TooltipProvider>)
 
-    expect(screen.getByRole("button", { name: "Delegate" })).toBeDisabled()
+    expect(screen.getByRole("button", { name: "Stake" })).toBeDisabled()
   })
 
   it("enables Stake button when valid amount entered", async () => {
@@ -143,7 +143,7 @@ describe("DelegateDialog", () => {
     const input = screen.getByPlaceholderText("0.0")
     await user.type(input, "100")
 
-    expect(screen.getByRole("button", { name: "Delegate" })).toBeEnabled()
+    expect(screen.getByRole("button", { name: "Stake" })).toBeEnabled()
   })
 
   it("calls stake with correct args when Stake button clicked", async () => {
@@ -152,7 +152,7 @@ describe("DelegateDialog", () => {
 
     const input = screen.getByPlaceholderText("0.0")
     await user.type(input, "100")
-    await user.click(screen.getByRole("button", { name: "Delegate" }))
+    await user.click(screen.getByRole("button", { name: "Stake" }))
 
     expect(mockStake).toHaveBeenCalledWith(
       TEST_ACCOUNTS.validator1,
@@ -169,7 +169,7 @@ describe("DelegateDialog", () => {
     // The buttons won't show until amount > 0 and allowance < amount
     // But with allowance=0 and no amount typed, we should still see the Stake button
     // since parsedAmount is 0, needsApproval is false
-    expect(screen.getByRole("button", { name: "Delegate" })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Stake" })).toBeInTheDocument()
   })
 
   it("shows approve buttons when amount > allowance", async () => {
@@ -320,7 +320,7 @@ describe("DelegateDialog", () => {
     render(<TooltipProvider><DelegateDialog {...defaultProps} /></TooltipProvider>)
 
     await user.type(screen.getByPlaceholderText("0.0"), "100")
-    await user.click(screen.getByRole("button", { name: "Delegate" }))
+    await user.click(screen.getByRole("button", { name: "Stake" }))
 
     expect(mockBatchApproveAndStake).toHaveBeenCalledWith(
       TEST_ACCOUNTS.validator1,

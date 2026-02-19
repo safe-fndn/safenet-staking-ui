@@ -58,7 +58,7 @@ function PositionRow({ position }: { position: Position }) {
             variant="outline"
             onClick={() => setUndelegateOpen(true)}
           >
-            Undelegate
+            Unstake
           </Button>
         </td>
       </tr>

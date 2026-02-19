@@ -146,10 +146,10 @@ export function ValidatorDetailPage() {
           {isConnected && (
             <div className="flex gap-3">
               <Button onClick={() => setDelegateOpen(true)} disabled={!isActive}>
-                Delegate
+                Stake
               </Button>
               <Button variant="outline" disabled={!hasStake} onClick={() => setUndelegateOpen(true)}>
-                Undelegate
+                Unstake
               </Button>
             </div>
           )}

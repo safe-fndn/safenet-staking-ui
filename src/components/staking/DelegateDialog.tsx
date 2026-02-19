@@ -84,9 +84,9 @@ export function DelegateDialog({ validator, open, onOpenChange }: DelegateDialog
   // Stepper logic
   const steps = useMemo(
     () => {
-      if (isBatchFlow) return ["Delegate", "Done"]
-      if (needsApproval) return ["Approve", "Delegate", "Done"]
-      return ["Delegate", "Done"]
+      if (isBatchFlow) return ["Stake", "Done"]
+      if (needsApproval) return ["Approve", "Stake", "Done"]
+      return ["Stake", "Done"]
     },
     [needsApproval, isBatchFlow],
   )
@@ -207,9 +207,9 @@ export function DelegateDialog({ validator, open, onOpenChange }: DelegateDialog
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Delegate SAFE</DialogTitle>
+          <DialogTitle>Stake SAFE</DialogTitle>
           <DialogDescription>
-            Delegate tokens to validator {truncateAddress(validator)}
+            Stake tokens to validator {truncateAddress(validator)}
           </DialogDescription>
         </DialogHeader>
 
@@ -277,7 +277,7 @@ export function DelegateDialog({ validator, open, onOpenChange }: DelegateDialog
                   Confirming onchain…
                 </>
               ) : (
-                "Delegate"
+                "Stake"
               )}
             </Button>
           ) : needsApproval ? (
@@ -330,7 +330,7 @@ export function DelegateDialog({ validator, open, onOpenChange }: DelegateDialog
                   Confirming onchain…
                 </>
               ) : (
-                "Delegate"
+                "Stake"
               )}
             </Button>
           )}

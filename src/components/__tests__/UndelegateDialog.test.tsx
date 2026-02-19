@@ -49,7 +49,7 @@ describe("UndelegateDialog", () => {
   it("renders dialog with title and description", () => {
     render(<TooltipProvider><UndelegateDialog {...defaultProps} /></TooltipProvider>)
 
-    expect(screen.getByText("Undelegate SAFE")).toBeInTheDocument()
+    expect(screen.getByText("Unstake SAFE")).toBeInTheDocument()
     expect(screen.getByText(/Initiate withdrawal from validator/)).toBeInTheDocument()
   })
 

@@ -71,25 +71,25 @@ describe("ValidatorCard", () => {
     expect(screen.getByText("Validator is inactive")).toBeInTheDocument()
   })
 
-  it("shows Delegate and Undelegate buttons when connected", () => {
+  it("shows Stake and Unstake buttons when connected", () => {
     renderCard()
 
-    expect(screen.getByRole("button", { name: "Delegate" })).toBeInTheDocument()
-    expect(screen.getByRole("button", { name: "Undelegate" })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Stake" })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Unstake" })).toBeInTheDocument()
   })
 
   it("hides action buttons when disconnected", () => {
     mockUseAccount.mockReturnValue({ isConnected: false })
     renderCard()
 
-    expect(screen.queryByRole("button", { name: "Delegate" })).not.toBeInTheDocument()
-    expect(screen.queryByRole("button", { name: "Undelegate" })).not.toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "Stake" })).not.toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "Unstake" })).not.toBeInTheDocument()
   })
 
-  it("disables Delegate button for inactive validator", () => {
+  it("disables Stake button for inactive validator", () => {
     renderCard({ isActive: false })
 
-    expect(screen.getByRole("button", { name: "Delegate" })).toBeDisabled()
+    expect(screen.getByRole("button", { name: "Stake" })).toBeDisabled()
   })
 
   it("shows total and user stake amounts", () => {

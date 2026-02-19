@@ -78,7 +78,7 @@ export function UndelegateDialog({ validator, open, onOpenChange }: UndelegateDi
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Undelegate SAFE</DialogTitle>
+          <DialogTitle>Unstake SAFE</DialogTitle>
           <DialogDescription>
             Initiate withdrawal from validator {truncateAddress(validator)}. Tokens enter a withdrawal queue with a time delay before they can be claimed.
           </DialogDescription>
