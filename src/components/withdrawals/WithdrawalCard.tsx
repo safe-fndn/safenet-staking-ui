@@ -8,7 +8,7 @@ import { useWithdrawDelay } from "@/hooks/useStakingReads"
 import { useValidatorMetadata } from "@/hooks/useValidatorMetadata"
 import type { Address } from "viem"
 import Loader2 from "lucide-react/dist/esm/icons/loader-2"
-import CheckCircle from "lucide-react/dist/esm/icons/check-circle"
+
 
 interface WithdrawalCardProps {
   amount: bigint
@@ -51,31 +51,24 @@ export function WithdrawalCard({ amount, claimableAt, isFirst, onClaim, isSignin
             </p>
           </div>
           <div className="flex items-center gap-3">
-            {secondsLeft > 0 ? (
+            {secondsLeft > 0 && (
               <CountdownTimer claimableAt={claimableAt} />
-            ) : (
-              <div className="flex items-center gap-1.5 text-success text-sm font-medium">
-                <CheckCircle className="h-4 w-4" aria-hidden="true" />
-                Ready to claim
-              </div>
             )}
-            {canClaim && (
-              <Button size="sm" onClick={onClaim} disabled={isBusy}>
-                {isSigningTx ? (
-                  <>
-                    <Loader2 className="animate-spin" aria-hidden="true" />
-                    Confirm in Wallet…
-                  </>
-                ) : isConfirmingTx ? (
-                  <>
-                    <Loader2 className="animate-spin" aria-hidden="true" />
-                    Confirming on chain…
-                  </>
-                ) : (
-                  "Claim"
-                )}
-              </Button>
-            )}
+            <Button size="sm" onClick={onClaim} disabled={!canClaim || isBusy}>
+              {isSigningTx ? (
+                <>
+                  <Loader2 className="animate-spin" aria-hidden="true" />
+                  Confirm in Wallet…
+                </>
+              ) : isConfirmingTx ? (
+                <>
+                  <Loader2 className="animate-spin" aria-hidden="true" />
+                  Confirming on chain…
+                </>
+              ) : (
+                "Claim"
+              )}
+            </Button>
           </div>
         </div>
         {secondsLeft > 0 && (

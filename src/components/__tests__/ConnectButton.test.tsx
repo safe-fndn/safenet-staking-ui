@@ -32,6 +32,8 @@ vi.mock("@/config/chains", () => ({
 describe("ConnectButton", () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    // Simulate injected wallet provider so browserWallet connector is included
+    window.ethereum = {} as unknown as typeof window.ethereum
     mockUseConnect.mockReturnValue({
       connect: mockConnect,
       connectors: [
@@ -57,9 +59,10 @@ describe("ConnectButton", () => {
 
     await user.click(screen.getByRole("button", { name: "Connect Wallet" }))
 
-    expect(mockConnect).toHaveBeenCalledWith({
-      connector: { id: "browserWallet", uid: "bw-1", name: "Browser Wallet" },
-    })
+    expect(mockConnect).toHaveBeenCalledWith(
+      { connector: { id: "browserWallet", uid: "bw-1", name: "Browser Wallet" } },
+      expect.objectContaining({ onError: expect.any(Function) }),
+    )
   })
 
   it("shows switch chain button when on wrong chain", () => {
@@ -83,7 +86,7 @@ describe("ConnectButton", () => {
 
     render(<ConnectButton />)
 
-    expect(screen.getByText(/1000/)).toBeInTheDocument() // balance
+    expect(screen.getByText(/1,000/)).toBeInTheDocument() // balance
     expect(screen.getByText(/0x1111...1111/)).toBeInTheDocument() // truncated address
   })
 

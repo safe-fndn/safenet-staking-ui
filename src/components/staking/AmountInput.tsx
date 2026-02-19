@@ -1,6 +1,6 @@
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { formatTokenAmount } from "@/lib/format"
+import { formatTokenAmount, formatTokenAmountRaw } from "@/lib/format"
 
 interface AmountInputProps {
   value: string
@@ -16,10 +16,10 @@ export function AmountInput({ value, onChange, maxAmount, label = "Amount", disa
   function setPercentage(pct: number) {
     if (maxAmount === undefined) return
     if (pct === 100) {
-      onChange(formatTokenAmount(maxAmount, 18, 18))
+      onChange(formatTokenAmountRaw(maxAmount, 18, 18))
     } else {
       const amount = (maxAmount * BigInt(pct)) / 100n
-      onChange(formatTokenAmount(amount, 18, 18))
+      onChange(formatTokenAmountRaw(amount, 18, 18))
     }
   }
 

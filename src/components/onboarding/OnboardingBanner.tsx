@@ -21,9 +21,9 @@ export function OnboardingBanner() {
   return (
     <Card className="border-primary/30 bg-primary/5">
       <CardContent className="pt-6">
-        <div className="flex flex-wrap items-center justify-center gap-6 sm:gap-10">
-          {steps.map((step, i) => (
-            <div key={i} className="flex items-center gap-3">
+        <div className="flex flex-wrap items-start gap-6 sm:items-center sm:justify-center sm:gap-10">
+          {steps.map((step) => (
+            <div key={step.title} className="flex items-center gap-3">
               <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-core-gradient text-foreground dark:text-background">
                 <step.icon className="h-4 w-4" aria-hidden="true" />
               </div>

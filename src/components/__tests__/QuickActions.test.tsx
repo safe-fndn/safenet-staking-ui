@@ -11,6 +11,10 @@ vi.mock("wagmi", () => ({
   useAccount: () => mockUseAccount(),
 }))
 
+vi.mock("@/hooks/useWithdrawals", () => ({
+  useNextClaimable: () => ({ data: undefined }),
+}))
+
 vi.mock("react-router-dom", async () => {
   const actual = await vi.importActual("react-router-dom")
   return {

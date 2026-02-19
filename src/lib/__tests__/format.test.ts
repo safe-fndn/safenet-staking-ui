@@ -7,7 +7,7 @@ describe("formatTokenAmount", () => {
   })
 
   it("formats a whole number (no decimals)", () => {
-    expect(formatTokenAmount(1000n * 10n ** 18n)).toBe("1000")
+    expect(formatTokenAmount(1000n * 10n ** 18n)).toBe("1,000")
   })
 
   it("formats with decimals truncated to maxDecimals", () => {
@@ -28,7 +28,7 @@ describe("formatTokenAmount", () => {
 
   it("formats large numbers (>1M)", () => {
     const amount = 1_000_000n * 10n ** 18n
-    expect(formatTokenAmount(amount)).toBe("1000000")
+    expect(formatTokenAmount(amount)).toBe("1,000,000")
   })
 
   it("formats small decimals", () => {

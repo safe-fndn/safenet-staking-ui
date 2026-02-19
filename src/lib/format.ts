@@ -1,6 +1,15 @@
 import { formatUnits } from "viem"
 
+/** Format a token amount for display, with comma delimiters. */
 export function formatTokenAmount(amount: bigint, decimals = 18, maxDecimals = 4): string {
+  const raw = formatTokenAmountRaw(amount, decimals, maxDecimals)
+  const [whole, decimal] = raw.split(".")
+  const delimited = whole.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+  return decimal ? `${delimited}.${decimal}` : delimited
+}
+
+/** Format a token amount as a plain numeric string (no commas). */
+export function formatTokenAmountRaw(amount: bigint, decimals = 18, maxDecimals = 4): string {
   const formatted = formatUnits(amount, decimals)
   const [whole, decimal] = formatted.split(".")
   if (!decimal || maxDecimals === 0) return whole

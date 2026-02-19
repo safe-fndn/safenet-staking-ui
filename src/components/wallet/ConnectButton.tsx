@@ -10,9 +10,15 @@ import Copy from "lucide-react/dist/esm/icons/copy"
 
 export function ConnectButton() {
   const { address, isConnected, chain } = useAccount()
-  const { connect, connectors: allConnectors, error: connectError } = useConnect()
-  const connectors = allConnectors.filter((c) => ["browserWallet", "walletConnect", "safe"].includes(c.id))
-  const { disconnect } = useDisconnect()
+  const { connect: rawConnect, connectors: allConnectors } = useConnect()
+  const isIframe = window !== window.parent
+  const hasInjectedWallet = typeof window.ethereum !== "undefined"
+  const connectors = allConnectors.filter((c) => {
+    if (c.id === "browserWallet") return hasInjectedWallet
+    if (c.id === "walletConnect") return true
+    return false
+  })
+  const { disconnect, disconnectAsync } = useDisconnect()
   const { switchChain } = useSwitchChain()
   const { data: balance } = useTokenBalance()
   const { toast } = useToast()
@@ -21,12 +27,27 @@ export function ConnectButton() {
   const triggerRef = useRef<HTMLButtonElement>(null)
   const itemRefs = useRef<(HTMLButtonElement | null)[]>([])
 
-  // Show toast on connection failure
-  useEffect(() => {
-    if (connectError) {
-      toast({ variant: "error", title: "Connection failed", description: connectError.message.slice(0, 150) })
-    }
-  }, [connectError, toast])
+  const connect: typeof rawConnect = useCallback(
+    (variables, options) => {
+      rawConnect(variables, {
+        ...options,
+        async onError(error) {
+          if (/already connected/i.test(error.message)) {
+            await disconnectAsync()
+            rawConnect(variables, options)
+            return
+          }
+          toast({
+            variant: "error",
+            title: "Connection failed",
+            description: error.message.slice(0, 150),
+          })
+          options?.onError?.(error, variables, undefined, undefined as never)
+        },
+      })
+    },
+    [rawConnect, disconnectAsync, toast],
+  )
 
   // Close on outside click
   useEffect(() => {
@@ -75,7 +96,10 @@ export function ConnectButton() {
   )
 
   if (!isConnected) {
-    // Single connector (e.g. Safe App): connect directly without menu
+    // In iframe, Safe auto-connect handles connection — no button needed
+    if (isIframe) return null
+
+    // Single connector: connect directly without menu
     if (connectors.length === 1) {
       return (
         <Button onClick={() => connect({ connector: connectors[0] })}>
@@ -85,7 +109,7 @@ export function ConnectButton() {
     }
 
     return (
-      <div className="relative" ref={menuRef} onKeyDown={handleKeyDown}>
+      <div className="relative" ref={menuRef} role="none" onKeyDown={handleKeyDown}>
         <Button
           ref={triggerRef}
           onClick={() => setMenuOpen((v) => !v)}

@@ -30,6 +30,7 @@ interface DelegateDialogProps {
 
 export function DelegateDialog({ validator, open, onOpenChange }: DelegateDialogProps) {
   const [amount, setAmount] = useState("")
+  const [approvalType, setApprovalType] = useState<"exact" | "unlimited" | null>(null)
   const { data: balance } = useTokenBalance()
   const {
     allowance,
@@ -117,6 +118,7 @@ export function DelegateDialog({ validator, open, onOpenChange }: DelegateDialog
   useEffect(() => {
     if (isApproved) {
       toast({ variant: "success", title: "Approval confirmed", description: "You can now stake your SAFE tokens", txHash: approvalTxHash! })
+      setApprovalType(null)
       resetApproval()
     }
   }, [isApproved, resetApproval, toast, approvalTxHash])
@@ -124,6 +126,7 @@ export function DelegateDialog({ validator, open, onOpenChange }: DelegateDialog
   useEffect(() => {
     if (approvalError) {
       toast({ variant: "error", title: "Approval failed", description: formatContractError(approvalError) })
+      setApprovalType(null)
     }
   }, [approvalError, toast])
 
@@ -191,6 +194,7 @@ export function DelegateDialog({ validator, open, onOpenChange }: DelegateDialog
   useEffect(() => {
     if (!open) {
       setAmount("")
+      setApprovalType(null)
       resetStake()
       resetBatch()
     }
@@ -267,36 +271,40 @@ export function DelegateDialog({ validator, open, onOpenChange }: DelegateDialog
             </Button>
           ) : needsApproval ? (
             <>
-              <Button onClick={() => approve(parsedAmount)} disabled={isApprovalPending || parsedAmount === 0n}>
-                {isSigningApproval ? (
-                  <>
-                    <Loader2 className="animate-spin" aria-hidden="true" />
-                    Confirm Approval in Wallet…
-                  </>
-                ) : isConfirmingApproval ? (
-                  <>
-                    <Loader2 className="animate-spin" aria-hidden="true" />
-                    Approval confirming…
-                  </>
-                ) : (
-                  "Approve exact amount"
-                )}
-              </Button>
-              <Button variant="outline" onClick={approveUnlimited} disabled={isApprovalPending || parsedAmount === 0n}>
-                {isSigningApproval ? (
-                  <>
-                    <Loader2 className="animate-spin" aria-hidden="true" />
-                    Confirm Approval in Wallet…
-                  </>
-                ) : isConfirmingApproval ? (
-                  <>
-                    <Loader2 className="animate-spin" aria-hidden="true" />
-                    Approval confirming…
-                  </>
-                ) : (
-                  "Approve unlimited"
-                )}
-              </Button>
+              {approvalType !== "unlimited" && (
+                <Button onClick={() => { setApprovalType("exact"); approve(parsedAmount) }} disabled={isApprovalPending || parsedAmount === 0n}>
+                  {isSigningApproval ? (
+                    <>
+                      <Loader2 className="animate-spin" aria-hidden="true" />
+                      Confirm Approval in Wallet…
+                    </>
+                  ) : isConfirmingApproval ? (
+                    <>
+                      <Loader2 className="animate-spin" aria-hidden="true" />
+                      Approval confirming…
+                    </>
+                  ) : (
+                    "Approve exact amount"
+                  )}
+                </Button>
+              )}
+              {approvalType !== "exact" && (
+                <Button variant="outline" onClick={() => { setApprovalType("unlimited"); approveUnlimited() }} disabled={isApprovalPending || parsedAmount === 0n}>
+                  {isSigningApproval ? (
+                    <>
+                      <Loader2 className="animate-spin" aria-hidden="true" />
+                      Confirm Approval in Wallet…
+                    </>
+                  ) : isConfirmingApproval ? (
+                    <>
+                      <Loader2 className="animate-spin" aria-hidden="true" />
+                      Approval confirming…
+                    </>
+                  ) : (
+                    "Approve unlimited"
+                  )}
+                </Button>
+              )}
             </>
           ) : (
             <Button onClick={() => stake(validator, parsedAmount)} disabled={!canDelegate || isSigningTx || isConfirmingTx}>
