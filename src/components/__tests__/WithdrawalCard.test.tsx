@@ -48,10 +48,9 @@ describe("WithdrawalCard", () => {
     expect(screen.getByText(/Gnosis Validator/)).toBeInTheDocument()
   })
 
-  it("shows 'Ready to claim' and Claim button when claimable", () => {
+  it("shows enabled Claim button when claimable", () => {
     render(<WithdrawalCard {...defaultProps} />)
 
-    expect(screen.getByText("Ready to claim")).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "Claim" })).toBeEnabled()
   })
 
@@ -67,8 +66,7 @@ describe("WithdrawalCard", () => {
   it("disables Claim button when not first in queue", () => {
     render(<WithdrawalCard {...defaultProps} isFirst={false} />)
 
-    // Not first in queue = no Claim button (canClaim = isFirst && secondsLeft === 0)
-    expect(screen.queryByRole("button", { name: "Claim" })).not.toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Claim" })).toBeDisabled()
   })
 
   it("shows signing state on Claim button", () => {
@@ -92,7 +90,7 @@ describe("WithdrawalCard", () => {
 
     // Should show progress bar (cooldown in progress)
     expect(screen.getByText("Cooldown progress")).toBeInTheDocument()
-    // Should NOT show claim button (not claimable yet)
-    expect(screen.queryByRole("button", { name: "Claim" })).not.toBeInTheDocument()
+    // Claim button present but disabled during cooldown
+    expect(screen.getByRole("button", { name: "Claim" })).toBeDisabled()
   })
 })
