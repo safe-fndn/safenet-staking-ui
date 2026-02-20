@@ -10,12 +10,14 @@ A web application for delegating SAFE tokens to validators on Ethereum. Built as
 - **Dashboard** with staking stats, portfolio breakdown, rewards calculator, and transaction history
 - **Validator discovery** with search, filter (active/inactive), and sort controls
 - **Deep-linking** — open the stake dialog for a specific validator via `?delegate=0x...`
+- **Dark mode** with system preference detection and manual toggle
+- **Geo-blocking** and sanctions compliance checks
 - **IPFS deployable** for censorship-resistant hosting
 
 ## Quick Start
 
 ```bash
-cp .env .env.local   # adjust values as needed
+cp .env.example .env   # fill in required values
 yarn install
 yarn dev
 ```
@@ -30,8 +32,13 @@ The app will be available at `http://localhost:5173`.
 | `VITE_RPC_URL` | Yes | JSON-RPC endpoint |
 | `VITE_STAKING_DEPLOY_BLOCK` | Yes | Block number to start scanning validator events from |
 | `VITE_WALLETCONNECT_PROJECT_ID` | No | Enables WalletConnect connector |
+| `VITE_MERKLE_DROP_ADDRESS` | No | Merkle drop contract address for rewards claiming |
 | `VITE_SANCTIONS_API_URL` | No | Sanctions check endpoint (HTTP 403 = blocked) |
 | `VITE_DOCS_URL` | No | Documentation link in footer (defaults to Safe docs) |
+| `PINATA_JWT` | No | Pinata API JWT for IPFS deployment |
+| `PINATA_GATEWAY` | No | Pinata gateway domain for IPFS deployment |
+
+See [`.env.example`](.env.example) for a template.
 
 ## Scripts
 
@@ -41,8 +48,11 @@ The app will be available at `http://localhost:5173`.
 | `yarn build` | Type-check and production build |
 | `yarn lint` | Run ESLint |
 | `yarn preview` | Preview production build locally |
-| `yarn deploy:ipfs` | Deploy build to IPFS via Pinata |
+| `yarn test` | Run unit/integration tests (vitest) |
+| `yarn test:watch` | Run tests in watch mode |
+| `yarn test:coverage` | Run tests with coverage report |
 | `yarn test:e2e` | Run Playwright end-to-end tests |
+| `yarn deploy:ipfs` | Deploy build to IPFS via Pinata |
 
 ## Tech Stack
 
@@ -52,6 +62,7 @@ The app will be available at `http://localhost:5173`.
 - **React Router 7** with hash-based routing (for IPFS compatibility)
 - **Radix UI** primitives (dialog, tabs, tooltip) styled with [shadcn/ui](https://ui.shadcn.com/) conventions
 - **Recharts** for data visualization
+- **Vitest** for unit/integration tests
 - **Playwright** for end-to-end testing
 
 ## Architecture
@@ -60,7 +71,7 @@ The app will be available at `http://localhost:5173`.
 src/
 ├── abi/            # Contract ABIs (parseAbi with human-readable signatures)
 ├── components/
-│   ├── dashboard/  # Stats, rewards, portfolio, transaction history
+│   ├── dashboard/  # Stats, rewards, portfolio, staking section
 │   ├── layout/     # Header, footer, shared layout
 │   ├── onboarding/ # First-time visitor banner
 │   ├── staking/    # DelegateDialog, UndelegateDialog, AmountInput
@@ -73,7 +84,20 @@ src/
 ├── hooks/          # Contract reads, writes, gas estimation, rewards
 ├── lib/            # Utilities (formatting, error handling, clipboard)
 └── pages/          # Route components
+e2e/                # Playwright end-to-end tests
+admin/              # Admin panel (validator proposals, contract management)
 ```
+
+### Routes
+
+| Path | Page | Description |
+|------|------|-------------|
+| `/` | `DashboardPage` | Stats, portfolio, rewards, transaction history |
+| `/validators` | `ValidatorsPage` | Validator discovery with search/filter/sort |
+| `/validators/:address` | `ValidatorDetailPage` | Individual validator info and actions |
+| `/withdrawals` | `WithdrawalsPage` | Pending withdrawals queue and claims |
+| `/terms` | `TermsOfUsePage` | Terms of Use |
+| `/faq` | `FaqPage` | Frequently Asked Questions |
 
 ### Wallet Support
 
@@ -87,7 +111,7 @@ When connected through Safe, the app detects [EIP-5792](https://eips.ethereum.or
 
 ### Contract Integration
 
-The UI and contract both use "stake" terminology. Write hooks wrap `stake()`, `initiateWithdrawal()`, and `claimWithdrawal()` contract functions.
+The UI uses "delegation" terminology (Delegate/Undelegate) but the smart contract uses "stake" terminology internally. Write hooks wrap `stake()`, `initiateWithdrawal()`, and `claimWithdrawal()` contract functions.
 
 - **Read hooks** (`useStakingReads.ts`) poll every 15 seconds via `refetchInterval`
 - **Write hooks** (`useStakingWrites.ts`) return a unified `{ action, isSigningTx, isConfirmingTx, isSuccess, error, reset, txHash }` interface
@@ -120,4 +144,4 @@ The app includes a `/manifest.json` for Safe App discovery. To run inside Safe W
 
 ## License
 
-See [LICENSE](LICENSE) for details.
+MIT — see [LICENSE](LICENSE) for details.

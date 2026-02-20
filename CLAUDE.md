@@ -12,6 +12,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Run unit/integration tests:** `yarn test` (vitest run)
 - **Watch mode:** `yarn test:watch`
 - **Coverage:** `yarn test:coverage`
+- **E2E tests:** `yarn test:e2e` (Playwright)
 
 ## Pre-push Checklist
 
@@ -33,25 +34,29 @@ All wagmi hooks, React Query, Radix tooltip context, and toast context are avail
 
 ### Routing (src/App.tsx)
 
-Five routes under a shared `Layout` (header + footer + `<Outlet />`):
-- `/` → `DashboardPage` (stats, onboarding, claimable banner, quick actions, rewards, calculator, stake distribution chart, portfolio breakdown, positions, transaction history)
+Seven routes under a shared `Layout` (header + footer + `<Outlet />`):
+- `/` → `DashboardPage` (stats, onboarding, claimable banner, quick actions, rewards, staking section, stake distribution chart, portfolio breakdown, positions)
 - `/validators` → `ValidatorsPage` (search/filter/sort controls, validator cards with delegate/undelegate; supports `?delegate=0x...` deep-link to auto-open delegate dialog)
-- `/validators/:address` → `ValidatorDetailPage` (full validator info, delegate/undelegate buttons, filtered transaction history)
+- `/validators/:address` → `ValidatorDetailPage` (full validator info, delegate/undelegate buttons)
 - `/withdrawals` → `WithdrawalsPage` (pending withdrawal queue with FIFO tooltip, cooldown progress bars, claim)
+- `/terms` → `TermsOfUsePage` (Terms of Use content)
+- `/faq` → `FaqPage` (Frequently Asked Questions)
 - `*` → `NotFoundPage` (404 catch-all)
 
-App-level guards: `useSanctionsCheck` blocks the entire app if `VITE_SANCTIONS_API_URL` returns 403. `DisconnectWatcher` shows a toast on wallet disconnect.
+All pages are lazy-loaded with `React.lazy()` and preloaded via `requestIdleCallback` after initial render.
+
+App-level guards: `useSanctionsCheck` blocks the entire app if `VITE_SANCTIONS_API_URL` returns 403. `useGeoblockCheck` blocks access from OFAC/ITAR-restricted countries via `api.country.is` (fails open). `WalletSanctionsGate` blocks individual wallet addresses flagged by the sanctions API. `DisconnectWatcher` shows a toast on wallet disconnect.
 
 ### Contract Integration
 
-- **Config layer:** `src/config/chains.ts` resolves chain from `VITE_CHAIN_ID`, `src/config/contracts.ts` maps chain IDs to staking/token contract addresses.
+- **Config layer:** `src/config/chains.ts` resolves chain from `VITE_CHAIN_ID`, `src/config/contracts.ts` maps chain IDs to staking/token/merkleDrop contract addresses.
 - **ABIs:** `src/abi/stakingAbi.ts` (staking contract) and `src/abi/erc20Abi.ts` (SAFE token). ABIs use viem's `parseAbi` with human-readable signatures.
 - **Read hooks** (`src/hooks/useStakingReads.ts`): Thin wrappers around wagmi's `useReadContract`/`useReadContracts`. Per-user hooks guard with `query: { enabled: !!address }`. All hooks poll every 15 seconds via `refetchInterval: 15_000`.
 - **Write hooks** (`src/hooks/useStakingWrites.ts`): Each write hook (`useStake`, `useInitiateWithdrawal`, `useClaimWithdrawal`) combines `useWriteContract` + `useWaitForTransactionReceipt` and returns a unified `{ action, isPending, isSuccess, error, reset, txHash }` interface.
 - **Validator discovery** (`src/hooks/useValidators.ts`): Fetches `ValidatorUpdated` events from deploy block to latest via `getLogs`, with automatic chunked fallback for RPC block-range limits. Returns `ValidatorInfo[]` with `{ address, isActive }` sorted active-first.
-- **Transaction history** (`src/hooks/useTransactionHistory.ts`): Fetches `StakeIncreased`, `WithdrawalInitiated`, and `WithdrawalClaimed` events for the connected user. Supports optional validator filter. Uses same chunked log fetching pattern. Returns last 50 transactions sorted by block number descending.
+- **Withdrawals** (`src/hooks/useWithdrawals.ts`): Fetches pending withdrawals for the connected user. Includes `useNextClaimable` for the claimable banner.
 - **Gas estimation** (`src/hooks/useGasEstimate.ts`): Uses `estimateGas` + `getGasPrice` from viem to show estimated gas cost in delegate/undelegate dialogs. Debounced 500ms on amount change.
-- **Rewards estimate** (`src/hooks/useRewardsEstimate.ts`): Pure client-side APR calculator (no contract calls). Returns daily/weekly/monthly/yearly estimates.
+- **Rewards** (`src/hooks/useRewards.ts`, `src/hooks/useRewardProof.ts`, `src/hooks/useClaimRewards.ts`): Rewards reading, Merkle proof fetching, and claim transaction hooks.
 
 ### Terminology
 
@@ -61,10 +66,11 @@ The UI uses "delegation" terminology externally (Delegate/Undelegate) but the sm
 
 `src/data/validators.json` is a static address→metadata map (label, commission, uptime). `useValidatorMetadata(address)` does a case-insensitive lookup. Unknown validators fall back to truncated address display.
 
-### Placeholder Systems
+### Compliance
 
-- **Rewards** (`src/hooks/useRewards.ts`): Returns mock data. TODO: integrate with Merkle drop contract.
-- **Sanctions** (`src/hooks/useSanctionsCheck.ts`): Fetches `VITE_SANCTIONS_API_URL` on mount; no-op if env var is unset.
+- **IP-level sanctions** (`src/hooks/useSanctionsCheck.ts`): Fetches `VITE_SANCTIONS_API_URL` on mount; no-op if env var is unset.
+- **Geo-blocking** (`src/hooks/useGeoblockCheck.ts`): Checks user's country via `api.country.is` against an OFAC/ITAR blocked country list. Fails open on lookup errors.
+- **Wallet sanctions** (`src/hooks/useWalletSanctionsCheck.ts`): Checks connected wallet address against the sanctions API. Blocks the UI if flagged.
 
 ### UI Components
 
@@ -74,10 +80,11 @@ Key UI components:
 - `button.tsx` — CVA button with variants (default, destructive, outline, secondary, ghost, link) and sizes
 - `card.tsx` — Compound card components (Card, CardHeader, CardTitle, CardContent, etc.)
 - `dialog.tsx` — Radix Dialog with overlay animations
-- `tabs.tsx` — Radix Tabs (used in transaction history)
+- `tabs.tsx` — Radix Tabs (used in staking section)
 - `tooltip.tsx` — Radix Tooltip (used for FIFO queue info, etc.)
 - `progress.tsx` — Progress bar with size (default, sm, lg) and variant (default, success, warning) props
 - `stepper.tsx` — Horizontal step indicator with circles + connecting lines (used in DelegateDialog for Approve → Delegate → Done flow)
+- `SafeTokenBadge.tsx` — SAFE token icon badge
 - `badge.tsx`, `input.tsx`, `skeleton.tsx` — Standard primitives
 
 ### Utility Libraries
@@ -94,12 +101,12 @@ Key UI components:
 - `QuickActions` — Delegate/Undelegate/Claim navigation buttons (visible when connected)
 - `OnboardingBanner` — First-time visitor card (3 steps), dismissible via localStorage key `onboarding_dismissed`
 - `EligibilityNotice` — Rewards cap info box
-- `RewardsSection` — Claimable SAFE, weekly cap progress, claim button (coming soon)
-- `RewardsCalculator` — Configurable amount/APR inputs with estimated daily/weekly/monthly/yearly rewards
+- `RewardsSection` — Claimable SAFE, weekly cap progress, claim button
+- `ClaimRewardsDialog` — Dialog for claiming Merkle drop rewards
+- `StakingSection` — Combined staking overview and calculator
 - `StakeDistribution` — Recharts donut chart showing delegation distribution (only renders with 2+ validators)
 - `PortfolioBreakdown` — Per-validator delegation table with amounts and percentages
 - `UserPositions` — List of active delegations per validator
-- `TransactionHistory` — Tabbed (All/Delegations/Withdrawals) log of past contract events with explorer links
 
 ### Validator Components
 
@@ -135,14 +142,19 @@ Wagmi config (`src/config/wagmi.ts`) uses `safe()` (auto-detects Safe Wallet ifr
 | `VITE_RPC_URL` | Yes | JSON-RPC endpoint |
 | `VITE_STAKING_DEPLOY_BLOCK` | Yes | Block number to start scanning validator events from |
 | `VITE_WALLETCONNECT_PROJECT_ID` | No | Enables WalletConnect connector |
+| `VITE_MERKLE_DROP_ADDRESS` | No | Merkle drop contract address for rewards claiming |
 | `VITE_SANCTIONS_API_URL` | No | Sanctions check endpoint (403 = blocked) |
-| `VITE_TOU_URL` / `VITE_DOCS_URL` / `VITE_FAQ_URL` | No | Footer links (default: `#`) |
+| `VITE_DOCS_URL` | No | Footer documentation link (defaults to Safe docs) |
 
 ## Adding a New Chain
 
 1. Add chain object to `chainMap` in `src/config/chains.ts`
 2. Add contract addresses for the chain ID in `src/config/contracts.ts`
 3. Update `.env` with the new `VITE_CHAIN_ID` and `VITE_RPC_URL`
+
+## Admin Panel
+
+The `admin/` directory contains a separate Vite app for contract administration (proposing validators, recovering tokens, executing timelocked operations). It has its own `package.json` and runs independently.
 
 ## Known Pre-existing Lint Errors
 
