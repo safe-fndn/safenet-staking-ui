@@ -5,7 +5,7 @@ import { CountdownTimer } from "./CountdownTimer"
 import { formatTokenAmount, formatCountdown, truncateAddress } from "@/lib/format"
 import { useCountdown } from "@/hooks/useCountdown"
 import { useWithdrawDelay } from "@/hooks/useStakingReads"
-import { useValidatorMetadata } from "@/hooks/useValidatorMetadata"
+import { findValidator, type ValidatorInfo } from "@/hooks/useValidators"
 import type { Address } from "viem"
 import Loader2 from "lucide-react/dist/esm/icons/loader-2"
 import { SafeTokenBadge } from "@/components/ui/SafeTokenBadge"
@@ -19,10 +19,11 @@ interface WithdrawalCardProps {
   isSigningTx: boolean
   isConfirmingTx: boolean
   validator?: Address
+  validators?: ValidatorInfo[]
 }
 
-function ValidatorLabel({ address }: { address: Address }) {
-  const metadata = useValidatorMetadata(address)
+function ValidatorLabel({ address, validators }: { address: Address; validators?: ValidatorInfo[] }) {
+  const metadata = findValidator(validators, address)
   const isZero = address === "0x0000000000000000000000000000000000000000"
   const label = isZero ? "Unknown validator" : (metadata ? metadata.label : truncateAddress(address))
   return (
@@ -32,7 +33,7 @@ function ValidatorLabel({ address }: { address: Address }) {
   )
 }
 
-export function WithdrawalCard({ amount, claimableAt, isFirst, onClaim, isSigningTx, isConfirmingTx, validator }: WithdrawalCardProps) {
+export function WithdrawalCard({ amount, claimableAt, isFirst, onClaim, isSigningTx, isConfirmingTx, validator, validators }: WithdrawalCardProps) {
   const secondsLeft = useCountdown(claimableAt)
   const { data: withdrawDelay } = useWithdrawDelay()
   const canClaim = isFirst && secondsLeft === 0
@@ -46,7 +47,7 @@ export function WithdrawalCard({ amount, claimableAt, isFirst, onClaim, isSignin
       <CardContent className="p-4 space-y-3">
         <div className="flex items-center justify-between">
           <div className="space-y-1">
-            {validator && <ValidatorLabel address={validator} />}
+            {validator && <ValidatorLabel address={validator} validators={validators} />}
             <p className="text-lg font-semibold">{formatTokenAmount(amount, 18, 0)} <SafeTokenBadge /></p>
             {secondsLeft > 0 ? (
               <p className="text-xs text-muted-foreground">

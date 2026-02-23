@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest"
 import { render, screen } from "@testing-library/react"
 import { MemoryRouter, Route, Routes } from "react-router-dom"
 import { ValidatorDetailPage } from "../ValidatorDetailPage"
-import { TEST_ACCOUNTS } from "@/__tests__/test-data"
+import { TEST_ACCOUNTS, MOCK_VALIDATORS } from "@/__tests__/test-data"
 
 const mockUseAccount = vi.fn()
 
@@ -10,23 +10,20 @@ vi.mock("wagmi", () => ({
   useAccount: () => mockUseAccount(),
 }))
 
-vi.mock("@/hooks/useValidators", () => ({
-  useValidators: vi.fn(() => ({
-    data: [
-      { address: TEST_ACCOUNTS.validator1, isActive: true },
-      { address: TEST_ACCOUNTS.validator2, isActive: true },
-    ],
-    isLoading: false,
-  })),
-}))
+vi.mock("@/hooks/useValidators", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/hooks/useValidators")>()
+  return {
+    ...actual,
+    useValidators: vi.fn(() => ({
+      data: [...MOCK_VALIDATORS],
+      isLoading: false,
+    })),
+  }
+})
 
 vi.mock("@/hooks/useStakingReads", () => ({
   useValidatorTotalStake: vi.fn(() => ({ data: 5000n * 10n ** 18n, isLoading: false })),
   useUserStakeOnValidator: vi.fn(() => ({ data: 100n * 10n ** 18n, isLoading: false })),
-}))
-
-vi.mock("@/hooks/useValidatorMetadata", () => ({
-  useValidatorMetadata: () => ({ label: "Gnosis", commission: 5, uptime: 99.9 }),
 }))
 
 vi.mock("@/hooks/useToast", () => ({
@@ -68,7 +65,7 @@ describe("ValidatorDetailPage", () => {
 
     expect(screen.getByText("Gnosis")).toBeInTheDocument()
     expect(screen.getByText(/Commission/)).toBeInTheDocument()
-    expect(screen.getByText(/Uptime/)).toBeInTheDocument()
+    expect(screen.getByText(/Participation \(14d\)/)).toBeInTheDocument()
   })
 
   it("shows stake and unstake buttons when connected", () => {
@@ -93,7 +90,7 @@ describe("ValidatorDetailPage", () => {
 
   it("shows not found for unknown valid address", async () => {
     const mod = await import("@/hooks/useValidators")
-    vi.mocked(mod.useValidators).mockReturnValue({
+    vi.mocked(mod.useValidators).mockReturnValueOnce({
       data: [],
       isLoading: false,
     } as unknown as ReturnType<typeof mod.useValidators>)
@@ -101,14 +98,5 @@ describe("ValidatorDetailPage", () => {
     renderWithRoute("0x0000000000000000000000000000000000000001")
 
     expect(screen.getByText("Validator not found.")).toBeInTheDocument()
-
-    // Restore
-    vi.mocked(mod.useValidators).mockReturnValue({
-      data: [
-        { address: TEST_ACCOUNTS.validator1, isActive: true },
-        { address: TEST_ACCOUNTS.validator2, isActive: true },
-      ],
-      isLoading: false,
-    } as unknown as ReturnType<typeof mod.useValidators>)
   })
 })

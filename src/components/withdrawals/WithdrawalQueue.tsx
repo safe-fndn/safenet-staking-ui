@@ -1,6 +1,7 @@
 import { useAccount } from "wagmi"
 import { usePendingWithdrawals } from "@/hooks/useWithdrawals"
 import { useWithdrawalValidators } from "@/hooks/useWithdrawalValidators"
+import { useValidators } from "@/hooks/useValidators"
 import { useClaimWithdrawal, useBatchClaimWithdrawals } from "@/hooks/useStakingWrites"
 import { useToast } from "@/hooks/useToast"
 import { formatContractError } from "@/lib/errorFormat"
@@ -15,7 +16,8 @@ import Loader2 from "lucide-react/dist/esm/icons/loader-2"
 export function WithdrawalQueue() {
   const { isConnected } = useAccount()
   const { data: withdrawals, isLoading } = usePendingWithdrawals()
-  const { data: validators } = useWithdrawalValidators()
+  const { data: withdrawalValidators } = useWithdrawalValidators()
+  const { data: allValidators } = useValidators()
   const { claimWithdrawal, isSigningTx, isConfirmingTx, isSuccess: isClaimed, isSafeQueued: isClaimSafeQueued, error: claimError, txHash: claimTxHash } = useClaimWithdrawal()
   const {
     batchClaimWithdrawals,
@@ -160,7 +162,8 @@ export function WithdrawalQueue() {
           onClaim={() => { setClaimingIndex(i); claimWithdrawal() }}
           isSigningTx={claimingIndex === i && isSigningTx}
           isConfirmingTx={claimingIndex === i && isConfirmingTx}
-          validator={validators?.[i]}
+          validator={withdrawalValidators?.[i]}
+          validators={allValidators}
         />
       ))}
     </div>

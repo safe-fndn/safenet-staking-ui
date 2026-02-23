@@ -5,7 +5,7 @@ export const TOKEN_CONTRACT = "0xef98bcc90b1373b2ae0d23ec318d3ee70ea61af4".toLow
 /** Test user address */
 export const TEST_USER = "0x1111111111111111111111111111111111111111"
 
-/** Validator addresses (from validators.json) */
+/** Validator addresses */
 export const VALIDATORS = {
   gnosis: "0x1234567890abcdef1234567890abcdef12345678",
   greenfield: "0xabcdefabcdefabcdefabcdefabcdefabcdefabcd",

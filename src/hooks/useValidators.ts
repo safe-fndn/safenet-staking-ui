@@ -1,104 +1,87 @@
 import { useQuery } from "@tanstack/react-query"
-import { usePublicClient } from "wagmi"
-import { parseAbiItem, type Address, type Log } from "viem"
-import { getContractAddresses, deployBlock } from "@/config/contracts"
-import { activeChain } from "@/config/chains"
+import { type Address, getAddress } from "viem"
 
-const MAX_BLOCK_RANGE = 49_999n
-const CONCURRENCY = 5
-
-const EVENT = parseAbiItem("event ValidatorUpdated(address indexed validator, bool isRegistered)")
-
-type ValidatorLog = Log<bigint, number, false, typeof EVENT, true>
+const DEFAULT_URL =
+  "https://raw.githubusercontent.com/safe-fndn/safenet-validator-info/refs/heads/main/assets/safenet-validator-info.json"
 
 export interface ValidatorInfo {
   address: Address
   isActive: boolean
+  label: string
+  commission: number
+  participationRate: number
 }
 
-async function runWithConcurrency<T>(tasks: (() => Promise<T>)[], concurrency: number): Promise<T[]> {
-  const results: T[] = new Array(tasks.length)
-  let nextIndex = 0
+interface RawValidator {
+  address: string
+  label: string
+  commission: number
+  is_active: boolean
+  participation_rate_14d: number
+}
 
-  async function worker() {
-    while (nextIndex < tasks.length) {
-      const index = nextIndex++
-      results[index] = await tasks[index]()
-    }
+function isValidEntry(v: unknown): v is RawValidator {
+  if (typeof v !== "object" || v === null) return false
+  const obj = v as Record<string, unknown>
+  return (
+    typeof obj.address === "string" &&
+    typeof obj.label === "string"
+  )
+}
+
+async function fetchValidators(): Promise<ValidatorInfo[]> {
+  const url =
+    import.meta.env.VITE_VALIDATOR_INFO_URL || DEFAULT_URL
+  const res = await fetch(url)
+  if (!res.ok) {
+    throw new Error(
+      `Failed to fetch validators: ${res.status}`
+    )
   }
-
-  await Promise.all(Array.from({ length: Math.min(concurrency, tasks.length) }, () => worker()))
-  return results
+  const text = await res.text()
+  // Sanitize malformed JSON: strip empty array slots (,\s*,)
+  // and trailing commas before ] or }
+  const sanitized = text
+    .replace(/,\s*,/g, ",")
+    .replace(/,\s*([}\]])/g, "$1")
+  const json: unknown = JSON.parse(sanitized)
+  if (!Array.isArray(json)) {
+    throw new Error("Invalid validator data format")
+  }
+  return json.filter(isValidEntry).map((v) => ({
+    address: getAddress(v.address),
+    isActive: v.is_active ?? true,
+    label: v.label,
+    commission:
+      Math.round((v.commission ?? 0) * 100 * 100) / 100,
+    participationRate:
+      Math.round(
+        (v.participation_rate_14d ?? 0) * 100 * 100
+      ) / 100,
+  }))
 }
 
 export function useValidators() {
-  const client = usePublicClient()
-  const { staking } = getContractAddresses(activeChain.id)
-
   return useQuery({
-    queryKey: ["validators", staking],
-    queryFn: async (): Promise<ValidatorInfo[]> => {
-      if (!client) throw new Error("No public client")
-
-      let logs: ValidatorLog[]
-
-      // Try full range first, fall back to chunked on RPC block-range limits
-      try {
-        logs = await client.getLogs({
-          address: staking,
-          event: EVENT,
-          fromBlock: deployBlock,
-          toBlock: "latest",
-          strict: true,
-        })
-      } catch {
-        const latestBlock = await client.getBlockNumber()
-        const minBlock = deployBlock > 0n ? deployBlock : 0n
-
-        const chunks: { fromBlock: bigint; toBlock: bigint }[] = []
-        let toBlock = latestBlock
-        while (toBlock >= minBlock) {
-          const fromBlock = toBlock - MAX_BLOCK_RANGE > minBlock ? toBlock - MAX_BLOCK_RANGE : minBlock
-          chunks.push({ fromBlock, toBlock })
-          if (fromBlock === minBlock) break
-          toBlock = fromBlock - 1n
-        }
-
-        const tasks = chunks.map(({ fromBlock, toBlock }) => async () => {
-          try {
-            return await client.getLogs({
-              address: staking,
-              event: EVENT,
-              fromBlock,
-              toBlock,
-              strict: true,
-            })
-          } catch {
-            return [] as ValidatorLog[]
-          }
-        })
-
-        const results = await runWithConcurrency(tasks, CONCURRENCY)
-        // Chunks are built newest-first; reverse so logs are chronological
-        // (oldest first) and the last Map.set() per validator wins correctly.
-        results.reverse()
-        logs = results.flat()
-      }
-
-      const validators = new Map<Address, boolean>()
-      for (const log of logs) {
-        validators.set(log.args.validator, log.args.isRegistered)
-      }
-
-      const result: ValidatorInfo[] = []
-      for (const [addr, isRegistered] of validators) {
-        if (!isRegistered) continue
-        result.push({ address: addr, isActive: true })
-      }
-
-      return result
-    },
-    staleTime: 60_000,
-    enabled: !!client,
+    queryKey: ["validators"],
+    queryFn: fetchValidators,
+    staleTime: 5 * 60 * 1000,
   })
+}
+
+/**
+ * Synchronous lookup helper for finding a validator by
+ * address from an already-loaded validators array.
+ */
+export function findValidator(
+  validators: ValidatorInfo[] | undefined,
+  address: string
+): ValidatorInfo | null {
+  if (!validators) return null
+  const target = address.toLowerCase()
+  return (
+    validators.find(
+      (v) => v.address.toLowerCase() === target
+    ) ?? null
+  )
 }

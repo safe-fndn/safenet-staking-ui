@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest"
 import { render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { WithdrawalCard } from "../withdrawals/WithdrawalCard"
-import { AMOUNTS, TEST_ACCOUNTS } from "@/__tests__/test-data"
+import { AMOUNTS, TEST_ACCOUNTS, MOCK_VALIDATORS } from "@/__tests__/test-data"
 
 vi.mock("@/hooks/useCountdown", () => ({
   useCountdown: vi.fn(() => 0), // default: claimable (0 seconds left)
@@ -12,9 +12,10 @@ vi.mock("@/hooks/useStakingReads", () => ({
   useWithdrawDelay: vi.fn(() => ({ data: AMOUNTS.withdrawDelay })),
 }))
 
-vi.mock("@/hooks/useValidatorMetadata", () => ({
-  useValidatorMetadata: vi.fn(() => ({ label: "Gnosis Validator" })),
-}))
+vi.mock("@/hooks/useValidators", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/hooks/useValidators")>()
+  return { ...actual }
+})
 
 describe("WithdrawalCard", () => {
   const mockOnClaim = vi.fn()
@@ -29,6 +30,7 @@ describe("WithdrawalCard", () => {
     isSigningTx: false,
     isConfirmingTx: false,
     validator: TEST_ACCOUNTS.validator1,
+    validators: [...MOCK_VALIDATORS],
   }
 
   beforeEach(() => {
@@ -45,7 +47,7 @@ describe("WithdrawalCard", () => {
   it("renders validator label", () => {
     render(<WithdrawalCard {...defaultProps} />)
 
-    expect(screen.getByText(/Gnosis Validator/)).toBeInTheDocument()
+    expect(screen.getByText(/Gnosis/)).toBeInTheDocument()
   })
 
   it("shows enabled Claim button when claimable", () => {

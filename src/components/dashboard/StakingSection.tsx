@@ -1,9 +1,8 @@
 import { useState } from "react"
 import { Link } from "react-router-dom"
 import { useAccount } from "wagmi"
-import { useValidators } from "@/hooks/useValidators"
+import { useValidators, findValidator, type ValidatorInfo } from "@/hooks/useValidators"
 import { useUserStakesOnValidators } from "@/hooks/useStakingReads"
-import { useValidatorMetadata } from "@/hooks/useValidatorMetadata"
 import { useRewards } from "@/hooks/useRewards"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -24,8 +23,8 @@ interface Position {
   isActive: boolean
 }
 
-function PositionRow({ position }: { position: Position }) {
-  const metadata = useValidatorMetadata(position.validator)
+function PositionRow({ position, validators }: { position: Position; validators?: ValidatorInfo[] }) {
+  const metadata = findValidator(validators, position.validator)
   const [undelegateOpen, setUndelegateOpen] = useState(false)
 
   return (
@@ -43,7 +42,7 @@ function PositionRow({ position }: { position: Position }) {
           {formatTokenAmount(position.amount, 18, 0)}
         </td>
         <td className="py-3 pr-4 text-sm text-right text-muted-foreground">
-          {metadata ? `${metadata.uptime}%` : "—"}
+          {metadata ? `${metadata.participationRate}%` : "—"}
         </td>
         <td className="py-3 pr-4 text-right">
           {position.isActive ? (
@@ -184,14 +183,14 @@ export function StakingSection() {
                   <tr className="border-b text-xs text-muted-foreground">
                     <th className="pb-2 pr-4 text-left font-medium">Validator</th>
                     <th className="pb-2 pr-4 text-right font-medium">SAFE Amount</th>
-                    <th className="pb-2 pr-4 text-right font-medium">Uptime</th>
+                    <th className="pb-2 pr-4 text-right font-medium">Participation (14d)</th>
                     <th className="pb-2 pr-4 text-right font-medium">Status</th>
                     <th className="pb-2 text-right font-medium">Action</th>
                   </tr>
                 </thead>
                 <tbody>
                   {positions.map((pos) => (
-                    <PositionRow key={pos.validator} position={pos} />
+                    <PositionRow key={pos.validator} position={pos} validators={validators} />
                   ))}
                 </tbody>
               </table>

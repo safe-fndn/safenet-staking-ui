@@ -3,7 +3,7 @@ import { render, screen } from "@testing-library/react"
 import { MemoryRouter } from "react-router-dom"
 import { TooltipProvider } from "@radix-ui/react-tooltip"
 import { StakingSection } from "../dashboard/StakingSection"
-import { TEST_ACCOUNTS } from "@/__tests__/test-data"
+import { MOCK_VALIDATORS } from "@/__tests__/test-data"
 
 const mockUseAccount = vi.fn()
 
@@ -11,13 +11,15 @@ vi.mock("wagmi", () => ({
   useAccount: () => mockUseAccount(),
 }))
 
-vi.mock("@/hooks/useValidators", () => ({
-  useValidators: vi.fn(() => ({
-    data: [
-      { address: TEST_ACCOUNTS.validator1, isActive: true },
-    ],
-  })),
-}))
+vi.mock("@/hooks/useValidators", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/hooks/useValidators")>()
+  return {
+    ...actual,
+    useValidators: vi.fn(() => ({
+      data: [MOCK_VALIDATORS[0]],
+    })),
+  }
+})
 
 vi.mock("@/hooks/useStakingReads", () => ({
   useUserStakesOnValidators: vi.fn(() => ({
@@ -30,10 +32,6 @@ vi.mock("@/hooks/useRewards", () => ({
   useRewards: vi.fn(() => ({
     data: { claimable: 50n * 10n ** 18n, canClaim: true, rootStale: false },
   })),
-}))
-
-vi.mock("@/hooks/useValidatorMetadata", () => ({
-  useValidatorMetadata: () => ({ label: "Gnosis", commission: 5, uptime: 99.9 }),
 }))
 
 vi.mock("@/components/staking/UndelegateDialog", () => ({
@@ -89,7 +87,7 @@ describe("StakingSection", () => {
     mockUseAccount.mockReturnValue({ isConnected: true })
 
     const mod = await import("@/hooks/useStakingReads")
-    vi.mocked(mod.useUserStakesOnValidators).mockReturnValue({
+    vi.mocked(mod.useUserStakesOnValidators).mockReturnValueOnce({
       data: [{ status: "success", result: 0n }],
       isLoading: false,
     } as ReturnType<typeof mod.useUserStakesOnValidators>)
@@ -97,11 +95,5 @@ describe("StakingSection", () => {
     renderSection()
 
     expect(screen.getByText(/You have no active stakes/)).toBeInTheDocument()
-
-    // Restore
-    vi.mocked(mod.useUserStakesOnValidators).mockReturnValue({
-      data: [{ status: "success", result: 200n * 10n ** 18n }],
-      isLoading: false,
-    } as ReturnType<typeof mod.useUserStakesOnValidators>)
   })
 })

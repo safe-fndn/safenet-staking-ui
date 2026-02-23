@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest"
 import { render, screen } from "@testing-library/react"
 import { MemoryRouter } from "react-router-dom"
 import { UserPositions } from "../dashboard/UserPositions"
-import { TEST_ACCOUNTS } from "@/__tests__/test-data"
+import { MOCK_VALIDATORS } from "@/__tests__/test-data"
 
 const mockUseAccount = vi.fn()
 
@@ -10,14 +10,15 @@ vi.mock("wagmi", () => ({
   useAccount: () => mockUseAccount(),
 }))
 
-vi.mock("@/hooks/useValidators", () => ({
-  useValidators: vi.fn(() => ({
-    data: [
-      { address: TEST_ACCOUNTS.validator1, isActive: true },
-      { address: TEST_ACCOUNTS.validator2, isActive: true },
-    ],
-  })),
-}))
+vi.mock("@/hooks/useValidators", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/hooks/useValidators")>()
+  return {
+    ...actual,
+    useValidators: vi.fn(() => ({
+      data: [...MOCK_VALIDATORS],
+    })),
+  }
+})
 
 vi.mock("@/hooks/useStakingReads", () => ({
   useUserStakesOnValidators: vi.fn(() => ({
@@ -27,10 +28,6 @@ vi.mock("@/hooks/useStakingReads", () => ({
     ],
     isLoading: false,
   })),
-}))
-
-vi.mock("@/hooks/useValidatorMetadata", () => ({
-  useValidatorMetadata: () => ({ label: "Gnosis", commission: 5, uptime: 99.9 }),
 }))
 
 vi.mock("@/components/staking/UndelegateDialog", () => ({
@@ -72,7 +69,7 @@ describe("UserPositions", () => {
     mockUseAccount.mockReturnValue({ isConnected: true })
 
     const mod = await import("@/hooks/useStakingReads")
-    vi.mocked(mod.useUserStakesOnValidators).mockReturnValue({
+    vi.mocked(mod.useUserStakesOnValidators).mockReturnValueOnce({
       data: [
         { status: "success", result: 0n },
         { status: "success", result: 0n },
@@ -87,14 +84,5 @@ describe("UserPositions", () => {
     )
 
     expect(screen.getByText(/You have no active delegations/)).toBeInTheDocument()
-
-    // Restore
-    vi.mocked(mod.useUserStakesOnValidators).mockReturnValue({
-      data: [
-        { status: "success", result: 200n * 10n ** 18n },
-        { status: "success", result: 0n },
-      ],
-      isLoading: false,
-    } as ReturnType<typeof mod.useUserStakesOnValidators>)
   })
 })

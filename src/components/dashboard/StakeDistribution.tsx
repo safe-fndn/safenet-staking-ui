@@ -4,9 +4,9 @@ import { useValidators } from "@/hooks/useValidators"
 import { useUserStakesOnValidators } from "@/hooks/useStakingReads"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
+import { findValidator } from "@/hooks/useValidators"
 import { formatTokenAmount, truncateAddress } from "@/lib/format"
 import type { Address } from "viem"
-import validatorData from "@/data/validators.json"
 
 const LazyPieChart = lazy(() =>
   import("recharts").then((m) => ({
@@ -47,8 +47,6 @@ const LazyPieChart = lazy(() =>
   }))
 )
 
-const metadata = validatorData as Record<string, { label: string; commission: number; uptime: number }>
-
 const COLORS = [
   "#12FF80", // Safe Green
   "#5FDDFF", // Safe Blue
@@ -57,11 +55,6 @@ const COLORS = [
   "#FF5F72", // Safe Red
   "#B0FFC9", // Safe Light Green
 ]
-
-function getLabel(address: string): string {
-  const meta = metadata[address.toLowerCase()]
-  return meta ? meta.label : truncateAddress(address)
-}
 
 interface ChartEntry {
   name: string
@@ -84,9 +77,10 @@ export function StakeDistribution() {
       if (result.status === "success") {
         const amount = result.result as bigint
         if (amount > 0n) {
+          const meta = findValidator(validators, validatorAddresses[i])
           data.push({
-            name: getLabel(validatorAddresses[i]),
-            value: Number(amount / 10n ** 14n) / 10000, // approximate ETH amount for chart sizing
+            name: meta ? meta.label : truncateAddress(validatorAddresses[i]),
+            value: Number(amount / 10n ** 14n) / 10000,
             address: validatorAddresses[i],
             amount,
           })

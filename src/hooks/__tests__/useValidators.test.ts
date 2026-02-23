@@ -1,37 +1,19 @@
-import { describe, it, expect, vi, beforeEach } from "vitest"
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
 import { renderHook } from "@testing-library/react"
-import type { Address } from "viem"
+import { findValidator } from "../useValidators"
 
-const mockGetLogs = vi.fn()
-const mockGetBlockNumber = vi.fn()
-
-vi.mock("wagmi", () => ({
-  usePublicClient: vi.fn(() => ({
-    getLogs: mockGetLogs,
-    getBlockNumber: mockGetBlockNumber,
-  })),
-}))
+const mockFetch = vi.fn()
 
 // Capture queryFn from each useQuery call so tests can invoke it directly.
 let capturedQueryFn: (() => Promise<unknown>) | undefined
 
 vi.mock("@tanstack/react-query", () => ({
-  useQuery: vi.fn((opts: { queryFn?: () => Promise<unknown>; enabled?: boolean }) => {
+  useQuery: vi.fn((opts: { queryFn?: () => Promise<unknown> }) => {
     capturedQueryFn = opts.queryFn
-    if (opts.enabled === false) return { data: undefined, isLoading: false }
     return { data: undefined, isLoading: true }
   }),
 }))
 
-vi.mock("@/config/contracts", () => ({
-  getContractAddresses: () => ({
-    staking: "0x6E4D214A7FA04be157b1Aae498b395bd21Da0aF5",
-    token: "0xef98bcc90b1373b2ae0d23ec318d3ee70ea61af4",
-  }),
-  deployBlock: 5_000_000n,
-}))
-
-// Import after mocks
 const { useValidators } = await import("../useValidators")
 const reactQuery = vi.mocked(await import("@tanstack/react-query"))
 
@@ -39,75 +21,165 @@ describe("useValidators", () => {
   beforeEach(() => {
     vi.clearAllMocks()
     capturedQueryFn = undefined
+    globalThis.fetch = mockFetch
   })
 
-  it("calls useQuery with validators key", () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it("calls useQuery with validators key and 5 min staleTime", () => {
     renderHook(() => useValidators())
 
     expect(reactQuery.useQuery).toHaveBeenCalledWith(
       expect.objectContaining({
-        queryKey: ["validators", "0x6E4D214A7FA04be157b1Aae498b395bd21Da0aF5"],
-        enabled: true,
+        queryKey: ["validators"],
+        staleTime: 5 * 60 * 1000,
       })
     )
   })
 
-  it("queryFn parses ValidatorUpdated events and excludes deregistered", async () => {
-    const mockLogs = [
-      { args: { validator: "0xaaa" as Address, isRegistered: false } },
-      { args: { validator: "0xbbb" as Address, isRegistered: true } },
-      { args: { validator: "0xccc" as Address, isRegistered: true } },
+  it("queryFn fetches and normalizes validator data", async () => {
+    const rawData = [
+      {
+        address: "0x1111111111111111111111111111111111111111",
+        label: "Validator A",
+        commission: 0.05,
+        is_active: true,
+        participation_rate_14d: 0.8523,
+      },
     ]
-    mockGetLogs.mockResolvedValue(mockLogs)
+    mockFetch.mockResolvedValue({
+      ok: true,
+      text: () => Promise.resolve(JSON.stringify(rawData)),
+    })
 
     renderHook(() => useValidators())
-
     expect(capturedQueryFn).toBeDefined()
     const result = await capturedQueryFn!()
 
     expect(result).toEqual([
-      { address: "0xbbb", isActive: true },
-      { address: "0xccc", isActive: true },
+      {
+        address: "0x1111111111111111111111111111111111111111",
+        isActive: true,
+        label: "Validator A",
+        commission: 5,
+        participationRate: 85.23,
+      },
     ])
   })
 
-  it("queryFn falls back to chunked fetching on error", async () => {
-    mockGetLogs
-      .mockRejectedValueOnce(new Error("block range too large"))
-      .mockResolvedValue([])
-    mockGetBlockNumber.mockResolvedValue(5_100_000n)
+  it("queryFn throws on non-ok response", async () => {
+    mockFetch.mockResolvedValue({ ok: false, status: 500 })
 
     renderHook(() => useValidators())
-
     expect(capturedQueryFn).toBeDefined()
-    const result = await capturedQueryFn!()
-    expect(result).toEqual([])
-    // First call fails (full range), then chunked calls happen
-    expect(mockGetLogs.mock.calls.length).toBeGreaterThan(1)
-    expect(mockGetBlockNumber).toHaveBeenCalled()
+    await expect(capturedQueryFn!()).rejects.toThrow(
+      "Failed to fetch validators: 500"
+    )
   })
 
-  it("queryFn handles duplicate validator events (last event wins, deregistered excluded)", async () => {
-    const mockLogs = [
-      { args: { validator: "0xaaa" as Address, isRegistered: true } },
-      { args: { validator: "0xaaa" as Address, isRegistered: false } }, // later event deregisters
+  it("queryFn throws on non-array response", async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      text: () => Promise.resolve(JSON.stringify({ not: "an array" })),
+    })
+
+    renderHook(() => useValidators())
+    expect(capturedQueryFn).toBeDefined()
+    await expect(capturedQueryFn!()).rejects.toThrow(
+      "Invalid validator data format"
+    )
+  })
+
+  it("queryFn skips entries with missing required fields", async () => {
+    const rawData = [
+      { address: "0x1111111111111111111111111111111111111111", label: "Valid" },
+      { address: "0x2222222222222222222222222222222222222222" }, // missing label
+      { label: "No Address" }, // missing address
+      null,
     ]
-    mockGetLogs.mockResolvedValue(mockLogs)
+    mockFetch.mockResolvedValue({
+      ok: true,
+      text: () => Promise.resolve(JSON.stringify(rawData)),
+    })
 
     renderHook(() => useValidators())
-
-    expect(capturedQueryFn).toBeDefined()
     const result = await capturedQueryFn!()
-    expect(result).toEqual([])
+
+    expect(result).toHaveLength(1)
+    expect((result as Array<{ label: string }>)[0].label).toBe("Valid")
   })
 
-  it("queryFn returns empty array when no events", async () => {
-    mockGetLogs.mockResolvedValue([])
+  it("queryFn handles JSON with stray commas", async () => {
+    const jsonWithCommas = `[
+      {"address":"0x1111111111111111111111111111111111111111","label":"A"},
+      ,
+      {"address":"0x2222222222222222222222222222222222222222","label":"B"}
+    ]`
+    mockFetch.mockResolvedValue({
+      ok: true,
+      text: () => Promise.resolve(jsonWithCommas),
+    })
 
     renderHook(() => useValidators())
-
-    expect(capturedQueryFn).toBeDefined()
     const result = await capturedQueryFn!()
-    expect(result).toEqual([])
+    expect(result).toHaveLength(2)
+  })
+
+  it("queryFn defaults missing commission and participation to 0", async () => {
+    const rawData = [
+      {
+        address: "0x1111111111111111111111111111111111111111",
+        label: "Minimal",
+      },
+    ]
+    mockFetch.mockResolvedValue({
+      ok: true,
+      text: () => Promise.resolve(JSON.stringify(rawData)),
+    })
+
+    renderHook(() => useValidators())
+    const result = (await capturedQueryFn!()) as Array<{
+      commission: number
+      participationRate: number
+      isActive: boolean
+    }>
+
+    expect(result[0].commission).toBe(0)
+    expect(result[0].participationRate).toBe(0)
+    expect(result[0].isActive).toBe(true)
+  })
+})
+
+describe("findValidator", () => {
+  const validators = [
+    {
+      address: "0x1234567890AbcdEF1234567890aBcdef12345678" as `0x${string}`,
+      isActive: true,
+      label: "Test",
+      commission: 5,
+      participationRate: 85,
+    },
+  ]
+
+  it("finds validator by lowercase address", () => {
+    const result = findValidator(validators, "0x1234567890abcdef1234567890abcdef12345678")
+    expect(result).toEqual(validators[0])
+  })
+
+  it("finds validator case-insensitively", () => {
+    const result = findValidator(validators, "0x1234567890ABCDEF1234567890ABCDEF12345678")
+    expect(result).toEqual(validators[0])
+  })
+
+  it("returns null for unknown address", () => {
+    const result = findValidator(validators, "0x0000000000000000000000000000000000000099")
+    expect(result).toBeNull()
+  })
+
+  it("returns null when validators is undefined", () => {
+    const result = findValidator(undefined, "0x1234567890abcdef1234567890abcdef12345678")
+    expect(result).toBeNull()
   })
 })

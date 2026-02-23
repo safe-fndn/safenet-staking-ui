@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest"
 import { render, screen } from "@testing-library/react"
 import { TooltipProvider } from "@radix-ui/react-tooltip"
 import { WithdrawalQueue } from "../withdrawals/WithdrawalQueue"
+import { MOCK_VALIDATORS } from "@/__tests__/test-data"
 
 const mockClaimWithdrawal = vi.fn()
 const mockToast = vi.fn()
@@ -24,6 +25,16 @@ vi.mock("@/hooks/useWithdrawalValidators", () => ({
   useWithdrawalValidators: () => mockUseWithdrawalValidators(),
 }))
 
+vi.mock("@/hooks/useValidators", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/hooks/useValidators")>()
+  return {
+    ...actual,
+    useValidators: vi.fn(() => ({
+      data: [...MOCK_VALIDATORS],
+    })),
+  }
+})
+
 const mockUseBatchClaimWithdrawals = vi.fn()
 
 vi.mock("@/hooks/useStakingWrites", () => ({
@@ -37,10 +48,6 @@ vi.mock("@/hooks/useToast", () => ({
 
 vi.mock("@/hooks/useCountdown", () => ({
   useCountdown: () => 3600,
-}))
-
-vi.mock("@/hooks/useValidatorMetadata", () => ({
-  useValidatorMetadata: () => ({ label: "Gnosis", commission: 5, uptime: 99.9 }),
 }))
 
 describe("WithdrawalQueue", () => {

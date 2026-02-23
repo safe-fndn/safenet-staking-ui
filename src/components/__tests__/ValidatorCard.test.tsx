@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest"
 import { render, screen } from "@testing-library/react"
 import { MemoryRouter } from "react-router-dom"
 import { ValidatorCard } from "../validators/ValidatorCard"
-import { TEST_ACCOUNTS } from "@/__tests__/test-data"
+import { TEST_ACCOUNTS, MOCK_VALIDATORS } from "@/__tests__/test-data"
 
 const mockUseAccount = vi.fn()
 
@@ -14,9 +14,10 @@ vi.mock("@/hooks/useStakingReads", () => ({
   useUserStakeOnValidator: vi.fn(() => ({ data: 100n * 10n ** 18n, isLoading: false })),
 }))
 
-vi.mock("@/hooks/useValidatorMetadata", () => ({
-  useValidatorMetadata: () => ({ label: "Gnosis", commission: 5, uptime: 99.9 }),
-}))
+vi.mock("@/hooks/useValidators", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/hooks/useValidators")>()
+  return { ...actual }
+})
 
 vi.mock("@/hooks/useToast", () => ({
   useToast: vi.fn(() => ({ toast: vi.fn() })),
@@ -44,6 +45,7 @@ describe("ValidatorCard", () => {
           validator={TEST_ACCOUNTS.validator1}
           isActive={true}
           totalStake={5000n * 10n ** 18n}
+          validators={[...MOCK_VALIDATORS]}
           {...props}
         />
       </MemoryRouter>,
@@ -55,7 +57,7 @@ describe("ValidatorCard", () => {
 
     expect(screen.getByText("Gnosis")).toBeInTheDocument()
     expect(screen.getByText("Commission: 5%")).toBeInTheDocument()
-    expect(screen.getByText("Uptime: 99.9%")).toBeInTheDocument()
+    expect(screen.getByText("Participation (14d): 99.9%")).toBeInTheDocument()
   })
 
   it("shows Active badge for active validator", () => {

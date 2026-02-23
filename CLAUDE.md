@@ -53,7 +53,7 @@ App-level guards: `useSanctionsCheck` blocks the entire app if `VITE_SANCTIONS_A
 - **ABIs:** `src/abi/stakingAbi.ts` (staking contract) and `src/abi/erc20Abi.ts` (SAFE token). ABIs use viem's `parseAbi` with human-readable signatures.
 - **Read hooks** (`src/hooks/useStakingReads.ts`): Thin wrappers around wagmi's `useReadContract`/`useReadContracts`. Per-user hooks guard with `query: { enabled: !!address }`. All hooks poll every 15 seconds via `refetchInterval: 15_000`.
 - **Write hooks** (`src/hooks/useStakingWrites.ts`): Each write hook (`useStake`, `useInitiateWithdrawal`, `useClaimWithdrawal`) combines `useWriteContract` + `useWaitForTransactionReceipt` and returns a unified `{ action, isPending, isSuccess, error, reset, txHash }` interface.
-- **Validator discovery** (`src/hooks/useValidators.ts`): Fetches `ValidatorUpdated` events from deploy block to latest via `getLogs`, with automatic chunked fallback for RPC block-range limits. Returns `ValidatorInfo[]` with `{ address, isActive }` sorted active-first.
+- **Validator discovery** (`src/hooks/useValidators.ts`): Fetches validator data from a remote JSON endpoint (`VITE_VALIDATOR_INFO_URL`, defaults to GitHub raw URL). Returns `ValidatorInfo[]` with `{ address, isActive, label, commission, participationRate }`. Cached with React Query (5 min staleTime). Also exports `findValidator()` helper for synchronous address lookup.
 - **Withdrawals** (`src/hooks/useWithdrawals.ts`): Fetches pending withdrawals for the connected user. Includes `useNextClaimable` for the claimable banner.
 - **Gas estimation** (`src/hooks/useGasEstimate.ts`): Uses `estimateGas` + `getGasPrice` from viem to show estimated gas cost in delegate/undelegate dialogs. Debounced 500ms on amount change.
 - **Rewards** (`src/hooks/useRewards.ts`, `src/hooks/useRewardProof.ts`, `src/hooks/useClaimRewards.ts`): Rewards reading, Merkle proof fetching, and claim transaction hooks.
@@ -64,7 +64,7 @@ The UI uses "delegation" terminology externally (Delegate/Undelegate) but the sm
 
 ### Validator Metadata
 
-`src/data/validators.json` is a static address→metadata map (label, commission, uptime). `useValidatorMetadata(address)` does a case-insensitive lookup. Unknown validators fall back to truncated address display.
+Validator metadata (label, commission, participation rate) is fetched from the remote endpoint alongside address and active status — all fields live in the `ValidatorInfo` type returned by `useValidators()`. Components use `findValidator(validators, address)` for single-validator lookups. Unknown validators fall back to truncated address display.
 
 ### Compliance
 
@@ -140,7 +140,8 @@ Wagmi config (`src/config/wagmi.ts`) uses `safe()` (auto-detects Safe Wallet ifr
 |----------|----------|---------|
 | `VITE_CHAIN_ID` | Yes | Target chain (1 = mainnet, 11155111 = sepolia) |
 | `VITE_RPC_URL` | Yes | JSON-RPC endpoint |
-| `VITE_STAKING_DEPLOY_BLOCK` | Yes | Block number to start scanning validator events from |
+| `VITE_STAKING_DEPLOY_BLOCK` | Yes | Block number to start scanning withdrawal events from |
+| `VITE_VALIDATOR_INFO_URL` | No | Validator info JSON endpoint (defaults to GitHub raw URL) |
 | `VITE_WALLETCONNECT_PROJECT_ID` | No | Enables WalletConnect connector |
 | `VITE_MERKLE_DROP_ADDRESS` | No | Merkle drop contract address for rewards claiming |
 | `VITE_SANCTIONS_API_URL` | No | Sanctions check endpoint (403 = blocked) |
