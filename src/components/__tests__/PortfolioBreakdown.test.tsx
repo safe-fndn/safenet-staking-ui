@@ -9,17 +9,15 @@ vi.mock("wagmi", () => ({
   useAccount: () => mockUseAccount(),
 }))
 
-vi.mock("@/hooks/useValidators", () => ({
-  useValidators: vi.fn(() => ({
-    data: [...MOCK_VALIDATORS],
-  })),
-  findValidator: (validators: unknown[], address: string) => {
-    if (!validators) return null
-    return (validators as Array<{ address: string }>).find(
-      (v) => v.address.toLowerCase() === address.toLowerCase()
-    ) ?? null
-  },
-}))
+vi.mock("@/hooks/useValidators", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/hooks/useValidators")>()
+  return {
+    ...actual,
+    useValidators: vi.fn(() => ({
+      data: [...MOCK_VALIDATORS],
+    })),
+  }
+})
 
 vi.mock("@/hooks/useStakingReads", () => ({
   useUserStakesOnValidators: vi.fn(() => ({
@@ -69,7 +67,7 @@ describe("PortfolioBreakdown", () => {
     mockUseAccount.mockReturnValue({ isConnected: true })
 
     const mod = await import("@/hooks/useStakingReads")
-    vi.mocked(mod.useUserStakesOnValidators).mockReturnValue({
+    vi.mocked(mod.useUserStakesOnValidators).mockReturnValueOnce({
       data: [
         { status: "success", result: 0n },
         { status: "success", result: 0n },
@@ -79,14 +77,5 @@ describe("PortfolioBreakdown", () => {
 
     const { container } = render(<PortfolioBreakdown />)
     expect(container.firstChild).toBeNull()
-
-    // Restore
-    vi.mocked(mod.useUserStakesOnValidators).mockReturnValue({
-      data: [
-        { status: "success", result: 200n * 10n ** 18n },
-        { status: "success", result: 100n * 10n ** 18n },
-      ],
-      isLoading: false,
-    } as ReturnType<typeof mod.useUserStakesOnValidators>)
   })
 })

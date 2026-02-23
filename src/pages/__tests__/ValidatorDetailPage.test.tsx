@@ -10,18 +10,16 @@ vi.mock("wagmi", () => ({
   useAccount: () => mockUseAccount(),
 }))
 
-vi.mock("@/hooks/useValidators", () => ({
-  useValidators: vi.fn(() => ({
-    data: [...MOCK_VALIDATORS],
-    isLoading: false,
-  })),
-  findValidator: (validators: unknown[], address: string) => {
-    if (!validators) return null
-    return (validators as Array<{ address: string }>).find(
-      (v) => v.address.toLowerCase() === address.toLowerCase()
-    ) ?? null
-  },
-}))
+vi.mock("@/hooks/useValidators", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/hooks/useValidators")>()
+  return {
+    ...actual,
+    useValidators: vi.fn(() => ({
+      data: [...MOCK_VALIDATORS],
+      isLoading: false,
+    })),
+  }
+})
 
 vi.mock("@/hooks/useStakingReads", () => ({
   useValidatorTotalStake: vi.fn(() => ({ data: 5000n * 10n ** 18n, isLoading: false })),
@@ -92,7 +90,7 @@ describe("ValidatorDetailPage", () => {
 
   it("shows not found for unknown valid address", async () => {
     const mod = await import("@/hooks/useValidators")
-    vi.mocked(mod.useValidators).mockReturnValue({
+    vi.mocked(mod.useValidators).mockReturnValueOnce({
       data: [],
       isLoading: false,
     } as unknown as ReturnType<typeof mod.useValidators>)
@@ -100,11 +98,5 @@ describe("ValidatorDetailPage", () => {
     renderWithRoute("0x0000000000000000000000000000000000000001")
 
     expect(screen.getByText("Validator not found.")).toBeInTheDocument()
-
-    // Restore
-    vi.mocked(mod.useValidators).mockReturnValue({
-      data: [...MOCK_VALIDATORS],
-      isLoading: false,
-    } as unknown as ReturnType<typeof mod.useValidators>)
   })
 })

@@ -11,17 +11,15 @@ vi.mock("wagmi", () => ({
   useAccount: () => mockUseAccount(),
 }))
 
-vi.mock("@/hooks/useValidators", () => ({
-  useValidators: vi.fn(() => ({
-    data: [MOCK_VALIDATORS[0]],
-  })),
-  findValidator: (validators: unknown[], address: string) => {
-    if (!validators) return null
-    return (validators as Array<{ address: string }>).find(
-      (v) => v.address.toLowerCase() === address.toLowerCase()
-    ) ?? null
-  },
-}))
+vi.mock("@/hooks/useValidators", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/hooks/useValidators")>()
+  return {
+    ...actual,
+    useValidators: vi.fn(() => ({
+      data: [MOCK_VALIDATORS[0]],
+    })),
+  }
+})
 
 vi.mock("@/hooks/useStakingReads", () => ({
   useUserStakesOnValidators: vi.fn(() => ({
@@ -89,7 +87,7 @@ describe("StakingSection", () => {
     mockUseAccount.mockReturnValue({ isConnected: true })
 
     const mod = await import("@/hooks/useStakingReads")
-    vi.mocked(mod.useUserStakesOnValidators).mockReturnValue({
+    vi.mocked(mod.useUserStakesOnValidators).mockReturnValueOnce({
       data: [{ status: "success", result: 0n }],
       isLoading: false,
     } as ReturnType<typeof mod.useUserStakesOnValidators>)
@@ -97,11 +95,5 @@ describe("StakingSection", () => {
     renderSection()
 
     expect(screen.getByText(/You have no active stakes/)).toBeInTheDocument()
-
-    // Restore
-    vi.mocked(mod.useUserStakesOnValidators).mockReturnValue({
-      data: [{ status: "success", result: 200n * 10n ** 18n }],
-      isLoading: false,
-    } as ReturnType<typeof mod.useUserStakesOnValidators>)
   })
 })

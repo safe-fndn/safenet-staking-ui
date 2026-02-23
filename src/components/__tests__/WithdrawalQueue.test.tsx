@@ -25,17 +25,15 @@ vi.mock("@/hooks/useWithdrawalValidators", () => ({
   useWithdrawalValidators: () => mockUseWithdrawalValidators(),
 }))
 
-vi.mock("@/hooks/useValidators", () => ({
-  useValidators: vi.fn(() => ({
-    data: [...MOCK_VALIDATORS],
-  })),
-  findValidator: (validators: unknown[], address: string) => {
-    if (!validators) return null
-    return (validators as Array<{ address: string }>).find(
-      (v) => v.address.toLowerCase() === address.toLowerCase()
-    ) ?? null
-  },
-}))
+vi.mock("@/hooks/useValidators", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/hooks/useValidators")>()
+  return {
+    ...actual,
+    useValidators: vi.fn(() => ({
+      data: [...MOCK_VALIDATORS],
+    })),
+  }
+})
 
 const mockUseBatchClaimWithdrawals = vi.fn()
 
