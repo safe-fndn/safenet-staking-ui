@@ -29,16 +29,14 @@ export function useDarkMode() {
       const data = event.data
       if (typeof data !== "object" || data === null) return
 
-      // Safe Wallet sends { darkMode: boolean } directly,
-      // wraps it in { data: { darkMode: boolean } },
-      // or responds to getEnvironmentInfo with { data: { theme: { darkMode: boolean } } }
+      // Safe Wallet wraps theme via MessageFormatter.makeResponse():
+      //   { id, success, data: { darkMode: boolean }, version }
+      // Also check top-level { darkMode } as a fallback.
       let darkMode: boolean | undefined
-      if (typeof data.darkMode === "boolean") {
-        darkMode = data.darkMode
-      } else if (typeof data.data?.darkMode === "boolean") {
+      if (typeof data.data?.darkMode === "boolean") {
         darkMode = data.data.darkMode
-      } else if (typeof data.data?.theme?.darkMode === "boolean") {
-        darkMode = data.data.theme.darkMode
+      } else if (typeof data.darkMode === "boolean") {
+        darkMode = data.darkMode
       }
 
       if (darkMode !== undefined) {
@@ -49,10 +47,15 @@ export function useDarkMode() {
 
     window.addEventListener("message", handleMessage)
 
-    // Request current environment info (including theme) from Safe Wallet parent.
-    // Safe Apps SDK uses this RPC-style format.
+    // Request current theme from Safe Wallet parent.
+    // Must match the Safe Apps SDK message format for the wallet to recognize it.
     window.parent.postMessage(
-      { id: Date.now().toString(), data: { method: "getEnvironmentInfo" } },
+      {
+        id: Date.now().toString(),
+        method: "getCurrentTheme",
+        params: {},
+        env: { sdkVersion: "1.0.0" },
+      },
       "*",
     )
 
