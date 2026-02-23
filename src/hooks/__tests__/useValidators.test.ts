@@ -51,7 +51,7 @@ describe("useValidators", () => {
     ]
     mockFetch.mockResolvedValue({
       ok: true,
-      json: () => Promise.resolve(rawData),
+      text: () => Promise.resolve(JSON.stringify(rawData)),
     })
 
     renderHook(() => useValidators())
@@ -82,7 +82,7 @@ describe("useValidators", () => {
   it("queryFn throws on non-array response", async () => {
     mockFetch.mockResolvedValue({
       ok: true,
-      json: () => Promise.resolve({ not: "an array" }),
+      text: () => Promise.resolve(JSON.stringify({ not: "an array" })),
     })
 
     renderHook(() => useValidators())
@@ -101,7 +101,7 @@ describe("useValidators", () => {
     ]
     mockFetch.mockResolvedValue({
       ok: true,
-      json: () => Promise.resolve(rawData),
+      text: () => Promise.resolve(JSON.stringify(rawData)),
     })
 
     renderHook(() => useValidators())
@@ -109,6 +109,22 @@ describe("useValidators", () => {
 
     expect(result).toHaveLength(1)
     expect((result as Array<{ label: string }>)[0].label).toBe("Valid")
+  })
+
+  it("queryFn handles JSON with stray commas", async () => {
+    const jsonWithCommas = `[
+      {"address":"0x1111111111111111111111111111111111111111","label":"A"},
+      ,
+      {"address":"0x2222222222222222222222222222222222222222","label":"B"}
+    ]`
+    mockFetch.mockResolvedValue({
+      ok: true,
+      text: () => Promise.resolve(jsonWithCommas),
+    })
+
+    renderHook(() => useValidators())
+    const result = await capturedQueryFn!()
+    expect(result).toHaveLength(2)
   })
 
   it("queryFn defaults missing commission and participation to 0", async () => {
@@ -120,7 +136,7 @@ describe("useValidators", () => {
     ]
     mockFetch.mockResolvedValue({
       ok: true,
-      json: () => Promise.resolve(rawData),
+      text: () => Promise.resolve(JSON.stringify(rawData)),
     })
 
     renderHook(() => useValidators())

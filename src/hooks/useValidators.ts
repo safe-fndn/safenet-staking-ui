@@ -38,7 +38,13 @@ async function fetchValidators(): Promise<ValidatorInfo[]> {
       `Failed to fetch validators: ${res.status}`
     )
   }
-  const json: unknown = await res.json()
+  const text = await res.text()
+  // Sanitize malformed JSON: strip empty array slots (,\s*,)
+  // and trailing commas before ] or }
+  const sanitized = text
+    .replace(/,\s*,/g, ",")
+    .replace(/,\s*([}\]])/g, "$1")
+  const json: unknown = JSON.parse(sanitized)
   if (!Array.isArray(json)) {
     throw new Error("Invalid validator data format")
   }
