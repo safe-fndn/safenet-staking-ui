@@ -30,6 +30,6 @@ export const MOCK_WITHDRAWAL_CLAIMABLE = {
 
 /** Validator info fixtures matching useValidators return type */
 export const MOCK_VALIDATORS = [
-  { address: TEST_ACCOUNTS.validator1, isActive: true },
-  { address: TEST_ACCOUNTS.validator2, isActive: true },
+  { address: TEST_ACCOUNTS.validator1, isActive: true, label: "Gnosis", commission: 5, participationRate: 99.9 },
+  { address: TEST_ACCOUNTS.validator2, isActive: true, label: "Greenfield", commission: 4, participationRate: 99.7 },
 ] as const

@@ -9,8 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { DelegateDialog } from "@/components/staking/DelegateDialog"
 import { UndelegateDialog } from "@/components/staking/UndelegateDialog"
 import { useValidatorTotalStake, useUserStakeOnValidator } from "@/hooks/useStakingReads"
-import { useValidators } from "@/hooks/useValidators"
-import { useValidatorMetadata } from "@/hooks/useValidatorMetadata"
+import { useValidators, findValidator } from "@/hooks/useValidators"
 import { formatTokenAmount, truncateAddress } from "@/lib/format"
 import { copyToClipboard } from "@/lib/clipboard"
 import { useToast } from "@/hooks/useToast"
@@ -26,7 +25,7 @@ export function ValidatorDetailPage() {
 
   const { data: validators, isLoading: loadingValidators } = useValidators()
   const validatorInfo = validators?.find((v) => v.address.toLowerCase() === validator.toLowerCase())
-  const metadata = useValidatorMetadata(validator)
+  const metadata = findValidator(validators, validator)
   const { data: totalStake, isLoading: loadingTotal } = useValidatorTotalStake(validator)
   const { data: userStake, isLoading: loadingUser } = useUserStakeOnValidator(validator)
   const [delegateOpen, setDelegateOpen] = useState(false)
@@ -116,8 +115,8 @@ export function ValidatorDetailPage() {
                 <span className="font-medium">{metadata.commission}%</span>
               </div>
               <div>
-                <span className="text-muted-foreground">Uptime: </span>
-                <span className="font-medium">{metadata.uptime}%</span>
+                <span className="text-muted-foreground">Participation (14d): </span>
+                <span className="font-medium">{metadata.participationRate}%</span>
               </div>
             </div>
           )}

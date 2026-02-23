@@ -6,14 +6,7 @@ import { ValidatorControls } from "./ValidatorControls"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Button } from "@/components/ui/button"
 import RefreshCw from "lucide-react/dist/esm/icons/refresh-cw"
-import validatorData from "@/data/validators.json"
 import type { Address } from "viem"
-
-const metadata = validatorData as Record<string, { label: string; commission: number; uptime: number }>
-
-function getMetadata(address: string) {
-  return metadata[address.toLowerCase()] ?? null
-}
 
 export function ValidatorList({ autoOpenDelegate }: { autoOpenDelegate?: string }) {
   const { data: validators, isLoading, error, refetch } = useValidators()
@@ -43,13 +36,10 @@ export function ValidatorList({ autoOpenDelegate }: { autoOpenDelegate?: string 
     if (!search.trim()) return validators
 
     const q = search.toLowerCase()
-    return validators.filter((v) => {
-      const meta = getMetadata(v.address)
-      return (
-        v.address.toLowerCase().includes(q) ||
-        (meta && meta.label.toLowerCase().includes(q))
-      )
-    })
+    return validators.filter((v) =>
+      v.address.toLowerCase().includes(q) ||
+      v.label.toLowerCase().includes(q)
+    )
   }, [validators, search])
 
   if (isLoading) {
@@ -110,6 +100,7 @@ export function ValidatorList({ autoOpenDelegate }: { autoOpenDelegate?: string 
               autoOpenDelegate={autoOpenDelegate?.toLowerCase() === v.address.toLowerCase()}
               totalStake={totalStakeMap.get(v.address)}
               loadingTotalStake={loadingTotalStakes}
+              validators={validators}
             />
           ))}
         </div>

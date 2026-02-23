@@ -9,7 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { DelegateDialog } from "@/components/staking/DelegateDialog"
 import { UndelegateDialog } from "@/components/staking/UndelegateDialog"
 import { useUserStakeOnValidator } from "@/hooks/useStakingReads"
-import { useValidatorMetadata } from "@/hooks/useValidatorMetadata"
+import { type ValidatorInfo, findValidator } from "@/hooks/useValidators"
 import { truncateAddress, formatTokenAmount } from "@/lib/format"
 import { copyToClipboard } from "@/lib/clipboard"
 import { useToast } from "@/hooks/useToast"
@@ -20,13 +20,14 @@ interface ValidatorCardProps {
   autoOpenDelegate?: boolean
   totalStake?: bigint
   loadingTotalStake?: boolean
+  validators?: ValidatorInfo[]
 }
 
-export function ValidatorCard({ validator, isActive, autoOpenDelegate, totalStake, loadingTotalStake }: ValidatorCardProps) {
+export function ValidatorCard({ validator, isActive, autoOpenDelegate, totalStake, loadingTotalStake, validators }: ValidatorCardProps) {
   const { isConnected } = useAccount()
   const loadingTotal = loadingTotalStake ?? false
   const { data: userStake, isLoading: loadingUser } = useUserStakeOnValidator(validator)
-  const metadata = useValidatorMetadata(validator)
+  const metadata = findValidator(validators, validator)
   const { toast } = useToast()
   const [delegateOpen, setDelegateOpen] = useState(false)
   const [undelegateOpen, setUndelegateOpen] = useState(false)
@@ -73,7 +74,7 @@ export function ValidatorCard({ validator, isActive, autoOpenDelegate, totalStak
           {metadata && (
             <div className="flex gap-4 text-xs text-muted-foreground">
               <span>Commission: {metadata.commission}%</span>
-              <span>Uptime: {metadata.uptime}%</span>
+              <span>Participation (14d): {metadata.participationRate}%</span>
             </div>
           )}
 

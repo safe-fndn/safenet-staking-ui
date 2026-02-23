@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest"
 import { render, screen } from "@testing-library/react"
 import { MemoryRouter } from "react-router-dom"
 import { ValidatorList } from "../validators/ValidatorList"
-import { TEST_ACCOUNTS } from "@/__tests__/test-data"
+import { TEST_ACCOUNTS, MOCK_VALIDATORS } from "@/__tests__/test-data"
 
 const mockUseValidators = vi.fn()
 
@@ -84,10 +84,7 @@ describe("ValidatorList", () => {
 
   it("renders validator cards when data loaded", () => {
     mockUseValidators.mockReturnValue({
-      data: [
-        { address: TEST_ACCOUNTS.validator1, isActive: true },
-        { address: TEST_ACCOUNTS.validator2, isActive: true },
-      ],
+      data: [...MOCK_VALIDATORS],
       isLoading: false,
       error: null,
       refetch: vi.fn(),
@@ -105,9 +102,7 @@ describe("ValidatorList", () => {
 
   it("shows search controls", () => {
     mockUseValidators.mockReturnValue({
-      data: [
-        { address: TEST_ACCOUNTS.validator1, isActive: true },
-      ],
+      data: [MOCK_VALIDATORS[0]],
       isLoading: false,
       error: null,
       refetch: vi.fn(),

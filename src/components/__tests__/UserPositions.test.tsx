@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest"
 import { render, screen } from "@testing-library/react"
 import { MemoryRouter } from "react-router-dom"
 import { UserPositions } from "../dashboard/UserPositions"
-import { TEST_ACCOUNTS } from "@/__tests__/test-data"
+import { MOCK_VALIDATORS } from "@/__tests__/test-data"
 
 const mockUseAccount = vi.fn()
 
@@ -12,11 +12,14 @@ vi.mock("wagmi", () => ({
 
 vi.mock("@/hooks/useValidators", () => ({
   useValidators: vi.fn(() => ({
-    data: [
-      { address: TEST_ACCOUNTS.validator1, isActive: true },
-      { address: TEST_ACCOUNTS.validator2, isActive: true },
-    ],
+    data: [...MOCK_VALIDATORS],
   })),
+  findValidator: (validators: unknown[], address: string) => {
+    if (!validators) return null
+    return (validators as Array<{ address: string }>).find(
+      (v) => v.address.toLowerCase() === address.toLowerCase()
+    ) ?? null
+  },
 }))
 
 vi.mock("@/hooks/useStakingReads", () => ({
@@ -27,10 +30,6 @@ vi.mock("@/hooks/useStakingReads", () => ({
     ],
     isLoading: false,
   })),
-}))
-
-vi.mock("@/hooks/useValidatorMetadata", () => ({
-  useValidatorMetadata: () => ({ label: "Gnosis", commission: 5, uptime: 99.9 }),
 }))
 
 vi.mock("@/components/staking/UndelegateDialog", () => ({

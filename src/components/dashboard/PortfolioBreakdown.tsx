@@ -1,14 +1,13 @@
 import { useAccount } from "wagmi"
-import { useValidators } from "@/hooks/useValidators"
+import { useValidators, findValidator, type ValidatorInfo } from "@/hooks/useValidators"
 import { useUserStakesOnValidators, useUserTotalStake } from "@/hooks/useStakingReads"
-import { useValidatorMetadata } from "@/hooks/useValidatorMetadata"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { truncateAddress, formatTokenAmount } from "@/lib/format"
 import type { Address } from "viem"
 
-function ValidatorRow({ address, amount, totalStake }: { address: Address; amount: bigint; totalStake: bigint }) {
-  const metadata = useValidatorMetadata(address)
+function ValidatorRow({ address, amount, totalStake, validators }: { address: Address; amount: bigint; totalStake: bigint; validators?: ValidatorInfo[] }) {
+  const metadata = findValidator(validators, address)
   const pct = totalStake > 0n ? Number((amount * 10000n) / totalStake) / 100 : 0
 
   return (
@@ -78,6 +77,7 @@ export function PortfolioBreakdown() {
               address={pos.validator}
               amount={pos.amount}
               totalStake={totalStake}
+              validators={validators}
             />
           ))}
         </div>
