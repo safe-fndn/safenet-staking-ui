@@ -2,7 +2,6 @@ import { describe, it, expect, vi, beforeEach } from "vitest"
 import { renderHook } from "@testing-library/react"
 import {
   useTotalStaked,
-  useTotalPendingWithdrawals,
   useWithdrawDelay,
   useUserTotalStake,
   useUserStakeOnValidator,
@@ -38,18 +37,6 @@ describe("useStakingReads", () => {
         expect.objectContaining({
           functionName: "totalStakedAmount",
           query: expect.objectContaining({ refetchInterval: 30_000 }),
-        })
-      )
-    })
-  })
-
-  describe("useTotalPendingWithdrawals", () => {
-    it("calls useReadContract with totalPendingWithdrawals", () => {
-      renderHook(() => useTotalPendingWithdrawals())
-
-      expect(mockUseReadContract).toHaveBeenCalledWith(
-        expect.objectContaining({
-          functionName: "totalPendingWithdrawals",
         })
       )
     })

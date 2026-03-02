@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { parseEther, type Address } from "viem"
 import {
   Dialog,
@@ -7,16 +7,14 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog"
-import { Button } from "@/components/ui/button"
+import { TxButton } from "@/components/ui/TxButton"
 import { AmountInput } from "./AmountInput"
 import { useUserStakeOnValidator, useWithdrawDelay } from "@/hooks/useStakingReads"
 import { useInitiateWithdrawal } from "@/hooks/useStakingWrites"
-import { useToast } from "@/hooks/useToast"
+import { useTxToast } from "@/hooks/useTxToast"
 import { truncateAddress, formatCountdown } from "@/lib/format"
-import { formatContractError } from "@/lib/errorFormat"
 import { useGasEstimate } from "@/hooks/useGasEstimate"
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
-import Loader2 from "lucide-react/dist/esm/icons/loader-2"
 import Info from "lucide-react/dist/esm/icons/info"
 import Fuel from "lucide-react/dist/esm/icons/fuel"
 
@@ -31,40 +29,34 @@ export function UndelegateDialog({ validator, open, onOpenChange }: UndelegateDi
   const { data: userStake } = useUserStakeOnValidator(validator)
   const { initiateWithdrawal, isSigningTx, isConfirmingTx, isSuccess, isSafeQueued, error, reset, txHash } = useInitiateWithdrawal()
   const { data: withdrawDelay } = useWithdrawDelay()
-  const { toast } = useToast()
 
   let parsedAmount = 0n
   try { if (amount) parsedAmount = parseEther(amount) } catch { /* invalid input */ }
-  const canUndelegate = parsedAmount > 0n && userStake !== undefined && parsedAmount <= (userStake as bigint)
+  const userStakeValue = typeof userStake === "bigint" ? userStake : undefined
+  const canUndelegate = parsedAmount > 0n && userStakeValue !== undefined && parsedAmount <= userStakeValue
   const { estimatedCost: gasEstimate } = useGasEstimate("initiateWithdrawal", validator, parsedAmount)
 
-  useEffect(() => {
-    if (isSuccess) {
-      toast({ variant: "success", title: "Unstaking initiated", description: `Queued withdrawal of ${amount} SAFE from ${truncateAddress(validator)}`, txHash: txHash! })
-      setAmount("")
-      reset()
-      onOpenChange(false)
-    }
-  }, [isSuccess, reset, onOpenChange, toast, amount, validator, txHash])
+  const closeAndClearAmount = useCallback(() => {
+    setAmount("")
+    onOpenChange(false)
+  }, [onOpenChange])
 
-  useEffect(() => {
-    if (error) {
-      toast({ variant: "error", title: "Unstaking failed", description: formatContractError(error) })
-    }
-  }, [error, toast])
-
-  useEffect(() => {
-    if (isSafeQueued) {
-      toast({
-        variant: "success",
-        title: "Transaction queued in Safe",
-        description: "Your withdrawal request has been sent to Safe Wallet for signing.",
-      })
-      setAmount("")
-      reset()
-      onOpenChange(false)
-    }
-  }, [isSafeQueued, reset, onOpenChange, toast])
+  useTxToast(
+    {
+      successTitle: "Unstaking initiated",
+      successDescription: `Queued withdrawal of ${amount} SAFE from ${truncateAddress(validator)}`,
+      errorTitle: "Unstaking failed",
+      safeQueuedDescription: "Your withdrawal request has been sent to Safe Wallet for signing.",
+    },
+    {
+      isSuccess,
+      error,
+      isSafeQueued,
+      txHash,
+      reset,
+      onSuccess: closeAndClearAmount,
+    },
+  )
 
   // Reset form state on close
   useEffect(() => {
@@ -87,7 +79,7 @@ export function UndelegateDialog({ validator, open, onOpenChange }: UndelegateDi
         <AmountInput
           value={amount}
           onChange={setAmount}
-          maxAmount={userStake as bigint | undefined}
+          maxAmount={userStakeValue}
           label="Unstake Amount"
         />
 
@@ -115,21 +107,14 @@ export function UndelegateDialog({ validator, open, onOpenChange }: UndelegateDi
           </div>
         )}
 
-        <Button onClick={() => initiateWithdrawal(validator, parsedAmount)} disabled={!canUndelegate || isSigningTx || isConfirmingTx}>
-          {isSigningTx ? (
-            <>
-              <Loader2 className="animate-spin" aria-hidden="true" />
-              Confirm in Wallet…
-            </>
-          ) : isConfirmingTx ? (
-            <>
-              <Loader2 className="animate-spin" aria-hidden="true" />
-              Confirming onchain…
-            </>
-          ) : (
-            "Initiate Withdrawal"
-          )}
-        </Button>
+        <TxButton
+          isSigningTx={isSigningTx}
+          isConfirmingTx={isConfirmingTx}
+          onClick={() => initiateWithdrawal(validator, parsedAmount)}
+          disabled={!canUndelegate}
+        >
+          Initiate Withdrawal
+        </TxButton>
       </DialogContent>
     </Dialog>
   )

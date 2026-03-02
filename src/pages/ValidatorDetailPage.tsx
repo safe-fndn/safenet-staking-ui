@@ -10,7 +10,7 @@ import { DelegateDialog } from "@/components/staking/DelegateDialog"
 import { UndelegateDialog } from "@/components/staking/UndelegateDialog"
 import { useValidatorTotalStake, useUserStakeOnValidator } from "@/hooks/useStakingReads"
 import { useValidators, findValidator } from "@/hooks/useValidators"
-import { formatTokenAmount, truncateAddress } from "@/lib/format"
+import { formatTokenAmount } from "@/lib/format"
 import { copyToClipboard } from "@/lib/clipboard"
 import { useToast } from "@/hooks/useToast"
 import ArrowLeft from "lucide-react/dist/esm/icons/arrow-left"
@@ -24,14 +24,13 @@ export function ValidatorDetailPage() {
   const validator = isValidAddress ? (validatorAddress as Address) : ("0x0000000000000000000000000000000000000000" as Address)
 
   const { data: validators, isLoading: loadingValidators } = useValidators()
-  const validatorInfo = validators?.find((v) => v.address.toLowerCase() === validator.toLowerCase())
-  const metadata = findValidator(validators, validator)
+  const validatorInfo = findValidator(validators, validator)
   const { data: totalStake, isLoading: loadingTotal } = useValidatorTotalStake(validator)
   const { data: userStake, isLoading: loadingUser } = useUserStakeOnValidator(validator)
   const [delegateOpen, setDelegateOpen] = useState(false)
   const [undelegateOpen, setUndelegateOpen] = useState(false)
 
-  const userStakeAmount = userStake as bigint | undefined
+  const userStakeAmount = typeof userStake === "bigint" ? userStake : undefined
   const hasStake = userStakeAmount !== undefined && userStakeAmount > 0n
   const isActive = validatorInfo?.isActive ?? false
 
@@ -84,7 +83,7 @@ export function ValidatorDetailPage() {
           <div className="flex items-center justify-between">
             <div className="space-y-1">
               <CardTitle className="text-2xl">
-                {metadata ? metadata.label : truncateAddress(validator)}
+                {validatorInfo.label}
               </CardTitle>
               <div className="flex items-center gap-2">
                 <span className="text-sm font-mono text-muted-foreground">{validator}</span>
@@ -108,18 +107,16 @@ export function ValidatorDetailPage() {
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          {metadata && (
-            <div className="flex gap-6 text-sm">
-              <div>
-                <span className="text-muted-foreground">Commission: </span>
-                <span className="font-medium">{metadata.commission}%</span>
-              </div>
-              <div>
-                <span className="text-muted-foreground">Participation (14d): </span>
-                <span className="font-medium">{metadata.participationRate}%</span>
-              </div>
+          <div className="flex gap-6 text-sm">
+            <div>
+              <span className="text-muted-foreground">Commission: </span>
+              <span className="font-medium">{validatorInfo.commission}%</span>
             </div>
-          )}
+            <div>
+              <span className="text-muted-foreground">Participation (14d): </span>
+              <span className="font-medium">{validatorInfo.participationRate}%</span>
+            </div>
+          </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="rounded-lg border p-4">
@@ -127,7 +124,7 @@ export function ValidatorDetailPage() {
               {loadingTotal ? (
                 <Skeleton className="h-7 w-32 mt-1" />
               ) : (
-                <p className="text-xl font-bold">{formatTokenAmount(totalStake as bigint ?? 0n, 18, 0)}</p>
+                <p className="text-xl font-bold">{formatTokenAmount(typeof totalStake === "bigint" ? totalStake : 0n, 18, 0)}</p>
               )}
             </div>
             {isConnected && (
@@ -155,8 +152,8 @@ export function ValidatorDetailPage() {
         </CardContent>
       </Card>
 
-      <DelegateDialog validator={validator} open={delegateOpen} onOpenChange={setDelegateOpen} />
-      <UndelegateDialog validator={validator} open={undelegateOpen} onOpenChange={setUndelegateOpen} />
+      {delegateOpen && <DelegateDialog validator={validator} open={delegateOpen} onOpenChange={setDelegateOpen} />}
+      {undelegateOpen && <UndelegateDialog validator={validator} open={undelegateOpen} onOpenChange={setUndelegateOpen} />}
     </div>
   )
 }

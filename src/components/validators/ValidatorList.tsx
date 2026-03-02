@@ -1,6 +1,9 @@
 import { useMemo, useState, useTransition } from "react"
 import { useValidators } from "@/hooks/useValidators"
-import { useValidatorTotalStakes } from "@/hooks/useStakingReads"
+import {
+  useValidatorTotalStakes,
+  useUserStakesOnValidators,
+} from "@/hooks/useStakingReads"
 import { ValidatorCard } from "./ValidatorCard"
 import { ValidatorControls } from "./ValidatorControls"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -10,19 +13,36 @@ import type { Address } from "viem"
 
 export function ValidatorList({ autoOpenDelegate }: { autoOpenDelegate?: string }) {
   const { data: validators, isLoading, error, refetch } = useValidators()
-  const validatorAddresses = useMemo(() => (validators ?? []).map((v) => v.address), [validators])
-  const { data: totalStakesData, isLoading: loadingTotalStakes } = useValidatorTotalStakes(validatorAddresses)
+  const validatorAddresses = useMemo(
+    () => (validators ?? []).map((v) => v.address),
+    [validators],
+  )
+  const { data: totalStakesData, isLoading: loadingTotalStakes } =
+    useValidatorTotalStakes(validatorAddresses)
+  const { data: userStakesData, isLoading: loadingUserStakes } =
+    useUserStakesOnValidators(validatorAddresses)
   const totalStakeMap = useMemo(() => {
     const map = new Map<Address, bigint>()
     if (!totalStakesData || !validators) return map
     for (let i = 0; i < validators.length; i++) {
       const result = totalStakesData[i]
-      if (result?.status === "success") {
-        map.set(validators[i].address, result.result as bigint)
+      if (result?.status === "success" && typeof result.result === "bigint") {
+        map.set(validators[i].address, result.result)
       }
     }
     return map
   }, [totalStakesData, validators])
+  const userStakeMap = useMemo(() => {
+    const map = new Map<Address, bigint>()
+    if (!userStakesData || !validators) return map
+    for (let i = 0; i < validators.length; i++) {
+      const result = userStakesData[i]
+      if (result?.status === "success" && typeof result.result === "bigint") {
+        map.set(validators[i].address, result.result)
+      }
+    }
+    return map
+  }, [userStakesData, validators])
   const [search, setSearch] = useState("")
   const [, startTransition] = useTransition()
 
@@ -100,6 +120,8 @@ export function ValidatorList({ autoOpenDelegate }: { autoOpenDelegate?: string 
               autoOpenDelegate={autoOpenDelegate?.toLowerCase() === v.address.toLowerCase()}
               totalStake={totalStakeMap.get(v.address)}
               loadingTotalStake={loadingTotalStakes}
+              userStake={userStakeMap.get(v.address)}
+              loadingUserStake={loadingUserStakes}
               validators={validators}
             />
           ))}

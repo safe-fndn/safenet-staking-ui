@@ -8,13 +8,15 @@ import type { Address, Hex } from "viem"
 
 const { merkleDrop } = getContractAddresses(activeChain.id)
 
+/** Contract function names to invalidate after claiming rewards. */
+const REWARD_FN_NAMES = ["cumulativeClaimed", "balanceOf"]
 const REWARD_EXTRA_KEYS = [["rewardProof"]]
 
 export function useClaimRewards() {
   const { writeContract, data: txHash, isPending, reset, error } = useWriteContract()
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash: txHash })
 
-  useInvalidateOnSuccess(isSuccess, REWARD_EXTRA_KEYS)
+  useInvalidateOnSuccess(isSuccess, REWARD_FN_NAMES, REWARD_EXTRA_KEYS)
 
   function claimRewards(
     account: Address,

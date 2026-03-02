@@ -6,7 +6,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog"
-import { Button } from "@/components/ui/button"
+import { TxButton } from "@/components/ui/TxButton"
 import { useAccount } from "wagmi"
 import { useRewardProof } from "@/hooks/useRewardProof"
 import { useRewards } from "@/hooks/useRewards"
@@ -14,7 +14,6 @@ import { useClaimRewards } from "@/hooks/useClaimRewards"
 import { useToast } from "@/hooks/useToast"
 import { formatTokenAmount } from "@/lib/format"
 import { formatContractError } from "@/lib/errorFormat"
-import Loader2 from "lucide-react/dist/esm/icons/loader-2"
 
 interface ClaimRewardsDialogProps {
   open: boolean
@@ -36,8 +35,6 @@ export function ClaimRewardsDialog({ open, onOpenChange }: ClaimRewardsDialogPro
   } = useClaimRewards()
   const { toast } = useToast()
   const claimedAmountRef = useRef(0n)
-
-  const isBusy = isSigningTx || isConfirmingTx
 
   useEffect(() => {
     if (isSuccess) {
@@ -97,25 +94,15 @@ export function ClaimRewardsDialog({ open, onOpenChange }: ClaimRewardsDialogPro
             </span>
           </div>
 
-          <Button
+          <TxButton
             className="w-full"
+            isSigningTx={isSigningTx}
+            isConfirmingTx={isConfirmingTx}
             onClick={handleClaim}
-            disabled={!rewards.canClaim || isBusy}
+            disabled={!rewards.canClaim}
           >
-            {isSigningTx ? (
-              <>
-                <Loader2 className="animate-spin" aria-hidden="true" />
-                Confirm in Wallet…
-              </>
-            ) : isConfirmingTx ? (
-              <>
-                <Loader2 className="animate-spin" aria-hidden="true" />
-                Confirming onchain…
-              </>
-            ) : (
-              "Claim Rewards"
-            )}
-          </Button>
+            Claim Rewards
+          </TxButton>
         </div>
       </DialogContent>
     </Dialog>

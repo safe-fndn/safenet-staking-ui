@@ -10,7 +10,7 @@ import { formatContractError } from "@/lib/errorFormat"
 import { merkleDropAbi } from "@/abi/merkleDropAbi"
 import { getContractAddresses } from "@/config/contracts"
 import { activeChain } from "@/config/chains"
-import { Loader2 } from "lucide-react"
+import Loader2 from "lucide-react/dist/esm/icons/loader-2"
 
 const { merkleDrop } = getContractAddresses(activeChain.id)
 
@@ -47,8 +47,9 @@ export function SetMerkleRoot() {
   useEffect(() => {
     if (error) {
       toast({ variant: "error", title: "Set root failed", description: formatContractError(error) })
+      reset()
     }
-  }, [error, toast])
+  }, [error, toast, reset])
 
   const validRoot = isBytes32(root)
   const canSubmit = validRoot && !isPending
@@ -64,7 +65,7 @@ export function SetMerkleRoot() {
       <CardContent className="space-y-4">
         {currentRoot && (
           <div className="space-y-1">
-            <label className="text-sm font-medium">Current Root</label>
+            <p className="text-sm font-medium">Current Root</p>
             <p className="break-all font-mono text-xs text-muted-foreground">
               {currentRoot}
             </p>
@@ -72,8 +73,9 @@ export function SetMerkleRoot() {
         )}
 
         <div className="space-y-2">
-          <label className="text-sm font-medium">New Merkle Root</label>
+          <label htmlFor="merkle-root-input" className="text-sm font-medium">New Merkle Root</label>
           <Input
+            id="merkle-root-input"
             placeholder="0x... (bytes32)"
             value={root}
             onChange={(e) => setRoot(e.target.value)}

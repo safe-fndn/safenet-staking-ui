@@ -27,10 +27,22 @@ export default defineConfig({
   build: {
     rollupOptions: {
       output: {
-        manualChunks: {
-          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
-          'vendor-wagmi': ['wagmi', 'viem', '@tanstack/react-query'],
-          'vendor-ui': ['@radix-ui/react-dialog', '@radix-ui/react-tabs', '@radix-ui/react-tooltip', '@radix-ui/react-slot', 'class-variance-authority', 'clsx', 'tailwind-merge'],
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return
+          if (
+            id.includes('@walletconnect/') ||
+            id.includes('@reown/')
+          ) {
+            return 'vendor-walletconnect'
+          }
+          if (
+            id.includes('@radix-ui/') ||
+            id.includes('/class-variance-authority/') ||
+            id.includes('/clsx/') ||
+            id.includes('/tailwind-merge/')
+          ) {
+            return 'vendor-ui'
+          }
         },
       },
     },

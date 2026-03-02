@@ -62,45 +62,54 @@ export function useWithdrawalValidators() {
       }
 
       // 2. Fetch WithdrawalInitiated events and build withdrawalId → validator map.
-      let logs
-      try {
-        logs = await client.getLogs({
+      const getEventLogs = () =>
+        client.getLogs({
           address: addresses.staking,
           event: WITHDRAWAL_INITIATED_EVENT,
           args: { staker: address },
           fromBlock: deployBlock,
           toBlock: "latest",
         })
+      type EventLog = Awaited<ReturnType<typeof getEventLogs>>
+      let logs: EventLog
+      try {
+        logs = await getEventLogs()
       } catch {
-        // Chunked fallback for RPC block-range limits
+        // Chunked fallback for RPC block-range limits.
+        // Fetch all chunks in parallel for better latency.
         const latestBlock = await client.getBlockNumber()
-        logs = []
-        let toBlock = latestBlock
         const minBlock = deployBlock > 0n ? deployBlock : 0n
 
-        while (toBlock >= minBlock) {
-          const fromBlock = toBlock - MAX_BLOCK_RANGE > minBlock ? toBlock - MAX_BLOCK_RANGE : minBlock
-          try {
-            const chunk = await client.getLogs({
-              address: addresses.staking,
-              event: WITHDRAWAL_INITIATED_EVENT,
-              args: { staker: address },
-              fromBlock,
-              toBlock,
-            })
-            logs.unshift(...chunk)
-          } catch {
-            // skip chunk on error
-          }
-          if (fromBlock === minBlock) break
-          toBlock = fromBlock - 1n
+        const chunkPromises: Promise<EventLog>[] = []
+        let from = minBlock
+        while (from <= latestBlock) {
+          const to =
+            from + MAX_BLOCK_RANGE > latestBlock
+              ? latestBlock
+              : from + MAX_BLOCK_RANGE
+          chunkPromises.push(
+            client
+              .getLogs({
+                address: addresses.staking,
+                event: WITHDRAWAL_INITIATED_EVENT,
+                args: { staker: address },
+                fromBlock: from,
+                toBlock: to,
+              })
+              .catch(() => [])
+          )
+          from = to + 1n
         }
+
+        const chunkResults = await Promise.all(chunkPromises)
+        logs = chunkResults.flat()
       }
 
       const idToValidator = new Map<bigint, Address>()
       for (const log of logs) {
-        if (log.args.withdrawalId !== undefined && log.args.validator) {
-          idToValidator.set(BigInt(log.args.withdrawalId), log.args.validator)
+        const { withdrawalId, validator } = log.args
+        if (withdrawalId !== undefined && validator) {
+          idToValidator.set(BigInt(withdrawalId), validator)
         }
       }
 

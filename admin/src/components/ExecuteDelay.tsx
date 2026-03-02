@@ -8,7 +8,7 @@ import { useCountdown } from "@/hooks/useCountdown"
 import { useToast } from "@/hooks/useToast"
 import { formatCountdown, formatTimestamp } from "@/lib/format"
 import { formatContractError } from "@/lib/errorFormat"
-import { Loader2 } from "lucide-react"
+import Loader2 from "lucide-react/dist/esm/icons/loader-2"
 
 export function ExecuteDelay() {
   const { data: pending, refetch } = usePendingWithdrawDelayChange()

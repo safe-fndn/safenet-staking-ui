@@ -50,19 +50,24 @@ export function buildMerkleTree(entries: MerkleEntry[]): MerkleTree {
     throw new Error("Cannot build Merkle tree from empty entries")
   }
 
-  // Normalize addresses and build leaves
+  // Normalize addresses and check for duplicates
   const normalized = entries.map((e) => ({
     address: getAddress(e.address),
     amount: e.amount,
   }))
 
-  const leaves: Hex[] = normalized.map((e) =>
-    encodeLeaf(e.address, e.amount),
-  )
+  const seen = new Set<Address>()
+  for (const e of normalized) {
+    if (seen.has(e.address)) {
+      throw new Error(`Duplicate address in entries: ${e.address}`)
+    }
+    seen.add(e.address)
+  }
 
-  // Map each leaf hash → index for proof extraction
-  const leafIndex = new Map<Hex, number>()
-  leaves.forEach((leaf, i) => leafIndex.set(leaf, i))
+  // Build leaves (skip redundant getAddress — already normalized above)
+  const leaves: Hex[] = normalized.map((e) =>
+    keccak256(encodePacked(["address", "uint256"], [e.address, e.amount])),
+  )
 
   // Build tree layers bottom-up
   const layers: Hex[][] = [leaves]

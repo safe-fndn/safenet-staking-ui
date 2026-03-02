@@ -9,7 +9,7 @@ export function OnboardingBanner() {
   const { isConnected } = useAccount()
   const { data: userStake } = useUserTotalStake()
 
-  const hasStake = userStake !== undefined && (userStake as bigint) > 0n
+  const hasStake = typeof userStake === "bigint" && userStake > 0n
   if (isConnected && hasStake) return null
 
   const steps = [

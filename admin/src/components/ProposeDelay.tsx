@@ -7,7 +7,7 @@ import { useProposeWithdrawDelay } from "@/hooks/useAdminWrites"
 import { useToast } from "@/hooks/useToast"
 import { formatCountdown } from "@/lib/format"
 import { formatContractError } from "@/lib/errorFormat"
-import { Loader2 } from "lucide-react"
+import Loader2 from "lucide-react/dist/esm/icons/loader-2"
 
 export function ProposeDelay() {
   const [delaySeconds, setDelaySeconds] = useState("")
@@ -16,7 +16,10 @@ export function ProposeDelay() {
   const { data: currentDelay } = useWithdrawDelay()
   const { toast } = useToast()
 
-  const maxDelay = configTimeDelay !== undefined ? Number(configTimeDelay as bigint) : null
+  const maxDelay = typeof configTimeDelay === "bigint"
+    ? Number(configTimeDelay) : null
+  const currentDelayNum = typeof currentDelay === "bigint"
+    ? Number(currentDelay) : 0
 
   useEffect(() => {
     if (isSuccess) {
@@ -64,9 +67,9 @@ export function ProposeDelay() {
                 = {formatDuration(Number(delaySeconds))}
               </p>
             )}
-            {currentDelay !== undefined && (
+            {typeof currentDelay === "bigint" && (
               <p className="text-xs text-muted-foreground">
-                Current delay: {Number(currentDelay as bigint)}s ({formatCountdown(Number(currentDelay as bigint))})
+                Current delay: {currentDelayNum}s ({formatCountdown(currentDelayNum)})
               </p>
             )}
             {maxDelay !== null && (

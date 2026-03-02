@@ -17,15 +17,6 @@ export function useTotalStaked() {
   })
 }
 
-export function useTotalPendingWithdrawals() {
-  return useReadContract({
-    address: addresses.staking,
-    abi: stakingAbi,
-    functionName: "totalPendingWithdrawals",
-    query: { refetchInterval: POLL_INTERVAL },
-  })
-}
-
 export function useWithdrawDelay() {
   return useReadContract({
     address: addresses.staking,

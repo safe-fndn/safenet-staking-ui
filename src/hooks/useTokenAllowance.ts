@@ -4,9 +4,8 @@ import { maxUint256 } from "viem"
 import { erc20Abi } from "@/abi/erc20Abi"
 import { getContractAddresses } from "@/config/contracts"
 import { activeChain } from "@/config/chains"
-import { queryClient } from "@/main"
-
-const isSafeApp = window.self !== window.top
+import { queryClient } from "@/config/queryClient"
+import { isSafeApp } from "@/lib/safe"
 
 export function useTokenAllowance() {
   const { address } = useAccount()
@@ -32,8 +31,18 @@ export function useTokenAllowance() {
 
   useEffect(() => {
     if (isApproved) {
-      queryClient.invalidateQueries({ queryKey: ["readContract"] })
-      queryClient.invalidateQueries({ queryKey: ["readContracts"] })
+      queryClient.invalidateQueries({
+        predicate: (query) => {
+          const key = query.queryKey
+          if (key[0] === "readContract") {
+            const opts = key[1] as
+              | Record<string, unknown>
+              | undefined
+            return opts?.functionName === "allowance"
+          }
+          return false
+        },
+      })
     }
   }, [isApproved])
 
@@ -56,8 +65,7 @@ export function useTokenAllowance() {
   }
 
   return {
-    allowance: allowance.data as bigint | undefined,
-    refetchAllowance: allowance.refetch,
+    allowance: typeof allowance.data === "bigint" ? allowance.data : undefined,
     approve,
     approveUnlimited,
     isSigningApproval: isPending,

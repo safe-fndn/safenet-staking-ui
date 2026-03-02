@@ -130,6 +130,7 @@ describe("useDarkMode — Safe App iframe", () => {
     act(() => {
       window.dispatchEvent(
         new MessageEvent("message", {
+          origin: "https://app.safe.global",
           data: {
             id: "123",
             success: true,
@@ -152,6 +153,7 @@ describe("useDarkMode — Safe App iframe", () => {
     act(() => {
       window.dispatchEvent(
         new MessageEvent("message", {
+          origin: "https://app.safe.global",
           data: {
             id: "456",
             success: true,
@@ -178,13 +180,14 @@ describe("useDarkMode — Safe App iframe", () => {
     expect(localStorage.getItem("theme")).toBeNull()
   })
 
-  it("ignores non-theme messages", async () => {
+  it("ignores non-theme messages from valid origin", async () => {
     const hook = await loadHook()
     const { result } = renderHook(() => hook())
 
     act(() => {
       window.dispatchEvent(
         new MessageEvent("message", {
+          origin: "https://app.safe.global",
           data: {
             id: "789",
             success: true,
@@ -195,5 +198,28 @@ describe("useDarkMode — Safe App iframe", () => {
     })
 
     expect(result.current.isDark).toBe(false)
+  })
+
+  it("ignores messages from unknown origins", async () => {
+    const hook = await loadHook()
+    const { result } = renderHook(() => hook())
+
+    act(() => {
+      window.dispatchEvent(
+        new MessageEvent("message", {
+          origin: "https://evil.example.com",
+          data: {
+            id: "999",
+            success: true,
+            data: { darkMode: true },
+          },
+        }),
+      )
+    })
+
+    expect(result.current.isDark).toBe(false)
+    expect(
+      document.documentElement.classList.contains("dark"),
+    ).toBe(false)
   })
 })

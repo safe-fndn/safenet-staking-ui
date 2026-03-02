@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect, useMemo, useCallback } from "react"
 import { parseEther, type Address } from "viem"
 import {
   Dialog,
@@ -7,19 +7,18 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog"
-import { Button } from "@/components/ui/button"
+import { TxButton } from "@/components/ui/TxButton"
 import { Stepper } from "@/components/ui/stepper"
 import { AmountInput } from "./AmountInput"
 import { useTokenBalance } from "@/hooks/useTokenBalance"
-import { useTokenAllowance } from "@/hooks/useTokenAllowance"
+import { useApprovalFlow } from "@/hooks/useApprovalFlow"
 import { useStake, useBatchStake } from "@/hooks/useStakingWrites"
 import { useWithdrawDelay } from "@/hooks/useStakingReads"
 import { useToast } from "@/hooks/useToast"
+import { useTxToast } from "@/hooks/useTxToast"
 import { truncateAddress, formatCountdown } from "@/lib/format"
-import { formatContractError } from "@/lib/errorFormat"
 import { useGasEstimate } from "@/hooks/useGasEstimate"
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
-import Loader2 from "lucide-react/dist/esm/icons/loader-2"
 import Info from "lucide-react/dist/esm/icons/info"
 import Fuel from "lucide-react/dist/esm/icons/fuel"
 
@@ -31,20 +30,22 @@ interface DelegateDialogProps {
 
 export function DelegateDialog({ validator, open, onOpenChange }: DelegateDialogProps) {
   const [amount, setAmount] = useState("")
-  const [approvalType, setApprovalType] = useState<"exact" | "unlimited" | null>(null)
   const { data: balance } = useTokenBalance()
+
+  let parsedAmount = 0n
+  try { if (amount) parsedAmount = parseEther(amount) } catch { /* invalid input */ }
+
   const {
-    allowance,
-    approve,
-    approveUnlimited,
+    needsApproval,
+    approvalType,
+    isApprovalPending,
     isSigningApproval,
     isConfirmingApproval,
-    isApproved,
-    isSafeApprovalQueued,
-    approvalError,
-    approvalTxHash,
-    resetApproval,
-  } = useTokenAllowance()
+    approveExact,
+    approveUnlimited,
+    resetApprovalFlow,
+  } = useApprovalFlow(parsedAmount)
+
   const {
     stake,
     isSigningTx,
@@ -69,14 +70,10 @@ export function DelegateDialog({ validator, open, onOpenChange }: DelegateDialog
   const { data: withdrawDelay } = useWithdrawDelay()
   const { toast } = useToast()
 
-  let parsedAmount = 0n
-  try { if (amount) parsedAmount = parseEther(amount) } catch { /* invalid input */ }
-  const needsApproval = allowance !== undefined && parsedAmount > 0n && allowance < parsedAmount
-  const balanceValue = balance as bigint | undefined
+  const balanceValue = typeof balance === "bigint" ? balance : undefined
   const hasZeroBalance = balanceValue !== undefined && balanceValue === 0n
   const insufficientBalance = balanceValue !== undefined && parsedAmount > 0n && parsedAmount > balanceValue
   const canDelegate = parsedAmount > 0n && !needsApproval && balanceValue !== undefined && parsedAmount <= balanceValue
-  const isApprovalPending = isSigningApproval || isConfirmingApproval
   const { estimatedCost: gasEstimate } = useGasEstimate("stake", validator, parsedAmount)
 
   const isBatchFlow = supportsBatching && needsApproval
@@ -96,13 +93,10 @@ export function DelegateDialog({ validator, open, onOpenChange }: DelegateDialog
       return { currentStep: steps.length - 1, completedSteps: steps.map((_, i) => i) }
     }
     if (isBatchFlow) {
-      if (isBatchSigning || isBatchConfirming) {
-        return { currentStep: 0, completedSteps: [] as number[] }
-      }
       return { currentStep: 0, completedSteps: [] as number[] }
     }
     if (needsApproval) {
-      if (isSigningApproval || isConfirmingApproval) {
+      if (isApprovalPending) {
         return { currentStep: 0, completedSteps: [] as number[] }
       }
       if (isSigningTx || isConfirmingTx) {
@@ -114,76 +108,47 @@ export function DelegateDialog({ validator, open, onOpenChange }: DelegateDialog
       return { currentStep: 0, completedSteps: [] as number[] }
     }
     return { currentStep: 0, completedSteps: [] as number[] }
-  }, [needsApproval, isBatchFlow, isSigningApproval, isConfirmingApproval, isSigningTx, isConfirmingTx, isStaked, isBatchSuccess, isBatchSigning, isBatchConfirming, steps])
+  }, [needsApproval, isBatchFlow, isApprovalPending, isSigningTx, isConfirmingTx, isStaked, isBatchSuccess, steps])
 
-  useEffect(() => {
-    if (isApproved) {
-      toast({ variant: "success", title: "Approval confirmed", description: "You can now stake your SAFE tokens", txHash: approvalTxHash! })
-      setApprovalType(null)
-      resetApproval()
-    }
-  }, [isApproved, resetApproval, toast, approvalTxHash])
+  const closeAndClearAmount = useCallback(() => {
+    setAmount("")
+    onOpenChange(false)
+  }, [onOpenChange])
 
-  useEffect(() => {
-    if (approvalError) {
-      toast({ variant: "error", title: "Approval failed", description: formatContractError(approvalError) })
-      setApprovalType(null)
-    }
-  }, [approvalError, toast])
+  // Stake transaction toasts
+  useTxToast(
+    {
+      successTitle: "Staking successful",
+      successDescription: `Staked ${amount} SAFE to ${truncateAddress(validator)}`,
+      errorTitle: "Staking failed",
+      safeQueuedDescription: "Your delegation has been sent to Safe Wallet for signing.",
+    },
+    {
+      isSuccess: isStaked,
+      error: stakeError,
+      isSafeQueued: isStakeSafeQueued,
+      txHash: stakeTxHash,
+      reset: resetStake,
+      onSuccess: closeAndClearAmount,
+    },
+  )
 
-  useEffect(() => {
-    if (isStaked) {
-      toast({ variant: "success", title: "Staking successful", description: `Staked ${amount} SAFE to ${truncateAddress(validator)}`, txHash: stakeTxHash! })
-      setAmount("")
-      resetStake()
-      onOpenChange(false)
-    }
-  }, [isStaked, resetStake, onOpenChange, toast, amount, validator, stakeTxHash])
-
-  useEffect(() => {
-    if (stakeError) {
-      toast({ variant: "error", title: "Staking failed", description: formatContractError(stakeError) })
-    }
-  }, [stakeError, toast])
-
-  useEffect(() => {
-    if (isStakeSafeQueued) {
-      toast({
-        variant: "success",
-        title: "Transaction queued in Safe",
-        description: "Your delegation has been sent to Safe Wallet for signing.",
-      })
-      setAmount("")
-      resetStake()
-      onOpenChange(false)
-    }
-  }, [isStakeSafeQueued, resetStake, onOpenChange, toast])
-
-  useEffect(() => {
-    if (isSafeApprovalQueued) {
-      toast({
-        variant: "success",
-        title: "Approval queued in Safe",
-        description: "Once signed and executed in Safe Wallet, return here to complete your delegation.",
-      })
-      resetApproval()
-    }
-  }, [isSafeApprovalQueued, resetApproval, toast])
-
-  useEffect(() => {
-    if (isBatchSuccess) {
-      toast({ variant: "success", title: "Delegation successful", description: `Approved and staked ${amount} SAFE to ${truncateAddress(validator)}`, txHash: batchTxHash })
-      setAmount("")
-      resetBatch()
-      onOpenChange(false)
-    }
-  }, [isBatchSuccess, resetBatch, onOpenChange, toast, amount, validator, batchTxHash])
-
-  useEffect(() => {
-    if (batchError) {
-      toast({ variant: "error", title: "Delegation failed", description: formatContractError(batchError) })
-    }
-  }, [batchError, toast])
+  // Batch transaction toasts
+  useTxToast(
+    {
+      successTitle: "Delegation successful",
+      successDescription: `Approved and staked ${amount} SAFE to ${truncateAddress(validator)}`,
+      errorTitle: "Delegation failed",
+    },
+    {
+      isSuccess: isBatchSuccess,
+      error: batchError,
+      isSafeQueued: false,
+      txHash: batchTxHash,
+      reset: resetBatch,
+      onSuccess: closeAndClearAmount,
+    },
+  )
 
   useEffect(() => {
     if (isBatchReverted) {
@@ -195,11 +160,11 @@ export function DelegateDialog({ validator, open, onOpenChange }: DelegateDialog
   useEffect(() => {
     if (!open) {
       setAmount("")
-      setApprovalType(null)
+      resetApprovalFlow()
       resetStake()
       resetBatch()
     }
-  }, [open, resetStake, resetBatch])
+  }, [open, resetApprovalFlow, resetStake, resetBatch])
 
   const showStepper = parsedAmount > 0n && (needsApproval || isSigningTx || isConfirmingTx || isBatchSigning || isBatchConfirming)
 
@@ -262,77 +227,52 @@ export function DelegateDialog({ validator, open, onOpenChange }: DelegateDialog
 
         <div className="flex flex-col gap-2">
           {isBatchFlow ? (
-            <Button
+            <TxButton
+              isSigningTx={isBatchSigning}
+              isConfirmingTx={isBatchConfirming}
+              signingLabel="Confirm in Safe…"
               onClick={() => batchApproveAndStake(validator, parsedAmount)}
-              disabled={parsedAmount === 0n || insufficientBalance || isBatchSigning || isBatchConfirming}
+              disabled={parsedAmount === 0n || insufficientBalance}
             >
-              {isBatchSigning ? (
-                <>
-                  <Loader2 className="animate-spin" aria-hidden="true" />
-                  Confirm in Safe…
-                </>
-              ) : isBatchConfirming ? (
-                <>
-                  <Loader2 className="animate-spin" aria-hidden="true" />
-                  Confirming onchain…
-                </>
-              ) : (
-                "Stake"
-              )}
-            </Button>
+              Stake
+            </TxButton>
           ) : needsApproval ? (
             <>
-              {approvalType !== "unlimited" && (
-                <Button onClick={() => { setApprovalType("exact"); approve(parsedAmount) }} disabled={isApprovalPending || parsedAmount === 0n}>
-                  {isSigningApproval ? (
-                    <>
-                      <Loader2 className="animate-spin" aria-hidden="true" />
-                      Confirm Approval in Wallet…
-                    </>
-                  ) : isConfirmingApproval ? (
-                    <>
-                      <Loader2 className="animate-spin" aria-hidden="true" />
-                      Approval confirming…
-                    </>
-                  ) : (
-                    "Approve exact amount"
-                  )}
-                </Button>
-              )}
               {approvalType !== "exact" && (
-                <Button variant="outline" onClick={() => { setApprovalType("unlimited"); approveUnlimited() }} disabled={isApprovalPending || parsedAmount === 0n}>
-                  {isSigningApproval ? (
-                    <>
-                      <Loader2 className="animate-spin" aria-hidden="true" />
-                      Confirm Approval in Wallet…
-                    </>
-                  ) : isConfirmingApproval ? (
-                    <>
-                      <Loader2 className="animate-spin" aria-hidden="true" />
-                      Approval confirming…
-                    </>
-                  ) : (
-                    "Approve unlimited"
-                  )}
-                </Button>
+                <TxButton
+                  isSigningTx={isSigningApproval && approvalType === "unlimited"}
+                  isConfirmingTx={isConfirmingApproval && approvalType === "unlimited"}
+                  signingLabel="Confirm Approval in Wallet…"
+                  confirmingLabel="Approval confirming…"
+                  onClick={approveUnlimited}
+                  disabled={isApprovalPending || parsedAmount === 0n}
+                >
+                  Approve unlimited
+                </TxButton>
+              )}
+              {approvalType !== "unlimited" && (
+                <TxButton
+                  variant="outline"
+                  isSigningTx={isSigningApproval && approvalType === "exact"}
+                  isConfirmingTx={isConfirmingApproval && approvalType === "exact"}
+                  signingLabel="Confirm Approval in Wallet…"
+                  confirmingLabel="Approval confirming…"
+                  onClick={approveExact}
+                  disabled={isApprovalPending || parsedAmount === 0n}
+                >
+                  Approve exact amount
+                </TxButton>
               )}
             </>
           ) : (
-            <Button onClick={() => stake(validator, parsedAmount)} disabled={!canDelegate || isSigningTx || isConfirmingTx}>
-              {isSigningTx ? (
-                <>
-                  <Loader2 className="animate-spin" aria-hidden="true" />
-                  Confirm in Wallet…
-                </>
-              ) : isConfirmingTx ? (
-                <>
-                  <Loader2 className="animate-spin" aria-hidden="true" />
-                  Confirming onchain…
-                </>
-              ) : (
-                "Stake"
-              )}
-            </Button>
+            <TxButton
+              isSigningTx={isSigningTx}
+              isConfirmingTx={isConfirmingTx}
+              onClick={() => stake(validator, parsedAmount)}
+              disabled={!canDelegate}
+            >
+              Stake
+            </TxButton>
           )}
         </div>
       </DialogContent>

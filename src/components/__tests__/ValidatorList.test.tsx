@@ -15,6 +15,10 @@ vi.mock("@/hooks/useStakingReads", () => ({
     data: undefined,
     isLoading: false,
   })),
+  useUserStakesOnValidators: vi.fn(() => ({
+    data: undefined,
+    isLoading: false,
+  })),
 }))
 
 vi.mock("@/components/validators/ValidatorCard", () => ({

@@ -1,6 +1,15 @@
 import { useState, useCallback, useEffect } from "react"
+import { isSafeApp } from "@/lib/safe"
 
-const isSafeApp = window.self !== window.top
+/**
+ * Known Safe Wallet parent origins. Messages from other origins are
+ * silently ignored to prevent untrusted pages from manipulating theme
+ * state (OWASP postMessage best practice).
+ */
+const SAFE_WALLET_ORIGINS: ReadonlySet<string> = new Set([
+  "https://app.safe.global",
+  "https://safe.global",
+])
 
 function applyDark(dark: boolean): void {
   if (dark) {
@@ -26,6 +35,10 @@ export function useDarkMode() {
     if (!isSafeApp) return
 
     function handleMessage(event: MessageEvent) {
+      // Validate origin: only accept messages from known Safe Wallet
+      // origins to prevent untrusted pages from manipulating theme.
+      if (!SAFE_WALLET_ORIGINS.has(event.origin)) return
+
       const data = event.data
       if (typeof data !== "object" || data === null) return
 
@@ -48,7 +61,13 @@ export function useDarkMode() {
     window.addEventListener("message", handleMessage)
 
     // Request current theme from Safe Wallet parent.
-    // Must match the Safe Apps SDK message format for the wallet to recognize it.
+    // Must match the Safe Apps SDK message format for the wallet to
+    // recognize it.
+    //
+    // Using "*" as targetOrigin is acceptable here: this is a child
+    // iframe asking its parent for the current theme. The request
+    // payload contains no sensitive data, and the parent's origin is
+    // validated on the response path via SAFE_WALLET_ORIGINS above.
     window.parent.postMessage(
       {
         id: Date.now().toString(),

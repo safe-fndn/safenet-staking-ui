@@ -31,7 +31,8 @@ function loadConfig(): MerkleConfig {
     typeof config !== "object" ||
     config === null ||
     typeof (config as Record<string, unknown>).epoch !== "number" ||
-    typeof (config as Record<string, unknown>).entries !== "object"
+    typeof (config as Record<string, unknown>).entries !== "object" ||
+    (config as Record<string, unknown>).entries === null
   ) {
     throw new Error("Invalid merkle-config.json format")
   }
@@ -66,8 +67,11 @@ function main() {
 
   let written = 0
   for (const entry of entries) {
-    const addr = getAddress(entry.address)
-    const proof = tree.proofs.get(addr)!
+    // entry.address is already normalized by getAddress above
+    const proof = tree.proofs.get(entry.address)
+    if (!proof) {
+      throw new Error(`No proof generated for ${entry.address}`)
+    }
     const proofFile = {
       cumulativeAmount: entry.amount.toString(),
       merkleRoot: tree.root,
@@ -76,7 +80,7 @@ function main() {
 
     const filePath = resolve(
       PROOFS_DIR,
-      `${addr.toLowerCase()}.json`,
+      `${entry.address.toLowerCase()}.json`,
     )
     writeFileSync(filePath, JSON.stringify(proofFile, null, 2) + "\n")
     written++

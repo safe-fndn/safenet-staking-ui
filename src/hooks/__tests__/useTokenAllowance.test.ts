@@ -9,7 +9,7 @@ const mockReset = vi.fn()
 
 vi.mock("wagmi", () => ({
   useReadContract: vi.fn(() => ({
-    data: undefined as bigint | undefined,
+    data: undefined,
     refetch: vi.fn(),
   })),
   useAccount: vi.fn(() => ({
@@ -29,7 +29,7 @@ vi.mock("wagmi", () => ({
 }))
 
 const mockInvalidateQueries = vi.fn()
-vi.mock("@/main", () => ({
+vi.mock("@/config/queryClient", () => ({
   queryClient: {
     invalidateQueries: (...args: unknown[]) => mockInvalidateQueries(...args),
   },
@@ -112,14 +112,27 @@ describe("useTokenAllowance", () => {
     expect(result.current.isConfirmingApproval).toBe(true)
   })
 
-  it("reflects approved state and invalidates queries", () => {
+  it("reflects approved state and invalidates only allowance queries", () => {
     wagmi.useWaitForTransactionReceipt.mockReturnValue(
       mockWaitForReceiptReturn({ isSuccess: true })
     )
 
     renderHook(() => useTokenAllowance())
-    expect(mockInvalidateQueries).toHaveBeenCalledWith({ queryKey: ["readContract"] })
-    expect(mockInvalidateQueries).toHaveBeenCalledWith({ queryKey: ["readContracts"] })
+    expect(mockInvalidateQueries).toHaveBeenCalledTimes(1)
+    expect(mockInvalidateQueries).toHaveBeenCalledWith(
+      expect.objectContaining({ predicate: expect.any(Function) })
+    )
+
+    const { predicate } = mockInvalidateQueries.mock.calls[0][0]
+    expect(predicate({
+      queryKey: ["readContract", { functionName: "allowance" }],
+    })).toBe(true)
+    expect(predicate({
+      queryKey: ["readContract", { functionName: "balanceOf" }],
+    })).toBe(false)
+    expect(predicate({
+      queryKey: ["readContracts", { contracts: [] }],
+    })).toBe(false)
   })
 
   it("exposes approval error", () => {

@@ -1,7 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
-import { CountdownTimer } from "./CountdownTimer"
+import { Badge } from "@/components/ui/badge"
 import { formatTokenAmount, formatCountdown, truncateAddress } from "@/lib/format"
 import { useCountdown } from "@/hooks/useCountdown"
 import { useWithdrawDelay } from "@/hooks/useStakingReads"
@@ -59,7 +59,9 @@ export function WithdrawalCard({ amount, claimableAt, isFirst, onClaim, isSignin
           </div>
           <div className="flex items-center gap-3">
             {secondsLeft > 0 && (
-              <CountdownTimer claimableAt={claimableAt} />
+              <Badge variant="outline" className="font-mono">
+                {formatCountdown(secondsLeft)}
+              </Badge>
             )}
             <Button size="sm" onClick={onClaim} disabled={!canClaim || isBusy}>
               {isSigningTx ? (

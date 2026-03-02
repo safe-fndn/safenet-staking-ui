@@ -75,7 +75,8 @@ export function StakeDistribution() {
     for (let i = 0; i < validatorAddresses.length; i++) {
       const result = stakes[i]
       if (result.status === "success") {
-        const amount = result.result as bigint
+        if (typeof result.result !== "bigint") continue
+        const amount = result.result
         if (amount > 0n) {
           const meta = findValidator(validators, validatorAddresses[i])
           data.push({

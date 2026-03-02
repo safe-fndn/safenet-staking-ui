@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { useRecoverTokens } from "@/hooks/useAdminWrites"
 import { useToast } from "@/hooks/useToast"
 import { formatContractError } from "@/lib/errorFormat"
-import { Loader2 } from "lucide-react"
+import Loader2 from "lucide-react/dist/esm/icons/loader-2"
 
 export function RecoverTokens() {
   const [tokenAddress, setTokenAddress] = useState("")

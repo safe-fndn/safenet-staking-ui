@@ -11,30 +11,28 @@ const mockStake = vi.fn()
 const mockResetStake = vi.fn()
 const mockBatchApproveAndStake = vi.fn()
 const mockResetBatch = vi.fn()
-const mockApprove = vi.fn()
+const mockApproveExact = vi.fn()
 const mockApproveUnlimited = vi.fn()
-const mockResetApproval = vi.fn()
+const mockResetApprovalFlow = vi.fn()
 const mockToast = vi.fn()
 
 vi.mock("@/hooks/useTokenBalance", () => ({
   useTokenBalance: vi.fn(() => ({ data: AMOUNTS.userBalance })),
 }))
 
-const mockTokenAllowance = {
-  allowance: AMOUNTS.unlimitedAllowance,
-  refetchAllowance: vi.fn(),
-  approve: mockApprove,
-  approveUnlimited: mockApproveUnlimited,
+const mockApprovalFlow = {
+  needsApproval: false,
+  approvalType: null as "exact" | "unlimited" | null,
+  isApprovalPending: false,
   isSigningApproval: false,
   isConfirmingApproval: false,
-  isApproved: false,
-  approvalError: null,
-  approvalTxHash: undefined,
-  resetApproval: mockResetApproval,
+  approveExact: mockApproveExact,
+  approveUnlimited: mockApproveUnlimited,
+  resetApprovalFlow: mockResetApprovalFlow,
 }
 
-vi.mock("@/hooks/useTokenAllowance", () => ({
-  useTokenAllowance: vi.fn(() => mockTokenAllowance),
+vi.mock("@/hooks/useApprovalFlow", () => ({
+  useApprovalFlow: vi.fn(() => mockApprovalFlow),
 }))
 
 const mockUseStake = {
@@ -42,6 +40,7 @@ const mockUseStake = {
   isSigningTx: false,
   isConfirmingTx: false,
   isSuccess: false,
+  isSafeQueued: false,
   error: null as Error | null,
   reset: mockResetStake,
   txHash: undefined as `0x${string}` | undefined,
@@ -86,17 +85,18 @@ describe("DelegateDialog", () => {
   beforeEach(() => {
     vi.clearAllMocks()
     // Reset to defaults
-    Object.assign(mockTokenAllowance, {
-      allowance: AMOUNTS.unlimitedAllowance,
+    Object.assign(mockApprovalFlow, {
+      needsApproval: false,
+      approvalType: null,
+      isApprovalPending: false,
       isSigningApproval: false,
       isConfirmingApproval: false,
-      isApproved: false,
-      approvalError: null,
     })
     Object.assign(mockUseStake, {
       isSigningTx: false,
       isConfirmingTx: false,
       isSuccess: false,
+      isSafeQueued: false,
       error: null,
       txHash: undefined,
     })
@@ -124,7 +124,7 @@ describe("DelegateDialog", () => {
     expect(screen.getByText(/SAFE Balance:/)).toBeInTheDocument()
   })
 
-  it("shows Stake button when sufficient allowance", () => {
+  it("shows Stake button when no approval needed", () => {
     render(<TooltipProvider><DelegateDialog {...defaultProps} /></TooltipProvider>)
 
     expect(screen.getByRole("button", { name: "Stake" })).toBeInTheDocument()
@@ -160,20 +160,15 @@ describe("DelegateDialog", () => {
     )
   })
 
-  it("shows approval buttons when allowance is insufficient", () => {
-    mockTokenAllowance.allowance = 0n
-
+  it("shows Stake button when needsApproval is false", () => {
     render(<TooltipProvider><DelegateDialog {...defaultProps} /></TooltipProvider>)
 
-    // Type amount to trigger approval flow rendering
-    // The buttons won't show until amount > 0 and allowance < amount
-    // But with allowance=0 and no amount typed, we should still see the Stake button
-    // since parsedAmount is 0, needsApproval is false
+    // needsApproval is false by default, so Stake button shows
     expect(screen.getByRole("button", { name: "Stake" })).toBeInTheDocument()
   })
 
-  it("shows approve buttons when amount > allowance", async () => {
-    mockTokenAllowance.allowance = 0n
+  it("shows approve buttons when needsApproval is true", async () => {
+    mockApprovalFlow.needsApproval = true
 
     const user = userEvent.setup()
     render(<TooltipProvider><DelegateDialog {...defaultProps} /></TooltipProvider>)
@@ -185,8 +180,8 @@ describe("DelegateDialog", () => {
     expect(screen.getByRole("button", { name: "Approve unlimited" })).toBeInTheDocument()
   })
 
-  it("calls approve with exact amount", async () => {
-    mockTokenAllowance.allowance = 0n
+  it("calls approveExact when exact button clicked", async () => {
+    mockApprovalFlow.needsApproval = true
 
     const user = userEvent.setup()
     render(<TooltipProvider><DelegateDialog {...defaultProps} /></TooltipProvider>)
@@ -194,11 +189,11 @@ describe("DelegateDialog", () => {
     await user.type(screen.getByPlaceholderText("0.0"), "100")
     await user.click(screen.getByRole("button", { name: "Approve exact amount" }))
 
-    expect(mockApprove).toHaveBeenCalledWith(100n * 10n ** 18n)
+    expect(mockApproveExact).toHaveBeenCalled()
   })
 
   it("calls approveUnlimited when unlimited button clicked", async () => {
-    mockTokenAllowance.allowance = 0n
+    mockApprovalFlow.needsApproval = true
 
     const user = userEvent.setup()
     render(<TooltipProvider><DelegateDialog {...defaultProps} /></TooltipProvider>)
@@ -258,6 +253,7 @@ describe("DelegateDialog", () => {
 
     rerender(<TooltipProvider><DelegateDialog {...defaultProps} open={false} /></TooltipProvider>)
 
+    expect(mockResetApprovalFlow).toHaveBeenCalled()
     expect(mockResetStake).toHaveBeenCalled()
     expect(mockResetBatch).toHaveBeenCalled()
   })
@@ -274,28 +270,30 @@ describe("DelegateDialog", () => {
     vi.mocked(mod.useTokenBalance).mockReturnValue({ data: AMOUNTS.userBalance } as ReturnType<typeof mod.useTokenBalance>)
   })
 
-  it("shows signing approval state on approve buttons", async () => {
-    mockTokenAllowance.allowance = 0n
-    mockTokenAllowance.isSigningApproval = true
+  it("shows signing approval state on approve button", async () => {
+    mockApprovalFlow.needsApproval = true
+    mockApprovalFlow.isSigningApproval = true
+    mockApprovalFlow.approvalType = "unlimited"
 
     const user = userEvent.setup()
     render(<TooltipProvider><DelegateDialog {...defaultProps} /></TooltipProvider>)
 
     await user.type(screen.getByPlaceholderText("0.0"), "100")
 
-    expect(screen.getAllByText("Confirm Approval in Wallet…").length).toBeGreaterThan(0)
+    expect(screen.getByText("Confirm Approval in Wallet…")).toBeInTheDocument()
   })
 
-  it("shows confirming approval state on approve buttons", async () => {
-    mockTokenAllowance.allowance = 0n
-    mockTokenAllowance.isConfirmingApproval = true
+  it("shows confirming approval state on approve button", async () => {
+    mockApprovalFlow.needsApproval = true
+    mockApprovalFlow.isConfirmingApproval = true
+    mockApprovalFlow.approvalType = "unlimited"
 
     const user = userEvent.setup()
     render(<TooltipProvider><DelegateDialog {...defaultProps} /></TooltipProvider>)
 
     await user.type(screen.getByPlaceholderText("0.0"), "100")
 
-    expect(screen.getAllByText("Approval confirming…").length).toBeGreaterThan(0)
+    expect(screen.getByText("Approval confirming…")).toBeInTheDocument()
   })
 
   it("shows success toast after stake completes", () => {
@@ -314,7 +312,7 @@ describe("DelegateDialog", () => {
 
   it("uses batch approve and stake when batching is supported", async () => {
     mockUseBatchStake.supportsBatching = true
-    mockTokenAllowance.allowance = 0n
+    mockApprovalFlow.needsApproval = true
 
     const user = userEvent.setup()
     render(<TooltipProvider><DelegateDialog {...defaultProps} /></TooltipProvider>)

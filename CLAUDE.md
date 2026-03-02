@@ -35,16 +35,14 @@ All wagmi hooks, React Query, Radix tooltip context, and toast context are avail
 
 ### Routing (src/App.tsx)
 
-Seven routes under a shared `Layout` (header + footer + `<Outlet />`):
-- `/` → `DashboardPage` (stats, onboarding, claimable banner, quick actions, rewards, staking section, stake distribution chart, portfolio breakdown, positions)
+Five routes under a shared `Layout` (header + footer + `<Outlet />`), wrapped in `ErrorBoundary`:
+- `/` → `DashboardPage` (stats, onboarding, claimable banner, quick actions, rewards, staking section, stake distribution chart)
 - `/validators` → `ValidatorsPage` (search/filter/sort controls, validator cards with delegate/undelegate; supports `?delegate=0x...` deep-link to auto-open delegate dialog)
 - `/validators/:address` → `ValidatorDetailPage` (full validator info, delegate/undelegate buttons)
 - `/withdrawals` → `WithdrawalsPage` (pending withdrawal queue with FIFO tooltip, cooldown progress bars, claim)
-- `/terms` → `TermsOfUsePage` (Terms of Use content)
-- `/faq` → `FaqPage` (Frequently Asked Questions)
 - `*` → `NotFoundPage` (404 catch-all)
 
-All pages are lazy-loaded with `React.lazy()` and preloaded via `requestIdleCallback` after initial render.
+All pages are lazy-loaded with `React.lazy()` and preloaded via `requestIdleCallback` in a `useEffect` with cleanup.
 
 App-level guards: `useSanctionsCheck` blocks the entire app if `VITE_SANCTIONS_API_URL` returns 403. `useGeoblockCheck` blocks access from OFAC/ITAR-restricted countries via `api.country.is` (fails open). `WalletSanctionsGate` blocks individual wallet addresses flagged by the sanctions API. `DisconnectWatcher` shows a toast on wallet disconnect.
 
@@ -53,11 +51,15 @@ App-level guards: `useSanctionsCheck` blocks the entire app if `VITE_SANCTIONS_A
 - **Config layer:** `src/config/chains.ts` resolves chain from `VITE_CHAIN_ID`, `src/config/contracts.ts` maps chain IDs to staking/token/merkleDrop contract addresses.
 - **ABIs:** `src/abi/stakingAbi.ts` (staking contract) and `src/abi/erc20Abi.ts` (SAFE token). ABIs use viem's `parseAbi` with human-readable signatures.
 - **Read hooks** (`src/hooks/useStakingReads.ts`): Thin wrappers around wagmi's `useReadContract`/`useReadContracts`. Per-user hooks guard with `query: { enabled: !!address }`. All hooks poll every 15 seconds via `refetchInterval: 15_000`.
-- **Write hooks** (`src/hooks/useStakingWrites.ts`): Each write hook (`useStake`, `useInitiateWithdrawal`, `useClaimWithdrawal`) combines `useWriteContract` + `useWaitForTransactionReceipt` and returns a unified `{ action, isPending, isSuccess, error, reset, txHash }` interface.
+- **Write hooks** (`src/hooks/useStakingWrites.ts`): Each write hook (`useStake`, `useInitiateWithdrawal`, `useClaimWithdrawal`) combines `useWriteContract` + `useWaitForTransactionReceipt` and returns a unified `{ action, isPending, isSuccess, error, reset, txHash }` interface. Cache invalidation uses targeted `predicate`-based queries via `useInvalidateOnSuccess`.
+- **QueryClient** (`src/config/queryClient.ts`): Shared singleton with `staleTime: 30_000` and `refetchOnWindowFocus: false` defaults.
+- **Safe detection** (`src/lib/safe.ts`): Shared `isSafeApp` constant used by `useAutoConnect`, `useTokenAllowance`, `useStakingWrites`, `useDarkMode`.
 - **Validator discovery** (`src/hooks/useValidators.ts`): Fetches validator data from a remote JSON endpoint (`VITE_VALIDATOR_INFO_URL`, defaults to GitHub raw URL). Returns `ValidatorInfo[]` with `{ address, isActive, label, commission, participationRate }`. Cached with React Query (5 min staleTime). Also exports `findValidator()` helper for synchronous address lookup.
 - **Withdrawals** (`src/hooks/useWithdrawals.ts`): Fetches pending withdrawals for the connected user. Includes `useNextClaimable` for the claimable banner.
 - **Gas estimation** (`src/hooks/useGasEstimate.ts`): Uses `estimateGas` + `getGasPrice` from viem to show estimated gas cost in delegate/undelegate dialogs. Debounced 500ms on amount change.
 - **Rewards** (`src/hooks/useRewards.ts`, `src/hooks/useRewardProof.ts`, `src/hooks/useClaimRewards.ts`): Rewards reading, Merkle proof fetching, and claim transaction hooks. Proofs are served from `public/rewards/proofs/{address}.json` and the current root/total from `public/rewards/latest.json`.
+- **Approval flow** (`src/hooks/useApprovalFlow.ts`): Wraps `useTokenAllowance` with approval type tracking (exact vs unlimited), toast notifications, and a unified API for DelegateDialog.
+- **Transaction toasts** (`src/hooks/useTxToast.ts`): Shared hook for success/error/Safe-queued toast notifications, used by DelegateDialog, UndelegateDialog, and other tx dialogs.
 
 ### Terminology
 
@@ -79,19 +81,21 @@ Radix UI primitives (`dialog`, `tabs`, `tooltip`, `slot`) wrapped in `src/compon
 
 Key UI components:
 - `button.tsx` — CVA button with variants (default, destructive, outline, secondary, ghost, link) and sizes
-- `card.tsx` — Compound card components (Card, CardHeader, CardTitle, CardContent, etc.)
+- `TxButton.tsx` — Transaction button with spinner and contextual labels during signing/confirming phases
+- `card.tsx` — Compound card components (Card, CardHeader, CardTitle, CardContent)
 - `dialog.tsx` — Radix Dialog with overlay animations
 - `tabs.tsx` — Radix Tabs (used in staking section)
 - `tooltip.tsx` — Radix Tooltip (used for FIFO queue info, etc.)
 - `progress.tsx` — Progress bar with size (default, sm, lg) and variant (default, success, warning) props
 - `stepper.tsx` — Horizontal step indicator with circles + connecting lines (used in DelegateDialog for Approve → Delegate → Done flow)
 - `SafeTokenBadge.tsx` — SAFE token icon badge
+- `ErrorBoundary.tsx` — React error boundary wrapping route elements
 - `badge.tsx`, `input.tsx`, `skeleton.tsx` — Standard primitives
 
 ### Utility Libraries
 
 - `src/lib/utils.ts` — `cn()` for class merging (clsx + tailwind-merge)
-- `src/lib/format.ts` — `formatTokenAmount`, `truncateAddress`, `formatCountdown`, `formatTimestamp`
+- `src/lib/format.ts` — `formatTokenAmount`, `truncateAddress`, `formatCountdown`
 - `src/lib/errorFormat.ts` — `formatContractError` for user-friendly contract error messages
 - `src/lib/clipboard.ts` — `copyToClipboard()` with navigator.clipboard API + textarea fallback
 
@@ -101,35 +105,30 @@ Key UI components:
 - `ClaimableBanner` — Dismissible banner when a withdrawal is ready to claim (uses `useNextClaimable`)
 - `QuickActions` — Delegate/Undelegate/Claim navigation buttons (visible when connected)
 - `OnboardingBanner` — First-time visitor card (3 steps), dismissible via localStorage key `onboarding_dismissed`
-- `EligibilityNotice` — Rewards cap info box
-- `RewardsSection` — Claimable SAFE, weekly cap progress, claim button
-- `ClaimRewardsDialog` — Dialog for claiming Merkle drop rewards
+- `ClaimRewardsDialog` — Dialog for claiming Merkle drop rewards (uses `TxButton`)
 - `StakingSection` — Combined staking overview and calculator
 - `StakeDistribution` — Recharts donut chart showing delegation distribution (only renders with 2+ validators)
-- `PortfolioBreakdown` — Per-validator delegation table with amounts and percentages
-- `UserPositions` — List of active delegations per validator
 
 ### Validator Components
 
 - `ValidatorControls` — Search input, Active/Inactive/All filter buttons, sort dropdown (Total Stake/Commission/Uptime)
-- `ValidatorList` — Grid of ValidatorCards with controls integration. Accepts optional `autoOpenDelegate` prop for deep-linking.
-- `ValidatorCard` — Per-validator card with metadata, stakes, delegate/undelegate buttons, copy address, and link to detail page
+- `ValidatorList` — Grid of ValidatorCards with controls integration. Accepts optional `autoOpenDelegate` prop for deep-linking. Batches `useReadContracts` for user stakes and passes data as props to cards.
+- `ValidatorCard` — Per-validator card with metadata, stakes, delegate/undelegate buttons, copy address, and link to detail page. Receives `userStake`/`loadingUserStake` props; dialogs render conditionally only when open.
 
 ### Staking Components
 
 - `AmountInput` — Input with 25%/50%/75%/MAX percentage shortcut buttons
-- `DelegateDialog` — Multi-step dialog with stepper (Approve → Delegate → Done), gas estimation, approval flow
-- `UndelegateDialog` — Withdrawal initiation dialog with gas estimation
+- `DelegateDialog` — Multi-step dialog with stepper (Approve → Delegate → Done), gas estimation, uses `useApprovalFlow` hook and `TxButton`
+- `UndelegateDialog` — Withdrawal initiation dialog with gas estimation, uses `useTxToast` and `TxButton`
 
 ### Withdrawal Components
 
 - `WithdrawalQueue` — List of pending withdrawals with FIFO tooltip explanation
-- `WithdrawalCard` — Per-withdrawal card with countdown timer, cooldown progress bar, and claim button
-- `CountdownTimer` — Badge displaying formatted countdown
+- `WithdrawalCard` — Per-withdrawal card with inline countdown timer, cooldown progress bar, and claim button
 
 ### Wallet Connection
 
-Wagmi config (`src/config/wagmi.ts`) uses `safe()` (auto-detects Safe Wallet iframe), `injected()`, and optionally `walletConnect()` (if `VITE_WALLETCONNECT_PROJECT_ID` is set). Token approval flow is handled by `useTokenAllowance` hook. ConnectButton supports copy-to-clipboard for the connected address.
+Wagmi config (`src/config/wagmi.ts`) uses `safe()` (auto-detects Safe Wallet iframe), `injected()`, and optionally `walletConnect()` (if `VITE_WALLETCONNECT_PROJECT_ID` is set). Token approval flow is handled by `useApprovalFlow` hook (wraps `useTokenAllowance` with approval type tracking and toast notifications). ConnectButton supports copy-to-clipboard for the connected address.
 
 ### Path Alias
 

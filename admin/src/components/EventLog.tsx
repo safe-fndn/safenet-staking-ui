@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useContractEvents } from "@/hooks/useContractEvents"
 import { truncateAddress } from "@/lib/format"
-import { RefreshCw } from "lucide-react"
+import RefreshCw from "lucide-react/dist/esm/icons/refresh-cw"
 
 const EVENT_COLORS: Record<string, string> = {
   StakeIncreased: "bg-green-600",

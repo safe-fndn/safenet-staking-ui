@@ -1,5 +1,6 @@
 import { useEffect } from "react"
 import { useConnect, useReconnect } from "wagmi"
+import { isSafeApp } from "@/lib/safe"
 
 const AUTOCONNECTED_CONNECTOR_IDS = ["safe"]
 
@@ -15,9 +16,7 @@ export function useAutoConnect() {
   const { reconnect } = useReconnect()
 
   useEffect(() => {
-    const isSafeContext = window.self !== window.top
-
-    if (isSafeContext) {
+    if (isSafeApp) {
       for (const id of AUTOCONNECTED_CONNECTOR_IDS) {
         const connector = connectors.find((c) => c.id === id)
         if (connector) {

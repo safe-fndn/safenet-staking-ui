@@ -11,7 +11,9 @@ import { useCountdown } from "@/hooks/useCountdown"
 import { useToast } from "@/hooks/useToast"
 import { truncateAddress, formatCountdown, formatTimestamp } from "@/lib/format"
 import { formatContractError } from "@/lib/errorFormat"
-import { Loader2, Plus, Trash2 } from "lucide-react"
+import Loader2 from "lucide-react/dist/esm/icons/loader-2"
+import Plus from "lucide-react/dist/esm/icons/plus"
+import Trash2 from "lucide-react/dist/esm/icons/trash-2"
 
 const ZERO_HASH = "0x0000000000000000000000000000000000000000000000000000000000000000"
 

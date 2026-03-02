@@ -36,9 +36,9 @@ vi.mock("wagmi", () => ({
   })),
 }))
 
-// Mock queryClient from main
+// Mock queryClient
 const mockInvalidateQueries = vi.fn()
-vi.mock("@/main", () => ({
+vi.mock("@/config/queryClient", () => ({
   queryClient: {
     invalidateQueries: (...args: unknown[]) => mockInvalidateQueries(...args),
   },
@@ -372,18 +372,57 @@ describe("useInvalidateOnSuccess", () => {
   })
 
   it("does not invalidate when isSuccess is false", () => {
-    renderHook(() => useInvalidateOnSuccess(false))
+    renderHook(() => useInvalidateOnSuccess(false, ["balanceOf"]))
     expect(mockInvalidateQueries).not.toHaveBeenCalled()
   })
 
-  it("invalidates readContract and readContracts on success", () => {
-    renderHook(() => useInvalidateOnSuccess(true))
-    expect(mockInvalidateQueries).toHaveBeenCalledWith({ queryKey: ["readContract"] })
-    expect(mockInvalidateQueries).toHaveBeenCalledWith({ queryKey: ["readContracts"] })
+  it("invalidates matching readContract queries on success", () => {
+    renderHook(() => useInvalidateOnSuccess(true, ["balanceOf"]))
+    expect(mockInvalidateQueries).toHaveBeenCalledWith(
+      expect.objectContaining({ predicate: expect.any(Function) })
+    )
+
+    const { predicate } = mockInvalidateQueries.mock.calls[0][0]
+    expect(predicate({
+      queryKey: ["readContract", { functionName: "balanceOf" }],
+    })).toBe(true)
+    expect(predicate({
+      queryKey: ["readContract", { functionName: "totalStaked" }],
+    })).toBe(false)
+  })
+
+  it("matches readContracts queries containing target function names", () => {
+    renderHook(() => useInvalidateOnSuccess(true, ["stakes"]))
+
+    const { predicate } = mockInvalidateQueries.mock.calls[0][0]
+    expect(predicate({
+      queryKey: [
+        "readContracts",
+        { contracts: [{ functionName: "stakes" }] },
+      ],
+    })).toBe(true)
+    expect(predicate({
+      queryKey: [
+        "readContracts",
+        { contracts: [{ functionName: "other" }] },
+      ],
+    })).toBe(false)
+  })
+
+  it("does not match unrelated query keys", () => {
+    renderHook(() => useInvalidateOnSuccess(true, ["balanceOf"]))
+
+    const { predicate } = mockInvalidateQueries.mock.calls[0][0]
+    expect(predicate({ queryKey: ["validators"] })).toBe(false)
+    expect(predicate({ queryKey: ["balance"] })).toBe(false)
   })
 
   it("invalidates extra keys on success", () => {
-    renderHook(() => useInvalidateOnSuccess(true, [["validators"]]))
-    expect(mockInvalidateQueries).toHaveBeenCalledWith({ queryKey: ["validators"] })
+    renderHook(() =>
+      useInvalidateOnSuccess(true, ["balanceOf"], [["validators"]])
+    )
+    expect(mockInvalidateQueries).toHaveBeenCalledWith(
+      { queryKey: ["validators"] }
+    )
   })
 })

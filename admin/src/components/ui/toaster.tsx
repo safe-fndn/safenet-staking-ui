@@ -1,6 +1,9 @@
 import { useToast, type ToastVariant } from "@/hooks/useToast"
 import { truncateAddress } from "@/lib/format"
-import { X, CheckCircle, AlertCircle, Info } from "lucide-react"
+import X from "lucide-react/dist/esm/icons/x"
+import CheckCircle from "lucide-react/dist/esm/icons/check-circle"
+import AlertCircle from "lucide-react/dist/esm/icons/alert-circle"
+import Info from "lucide-react/dist/esm/icons/info"
 import { activeChain } from "@/config/chains"
 
 const variantStyles: Record<ToastVariant, string> = {

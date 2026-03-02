@@ -31,7 +31,3 @@ export function formatCountdown(seconds: number): string {
   if (m > 0) return `${m}m ${s}s`
   return `${s}s`
 }
-
-export function formatTimestamp(timestamp: number): string {
-  return new Date(timestamp * 1000).toLocaleString()
-}

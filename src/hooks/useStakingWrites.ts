@@ -5,22 +5,66 @@ import { stakingAbi } from "@/abi/stakingAbi"
 import { erc20Abi } from "@/abi/erc20Abi"
 import { getContractAddresses } from "@/config/contracts"
 import { activeChain } from "@/config/chains"
-import { queryClient } from "@/main"
+import { queryClient } from "@/config/queryClient"
+import { isSafeApp } from "@/lib/safe"
 
 const addresses = getContractAddresses(activeChain.id)
-const isSafeApp = window.self !== window.top
 
-export function useInvalidateOnSuccess(isSuccess: boolean, extraKeys: string[][] = []) {
+/**
+ * Invalidate readContract/readContracts queries matching
+ * specific function names, plus any extra custom query keys.
+ */
+export function useInvalidateOnSuccess(
+  isSuccess: boolean,
+  functionNames: string[],
+  extraKeys: string[][] = [],
+) {
   useEffect(() => {
-    if (isSuccess) {
-      queryClient.invalidateQueries({ queryKey: ["readContract"] })
-      queryClient.invalidateQueries({ queryKey: ["readContracts"] })
-      for (const key of extraKeys) {
-        queryClient.invalidateQueries({ queryKey: key })
-      }
+    if (!isSuccess) return
+
+    queryClient.invalidateQueries({
+      predicate: (query) => {
+        const key = query.queryKey
+        if (key[0] === "readContract") {
+          const opts = key[1] as
+            | Record<string, unknown>
+            | undefined
+          return functionNames.includes(
+            opts?.functionName as string,
+          )
+        }
+        if (key[0] === "readContracts") {
+          const opts = key[1] as
+            | { contracts?: { functionName?: string }[] }
+            | undefined
+          return (
+            opts?.contracts?.some((c) =>
+              functionNames.includes(c.functionName ?? ""),
+            ) ?? false
+          )
+        }
+        return false
+      },
+    })
+
+    for (const key of extraKeys) {
+      queryClient.invalidateQueries({ queryKey: key })
     }
-  }, [isSuccess, extraKeys])
+  }, [isSuccess, functionNames, extraKeys])
 }
+
+/** Contract function names to invalidate after any staking transaction. */
+const STAKING_FN_NAMES = [
+  "totalStakedAmount",
+  "totalStakerStakes",
+  "stakes",
+  "totalValidatorStakes",
+  "totalPendingWithdrawals",
+  "getPendingWithdrawals",
+  "getNextClaimableWithdrawal",
+  "balanceOf",
+  "allowance",
+]
 
 const STAKING_EXTRA_KEYS = [["validators"]]
 
@@ -33,7 +77,7 @@ export function useStake() {
   // "queued in Safe" state via useWriteContract's own isSuccess.
   const isSafeQueued = isSafeApp && isSubmitted && !isSuccess
 
-  useInvalidateOnSuccess(isSuccess, STAKING_EXTRA_KEYS)
+  useInvalidateOnSuccess(isSuccess, STAKING_FN_NAMES, STAKING_EXTRA_KEYS)
 
   function stake(validator: Address, amount: bigint) {
     writeContract({
@@ -83,7 +127,7 @@ export function useBatchStake() {
   const isReverted = callsStatus?.status === "failure"
   const txHash = callsStatus?.receipts?.[0]?.transactionHash
 
-  useInvalidateOnSuccess(isSuccess, STAKING_EXTRA_KEYS)
+  useInvalidateOnSuccess(isSuccess, STAKING_FN_NAMES, STAKING_EXTRA_KEYS)
 
   function batchApproveAndStake(validator: Address, amount: bigint) {
     sendCalls({
@@ -127,7 +171,7 @@ export function useInitiateWithdrawal() {
 
   const isSafeQueued = isSafeApp && isSubmitted && !isSuccess
 
-  useInvalidateOnSuccess(isSuccess, STAKING_EXTRA_KEYS)
+  useInvalidateOnSuccess(isSuccess, STAKING_FN_NAMES, STAKING_EXTRA_KEYS)
 
   function initiateWithdrawal(validator: Address, amount: bigint) {
     writeContract({
@@ -147,7 +191,7 @@ export function useClaimWithdrawal() {
 
   const isSafeQueued = isSafeApp && isSubmitted && !isSuccess
 
-  useInvalidateOnSuccess(isSuccess, STAKING_EXTRA_KEYS)
+  useInvalidateOnSuccess(isSuccess, STAKING_FN_NAMES, STAKING_EXTRA_KEYS)
 
   function claimWithdrawal() {
     writeContract({
@@ -196,7 +240,7 @@ export function useBatchClaimWithdrawals() {
   const isReverted = callsStatus?.status === "failure"
   const txHash = callsStatus?.receipts?.[0]?.transactionHash
 
-  useInvalidateOnSuccess(isSuccess, STAKING_EXTRA_KEYS)
+  useInvalidateOnSuccess(isSuccess, STAKING_FN_NAMES, STAKING_EXTRA_KEYS)
 
   function batchClaimWithdrawals(count: number) {
     const calls = Array.from({ length: count }, () => ({

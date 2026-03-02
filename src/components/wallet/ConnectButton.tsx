@@ -160,7 +160,7 @@ export function ConnectButton() {
     <div className="flex items-center gap-3">
       {balance !== undefined && (
         <span className="text-sm text-muted-foreground">
-          {formatTokenAmount(balance as bigint, 18, 0)} <SafeTokenBadge />
+          {formatTokenAmount(typeof balance === "bigint" ? balance : 0n, 18, 0)} <SafeTokenBadge />
         </span>
       )}
       <button

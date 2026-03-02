@@ -8,7 +8,6 @@ import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { DelegateDialog } from "@/components/staking/DelegateDialog"
 import { UndelegateDialog } from "@/components/staking/UndelegateDialog"
-import { useUserStakeOnValidator } from "@/hooks/useStakingReads"
 import { type ValidatorInfo, findValidator } from "@/hooks/useValidators"
 import { truncateAddress, formatTokenAmount } from "@/lib/format"
 import { copyToClipboard } from "@/lib/clipboard"
@@ -20,20 +19,30 @@ interface ValidatorCardProps {
   autoOpenDelegate?: boolean
   totalStake?: bigint
   loadingTotalStake?: boolean
+  userStake?: bigint
+  loadingUserStake?: boolean
   validators?: ValidatorInfo[]
 }
 
-export function ValidatorCard({ validator, isActive, autoOpenDelegate, totalStake, loadingTotalStake, validators }: ValidatorCardProps) {
+export function ValidatorCard({
+  validator,
+  isActive,
+  autoOpenDelegate,
+  totalStake,
+  loadingTotalStake,
+  userStake,
+  loadingUserStake,
+  validators,
+}: ValidatorCardProps) {
   const { isConnected } = useAccount()
   const loadingTotal = loadingTotalStake ?? false
-  const { data: userStake, isLoading: loadingUser } = useUserStakeOnValidator(validator)
+  const loadingUser = loadingUserStake ?? false
   const metadata = findValidator(validators, validator)
   const { toast } = useToast()
   const [delegateOpen, setDelegateOpen] = useState(false)
   const [undelegateOpen, setUndelegateOpen] = useState(false)
 
-  const userStakeAmount = userStake as bigint | undefined
-  const hasStake = userStakeAmount !== undefined && userStakeAmount > 0n
+  const hasStake = userStake !== undefined && userStake > 0n
 
   useEffect(() => {
     if (autoOpenDelegate && isActive) {
@@ -96,7 +105,7 @@ export function ValidatorCard({ validator, isActive, autoOpenDelegate, totalStak
                 <Skeleton className="h-4 w-24" />
               ) : (
                 <span className="font-medium">
-                  {formatTokenAmount(userStakeAmount ?? 0n, 18, 0)}
+                  {formatTokenAmount(userStake ?? 0n, 18, 0)}
                 </span>
               )}
             </div>
@@ -125,8 +134,8 @@ export function ValidatorCard({ validator, isActive, autoOpenDelegate, totalStak
         </CardContent>
       </Card>
 
-      <DelegateDialog validator={validator} open={delegateOpen} onOpenChange={setDelegateOpen} />
-      <UndelegateDialog validator={validator} open={undelegateOpen} onOpenChange={setUndelegateOpen} />
+      {delegateOpen && <DelegateDialog validator={validator} open={delegateOpen} onOpenChange={setDelegateOpen} />}
+      {undelegateOpen && <UndelegateDialog validator={validator} open={undelegateOpen} onOpenChange={setUndelegateOpen} />}
     </>
   )
 }

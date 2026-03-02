@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest"
-import { formatTokenAmount, truncateAddress, formatCountdown, formatTimestamp } from "../format"
+import { formatTokenAmount, truncateAddress, formatCountdown } from "../format"
 
 describe("formatTokenAmount", () => {
   it("formats zero", () => {
@@ -81,20 +81,5 @@ describe("formatCountdown", () => {
 
   it("formats exactly 7 days (withdrawal delay)", () => {
     expect(formatCountdown(604800)).toBe("7d 0h 0m")
-  })
-})
-
-describe("formatTimestamp", () => {
-  it("converts a unix timestamp to locale string", () => {
-    const result = formatTimestamp(0)
-    // Just verify it returns a string (locale-dependent)
-    expect(typeof result).toBe("string")
-    expect(result.length).toBeGreaterThan(0)
-  })
-
-  it("formats a recent timestamp", () => {
-    const result = formatTimestamp(1700000000) // Nov 14, 2023
-    expect(typeof result).toBe("string")
-    expect(result.length).toBeGreaterThan(0)
   })
 })

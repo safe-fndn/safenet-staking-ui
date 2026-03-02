@@ -10,10 +10,6 @@ vi.mock("wagmi", () => ({
   useAccount: () => mockUseAccount(),
 }))
 
-vi.mock("@/hooks/useStakingReads", () => ({
-  useUserStakeOnValidator: vi.fn(() => ({ data: 100n * 10n ** 18n, isLoading: false })),
-}))
-
 vi.mock("@/hooks/useValidators", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/hooks/useValidators")>()
   return { ...actual }
@@ -45,6 +41,7 @@ describe("ValidatorCard", () => {
           validator={TEST_ACCOUNTS.validator1}
           isActive={true}
           totalStake={5000n * 10n ** 18n}
+          userStake={100n * 10n ** 18n}
           validators={[...MOCK_VALIDATORS]}
           {...props}
         />

@@ -28,16 +28,16 @@ export function ContractStatus() {
   const [ownerResult, delayResult, configDelayResult, pendingDelayResult, pendingValidatorHashResult, totalStakedResult, totalPendingResult] = data
 
   const owner = ownerResult.status === "success" ? (ownerResult.result as string) : "—"
-  const delay = delayResult.status === "success" ? Number(delayResult.result as bigint) : 0
-  const configDelay = configDelayResult.status === "success" ? Number(configDelayResult.result as bigint) : 0
+  const delay = delayResult.status === "success" && typeof delayResult.result === "bigint" ? Number(delayResult.result) : 0
+  const configDelay = configDelayResult.status === "success" && typeof configDelayResult.result === "bigint" ? Number(configDelayResult.result) : 0
   const pendingDelay = pendingDelayResult.status === "success"
     ? (pendingDelayResult.result as readonly [bigint, bigint])
     : null
   const pendingValidatorHash = pendingValidatorHashResult.status === "success"
     ? (pendingValidatorHashResult.result as string)
     : null
-  const totalStaked = totalStakedResult.status === "success" ? (totalStakedResult.result as bigint) : 0n
-  const totalPending = totalPendingResult.status === "success" ? (totalPendingResult.result as bigint) : 0n
+  const totalStaked = totalStakedResult.status === "success" && typeof totalStakedResult.result === "bigint" ? totalStakedResult.result : 0n
+  const totalPending = totalPendingResult.status === "success" && typeof totalPendingResult.result === "bigint" ? totalPendingResult.result : 0n
 
   const hasPendingDelay = pendingDelay && pendingDelay[1] > 0n
   const hasPendingValidators = pendingValidatorHash && pendingValidatorHash !== ZERO_HASH
