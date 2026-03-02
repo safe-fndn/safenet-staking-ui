@@ -30,7 +30,6 @@ export function QuickActions() {
       </Button>
       <Button
         variant={hasClaimable ? "default" : "outline"}
-        className={hasClaimable ? "bg-safe-green hover:bg-safe-green-dark text-foreground" : ""}
         onClick={() => navigate("/withdrawals")}
       >
         <HandCoins className="h-4 w-4" aria-hidden="true" />
