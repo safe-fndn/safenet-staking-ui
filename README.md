@@ -53,6 +53,7 @@ See [`.env.example`](.env.example) for a template.
 | `yarn test:coverage` | Run tests with coverage report |
 | `yarn test:e2e` | Run Playwright end-to-end tests |
 | `yarn deploy:ipfs` | Deploy build to IPFS via Pinata |
+| `yarn generate:proofs` | Generate Merkle proofs for reward distribution |
 
 ## Tech Stack
 
@@ -85,6 +86,7 @@ src/
 ├── lib/            # Utilities (formatting, error handling, clipboard)
 └── pages/          # Route components
 e2e/                # Playwright end-to-end tests
+scripts/            # Off-chain tooling (Merkle proof generation)
 admin/              # Admin panel (validator proposals, contract management)
 ```
 
@@ -116,12 +118,45 @@ The UI uses "delegation" terminology (Delegate/Undelegate) but the smart contrac
 - **Read hooks** (`useStakingReads.ts`) poll every 15 seconds via `refetchInterval`
 - **Write hooks** (`useStakingWrites.ts`) return a unified `{ action, isSigningTx, isConfirmingTx, isSuccess, error, reset, txHash }` interface
 - **Validator discovery** fetches `ValidatorUpdated` events from the deploy block with automatic chunked fallback for RPC block-range limits
+- **Rewards** — Merkle-proof-based reward claiming via a MerkleDrop contract. Proofs are generated off-chain (see below) and served as static JSON files
+
+### Merkle Proof Generation
+
+The `scripts/` directory contains tooling for generating Merkle proofs compatible with the MerkleDrop contract:
+
+1. Edit `scripts/merkle-config.json` with wallet addresses and cumulative reward amounts (in wei):
+   ```json
+   {
+     "epoch": 1,
+     "entries": {
+       "0xWalletAddress": "1000000000000000000000"
+     }
+   }
+   ```
+2. Run `yarn generate:proofs`
+3. Output:
+   - `public/rewards/proofs/{address}.json` — per-address proof files
+   - `public/rewards/latest.json` — current Merkle root, total, and epoch
+4. Set the root on-chain via the admin panel
+
+The tree uses sorted-pair hashing (OpenZeppelin convention) and viem for encoding.
 
 ### Adding a New Chain
 
 1. Add the chain object to `chainMap` in `src/config/chains.ts`
 2. Add contract addresses for the chain ID in `src/config/contracts.ts`
 3. Set `VITE_CHAIN_ID` and `VITE_RPC_URL` in your environment
+
+## Admin Panel
+
+The `admin/` directory is a separate Vite app for contract administration. Run it independently with `cd admin && yarn dev`.
+
+**Sections:**
+- **Withdraw Delay** — Propose and execute delay changes (timelocked)
+- **Validator Management** — Propose and execute validator registration/deregistration (timelocked)
+- **Token Operations** — Mint test tokens, recover tokens from the staking contract
+- **Merkle Drop** — Set the Merkle root on the MerkleDrop contract (shown when `VITE_MERKLE_DROP_ADDRESS` is set)
+- **Event Log** — View contract events
 
 ## Deployment
 

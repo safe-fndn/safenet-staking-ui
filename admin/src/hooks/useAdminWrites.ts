@@ -1,9 +1,10 @@
 import { useWriteContract, useWaitForTransactionReceipt } from "wagmi"
 import { stakingAbi } from "@/abi/stakingAbi"
 import { erc20Abi } from "@/abi/erc20Abi"
+import { merkleDropAbi } from "@/abi/merkleDropAbi"
 import { getContractAddresses } from "@/config/contracts"
 import { activeChain } from "@/config/chains"
-import type { Address } from "viem"
+import type { Address, Hex } from "viem"
 
 const addresses = getContractAddresses(activeChain.id)
 
@@ -100,4 +101,21 @@ export function useMintToken() {
   }
 
   return { mintToken, isPending: isPending || isConfirming, isSuccess, error, reset, txHash }
+}
+
+export function useSetMerkleRoot() {
+  const { writeContract, data: txHash, isPending, reset, error } = useWriteContract()
+  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash: txHash })
+
+  function setMerkleRoot(root: Hex) {
+    if (!addresses.merkleDrop) return
+    writeContract({
+      address: addresses.merkleDrop,
+      abi: merkleDropAbi,
+      functionName: "setMerkleRoot",
+      args: [root],
+    })
+  }
+
+  return { setMerkleRoot, isPending: isPending || isConfirming, isSuccess, error, reset, txHash }
 }

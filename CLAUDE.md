@@ -13,6 +13,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Watch mode:** `yarn test:watch`
 - **Coverage:** `yarn test:coverage`
 - **E2E tests:** `yarn test:e2e` (Playwright)
+- **Generate Merkle proofs:** `yarn generate:proofs` (reads `scripts/merkle-config.json`, writes to `public/rewards/`)
 
 ## Pre-push Checklist
 
@@ -56,7 +57,7 @@ App-level guards: `useSanctionsCheck` blocks the entire app if `VITE_SANCTIONS_A
 - **Validator discovery** (`src/hooks/useValidators.ts`): Fetches validator data from a remote JSON endpoint (`VITE_VALIDATOR_INFO_URL`, defaults to GitHub raw URL). Returns `ValidatorInfo[]` with `{ address, isActive, label, commission, participationRate }`. Cached with React Query (5 min staleTime). Also exports `findValidator()` helper for synchronous address lookup.
 - **Withdrawals** (`src/hooks/useWithdrawals.ts`): Fetches pending withdrawals for the connected user. Includes `useNextClaimable` for the claimable banner.
 - **Gas estimation** (`src/hooks/useGasEstimate.ts`): Uses `estimateGas` + `getGasPrice` from viem to show estimated gas cost in delegate/undelegate dialogs. Debounced 500ms on amount change.
-- **Rewards** (`src/hooks/useRewards.ts`, `src/hooks/useRewardProof.ts`, `src/hooks/useClaimRewards.ts`): Rewards reading, Merkle proof fetching, and claim transaction hooks.
+- **Rewards** (`src/hooks/useRewards.ts`, `src/hooks/useRewardProof.ts`, `src/hooks/useClaimRewards.ts`): Rewards reading, Merkle proof fetching, and claim transaction hooks. Proofs are served from `public/rewards/proofs/{address}.json` and the current root/total from `public/rewards/latest.json`.
 
 ### Terminology
 
@@ -153,9 +154,54 @@ Wagmi config (`src/config/wagmi.ts`) uses `safe()` (auto-detects Safe Wallet ifr
 2. Add contract addresses for the chain ID in `src/config/contracts.ts`
 3. Update `.env` with the new `VITE_CHAIN_ID` and `VITE_RPC_URL`
 
+## Merkle Proof Generation
+
+Off-chain tooling for generating Merkle proofs compatible with the MerkleDrop contract.
+
+### Scripts
+
+- `scripts/merkle-tree.ts` — Pure Merkle tree logic (no I/O). Exports `encodeLeaf`, `buildMerkleTree`, `verifyProof`. Uses sorted-pair hashing (OpenZeppelin convention).
+- `scripts/generate-merkle-tree.ts` — CLI entry point. Reads config, builds tree, writes output files.
+- `scripts/merkle-config.json` — Input config with epoch number and address → cumulative amount mapping.
+- `scripts/__tests__/merkle-tree.test.ts` — Unit tests for encoding, tree construction, and proof verification.
+
+### Workflow
+
+1. Edit `scripts/merkle-config.json` with wallet addresses and cumulative amounts (in wei)
+2. Run `yarn generate:proofs`
+3. Output files:
+   - `public/rewards/proofs/{lowercase_address}.json` — per-address proof file (`{ cumulativeAmount, merkleRoot, proof }`)
+   - `public/rewards/latest.json` — root, tokenTotal, epoch, updatedAt
+4. Set the Merkle root on-chain via the admin panel (see below)
+5. The frontend `useRewardProof` hook fetches proofs from `public/rewards/proofs/`
+
+### Config Format
+
+```json
+{
+  "epoch": 1,
+  "entries": {
+    "0xAddress1": "1000000000000000000000",
+    "0xAddress2": "500000000000000000000"
+  }
+}
+```
+
 ## Admin Panel
 
-The `admin/` directory contains a separate Vite app for contract administration (proposing validators, recovering tokens, executing timelocked operations). It has its own `package.json` and runs independently.
+The `admin/` directory contains a separate Vite app for contract administration (proposing validators, recovering tokens, executing timelocked operations, and setting Merkle roots). It has its own `package.json` and runs independently.
+
+### Admin Sections
+
+- **Withdraw Delay** — Propose and execute withdraw delay changes (timelocked)
+- **Validator Management** — Propose and execute validator registration/deregistration (timelocked)
+- **Token Operations** — Mint test tokens, recover tokens from staking contract
+- **Merkle Drop** — Set Merkle root on the MerkleDrop contract (only shown when `VITE_MERKLE_DROP_ADDRESS` is set)
+- **Event Log** — View contract events
+
+### Admin Contract Config
+
+Admin contract addresses are in `admin/src/config/contracts.ts`. The `merkleDrop` field is optional and read from `VITE_MERKLE_DROP_ADDRESS`.
 
 ## Known Pre-existing Lint Errors
 

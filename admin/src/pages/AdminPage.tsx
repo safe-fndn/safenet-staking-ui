@@ -7,8 +7,13 @@ import { ProposeValidators } from "@/components/ProposeValidators"
 import { ExecuteValidators } from "@/components/ExecuteValidators"
 import { RecoverTokens } from "@/components/RecoverTokens"
 import { MintToken } from "@/components/MintToken"
+import { SetMerkleRoot } from "@/components/SetMerkleRoot"
 import { EventLog } from "@/components/EventLog"
 import { ConnectButton } from "@/components/wallet/ConnectButton"
+import { getContractAddresses } from "@/config/contracts"
+import { activeChain } from "@/config/chains"
+
+const { merkleDrop } = getContractAddresses(activeChain.id)
 
 export function AdminPage() {
   const { isConnected } = useAccount()
@@ -57,6 +62,15 @@ export function AdminPage() {
               <RecoverTokens />
             </div>
           </section>
+
+          {merkleDrop && (
+            <section className="space-y-4">
+              <h2 className="text-xl font-semibold">Merkle Drop</h2>
+              <div className="grid gap-4 lg:grid-cols-2">
+                <SetMerkleRoot />
+              </div>
+            </section>
+          )}
 
           <section className="space-y-4">
             <h2 className="text-xl font-semibold">Event Log</h2>

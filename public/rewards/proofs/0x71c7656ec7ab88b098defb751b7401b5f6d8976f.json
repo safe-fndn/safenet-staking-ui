@@ -1,0 +1,8 @@
+{
+  "cumulativeAmount": "500000000000000000000",
+  "merkleRoot": "0xe6b3d5cea36d10d7595b8f4f12bee7d5163902dad2405042f52d4fadb16d0ec8",
+  "proof": [
+    "0x712ad25598ab2f61bcb0cb95b93468f9f1a80209dd55fa636272045f5b941797",
+    "0x98f07de45395d0630e1df53f3256eb83d626f4c51380b85ff5edb8ea8e1dceae"
+  ]
+}

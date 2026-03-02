@@ -3,12 +3,14 @@ import type { Address } from "viem"
 type ContractAddresses = {
   staking: Address
   token: Address
+  merkleDrop?: Address
 }
 
 const addresses: Record<number, ContractAddresses> = {
   11155111: {
     staking: "0x6386F7F53878eA973f2272a7e88D93B6A2b32CA2",
     token: "0xef98bcc90b1373b2ae0d23ec318d3ee70ea61af4",
+    merkleDrop: import.meta.env.VITE_MERKLE_DROP_ADDRESS as Address | undefined,
   },
 }
 
