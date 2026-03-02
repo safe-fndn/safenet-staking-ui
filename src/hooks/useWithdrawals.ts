@@ -4,6 +4,7 @@ import { getContractAddresses } from "@/config/contracts"
 import { activeChain } from "@/config/chains"
 
 const addresses = getContractAddresses(activeChain.id)
+const POLL_INTERVAL = 30_000
 
 export function usePendingWithdrawals() {
   const { address } = useAccount()
@@ -12,7 +13,7 @@ export function usePendingWithdrawals() {
     abi: stakingAbi,
     functionName: "getPendingWithdrawals",
     args: address ? [address] : undefined,
-    query: { enabled: !!address },
+    query: { enabled: !!address, refetchInterval: POLL_INTERVAL },
   })
 }
 
@@ -23,6 +24,6 @@ export function useNextClaimable() {
     abi: stakingAbi,
     functionName: "getNextClaimableWithdrawal",
     args: address ? [address] : undefined,
-    query: { enabled: !!address },
+    query: { enabled: !!address, refetchInterval: POLL_INTERVAL },
   })
 }

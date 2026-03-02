@@ -1,8 +1,6 @@
-import { useEffect } from "react"
+import { useEffect, useRef } from "react"
 import { useConnect, useReconnect } from "wagmi"
 import { isSafeApp } from "@/lib/safe"
-
-const AUTOCONNECTED_CONNECTOR_IDS = ["safe"]
 
 /**
  * Auto-connects to the Safe wallet when loaded inside a Safe App iframe.
@@ -14,15 +12,17 @@ const AUTOCONNECTED_CONNECTOR_IDS = ["safe"]
 export function useAutoConnect() {
   const { connect, connectors } = useConnect()
   const { reconnect } = useReconnect()
+  const hasAttempted = useRef(false)
 
   useEffect(() => {
+    if (hasAttempted.current) return
+    hasAttempted.current = true
+
     if (isSafeApp) {
-      for (const id of AUTOCONNECTED_CONNECTOR_IDS) {
-        const connector = connectors.find((c) => c.id === id)
-        if (connector) {
-          connect({ connector })
-          return
-        }
+      const connector = connectors.find((c) => c.id === "safe")
+      if (connector) {
+        connect({ connector })
+        return
       }
     }
 

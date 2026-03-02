@@ -8,12 +8,12 @@ import { useToast } from "@/hooks/useToast"
 import { copyToClipboard } from "@/lib/clipboard"
 import Copy from "lucide-react/dist/esm/icons/copy"
 import { SafeTokenBadge } from "@/components/ui/SafeTokenBadge"
+import { isSafeApp } from "@/lib/safe"
 
 export function ConnectButton() {
+  const hasInjectedWallet = typeof window.ethereum !== "undefined"
   const { address, isConnected, chain } = useAccount()
   const { connect: rawConnect, connectors: allConnectors } = useConnect()
-  const isIframe = window !== window.parent
-  const hasInjectedWallet = typeof window.ethereum !== "undefined"
   const connectors = allConnectors.filter((c) => {
     if (c.id === "browserWallet") return hasInjectedWallet
     if (c.id === "walletConnect") return true
@@ -98,7 +98,7 @@ export function ConnectButton() {
 
   if (!isConnected) {
     // In iframe, Safe auto-connect handles connection — no button needed
-    if (isIframe) return null
+    if (isSafeApp) return null
 
     // Single connector: connect directly without menu
     if (connectors.length === 1) {
@@ -166,15 +166,16 @@ export function ConnectButton() {
       <button
         className="flex items-center gap-1.5 text-sm font-mono bg-secondary px-3 py-1.5 rounded-md hover:bg-secondary/80 transition-colors"
         onClick={async () => {
-          const ok = await copyToClipboard(address!)
+          if (!address) return
+          const ok = await copyToClipboard(address)
           if (ok) toast({ variant: "success", title: "Address copied" })
         }}
         title="Copy address"
       >
-        {truncateAddress(address!)}
+        {truncateAddress(address ?? "")}
         <Copy className="h-3 w-3 text-muted-foreground" aria-hidden="true" />
       </button>
-      {!isIframe && (
+      {!isSafeApp && (
         <Button variant="outline" size="sm" onClick={() => disconnect()}>
           Disconnect
         </Button>

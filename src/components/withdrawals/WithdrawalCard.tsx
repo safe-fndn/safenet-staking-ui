@@ -4,7 +4,6 @@ import { Progress } from "@/components/ui/progress"
 import { Badge } from "@/components/ui/badge"
 import { formatTokenAmount, formatCountdown, truncateAddress } from "@/lib/format"
 import { useCountdown } from "@/hooks/useCountdown"
-import { useWithdrawDelay } from "@/hooks/useStakingReads"
 import { findValidator, type ValidatorInfo } from "@/hooks/useValidators"
 import type { Address } from "viem"
 import Loader2 from "lucide-react/dist/esm/icons/loader-2"
@@ -18,6 +17,7 @@ interface WithdrawalCardProps {
   onClaim: () => void
   isSigningTx: boolean
   isConfirmingTx: boolean
+  withdrawDelay?: number
   validator?: Address
   validators?: ValidatorInfo[]
 }
@@ -33,13 +33,12 @@ function ValidatorLabel({ address, validators }: { address: Address; validators?
   )
 }
 
-export function WithdrawalCard({ amount, claimableAt, isFirst, onClaim, isSigningTx, isConfirmingTx, validator, validators }: WithdrawalCardProps) {
+export function WithdrawalCard({ amount, claimableAt, isFirst, onClaim, isSigningTx, isConfirmingTx, withdrawDelay, validator, validators }: WithdrawalCardProps) {
   const secondsLeft = useCountdown(claimableAt)
-  const { data: withdrawDelay } = useWithdrawDelay()
   const canClaim = isFirst && secondsLeft === 0
   const isBusy = isSigningTx || isConfirmingTx
 
-  const totalDelay = withdrawDelay !== undefined ? Number(withdrawDelay) : 0
+  const totalDelay = withdrawDelay ?? 0
   const progress = totalDelay > 0 ? Math.min(100, ((totalDelay - secondsLeft) / totalDelay) * 100) : (secondsLeft === 0 ? 100 : 0)
 
   return (

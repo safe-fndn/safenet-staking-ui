@@ -42,7 +42,7 @@ export function ClaimRewardsDialog({ open, onOpenChange }: ClaimRewardsDialogPro
         variant: "success",
         title: "Rewards claimed",
         description: `Claimed ${formatTokenAmount(claimedAmountRef.current)} SAFE`,
-        txHash: txHash!,
+        txHash,
       })
       reset()
       onOpenChange(false)

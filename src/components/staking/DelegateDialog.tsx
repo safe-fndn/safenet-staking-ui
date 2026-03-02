@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from "react"
-import { parseEther, type Address } from "viem"
+import { type Address } from "viem"
 import {
   Dialog,
   DialogContent,
@@ -16,7 +16,7 @@ import { useStake, useBatchStake } from "@/hooks/useStakingWrites"
 import { useWithdrawDelay } from "@/hooks/useStakingReads"
 import { useToast } from "@/hooks/useToast"
 import { useTxToast } from "@/hooks/useTxToast"
-import { truncateAddress, formatCountdown } from "@/lib/format"
+import { truncateAddress, formatCountdown, safeParseEther } from "@/lib/format"
 import { useGasEstimate } from "@/hooks/useGasEstimate"
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
 import Info from "lucide-react/dist/esm/icons/info"
@@ -32,8 +32,7 @@ export function DelegateDialog({ validator, open, onOpenChange }: DelegateDialog
   const [amount, setAmount] = useState("")
   const { data: balance } = useTokenBalance()
 
-  let parsedAmount = 0n
-  try { if (amount) parsedAmount = parseEther(amount) } catch { /* invalid input */ }
+  const parsedAmount = safeParseEther(amount)
 
   const {
     needsApproval,
@@ -238,21 +237,8 @@ export function DelegateDialog({ validator, open, onOpenChange }: DelegateDialog
             </TxButton>
           ) : needsApproval ? (
             <>
-              {approvalType !== "exact" && (
-                <TxButton
-                  isSigningTx={isSigningApproval && approvalType === "unlimited"}
-                  isConfirmingTx={isConfirmingApproval && approvalType === "unlimited"}
-                  signingLabel="Confirm Approval in Wallet…"
-                  confirmingLabel="Approval confirming…"
-                  onClick={approveUnlimited}
-                  disabled={isApprovalPending || parsedAmount === 0n}
-                >
-                  Approve unlimited
-                </TxButton>
-              )}
               {approvalType !== "unlimited" && (
                 <TxButton
-                  variant="outline"
                   isSigningTx={isSigningApproval && approvalType === "exact"}
                   isConfirmingTx={isConfirmingApproval && approvalType === "exact"}
                   signingLabel="Confirm Approval in Wallet…"
@@ -261,6 +247,19 @@ export function DelegateDialog({ validator, open, onOpenChange }: DelegateDialog
                   disabled={isApprovalPending || parsedAmount === 0n}
                 >
                   Approve exact amount
+                </TxButton>
+              )}
+              {approvalType !== "exact" && (
+                <TxButton
+                  variant="outline"
+                  isSigningTx={isSigningApproval && approvalType === "unlimited"}
+                  isConfirmingTx={isConfirmingApproval && approvalType === "unlimited"}
+                  signingLabel="Confirm Approval in Wallet…"
+                  confirmingLabel="Approval confirming…"
+                  onClick={approveUnlimited}
+                  disabled={isApprovalPending || parsedAmount === 0n}
+                >
+                  Approve unlimited
                 </TxButton>
               )}
             </>

@@ -34,6 +34,8 @@ export function useGasEstimate(
     // Debounce 500ms
     if (timerRef.current) clearTimeout(timerRef.current)
 
+    let cancelled = false
+
     timerRef.current = setTimeout(async () => {
       setIsLoading(true)
       try {
@@ -50,16 +52,19 @@ export function useGasEstimate(
           client.getGasPrice(),
         ])
 
-        const cost = gasEstimate * gasPrice
-        setEstimatedCost(formatEther(cost))
+        if (!cancelled) {
+          const cost = gasEstimate * gasPrice
+          setEstimatedCost(formatEther(cost))
+        }
       } catch {
-        setEstimatedCost(null)
+        if (!cancelled) setEstimatedCost(null)
       } finally {
-        setIsLoading(false)
+        if (!cancelled) setIsLoading(false)
       }
     }, 500)
 
     return () => {
+      cancelled = true
       if (timerRef.current) clearTimeout(timerRef.current)
     }
   }, [client, address, functionName, validator, amount])
