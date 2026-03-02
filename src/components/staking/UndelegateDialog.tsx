@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react"
-import { parseEther, type Address } from "viem"
+import { type Address } from "viem"
 import {
   Dialog,
   DialogContent,
@@ -12,7 +12,7 @@ import { AmountInput } from "./AmountInput"
 import { useUserStakeOnValidator, useWithdrawDelay } from "@/hooks/useStakingReads"
 import { useInitiateWithdrawal } from "@/hooks/useStakingWrites"
 import { useTxToast } from "@/hooks/useTxToast"
-import { truncateAddress, formatCountdown } from "@/lib/format"
+import { truncateAddress, formatCountdown, safeParseEther } from "@/lib/format"
 import { useGasEstimate } from "@/hooks/useGasEstimate"
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
 import Info from "lucide-react/dist/esm/icons/info"
@@ -30,8 +30,7 @@ export function UndelegateDialog({ validator, open, onOpenChange }: UndelegateDi
   const { initiateWithdrawal, isSigningTx, isConfirmingTx, isSuccess, isSafeQueued, error, reset, txHash } = useInitiateWithdrawal()
   const { data: withdrawDelay } = useWithdrawDelay()
 
-  let parsedAmount = 0n
-  try { if (amount) parsedAmount = parseEther(amount) } catch { /* invalid input */ }
+  const parsedAmount = safeParseEther(amount)
   const userStakeValue = typeof userStake === "bigint" ? userStake : undefined
   const canUndelegate = parsedAmount > 0n && userStakeValue !== undefined && parsedAmount <= userStakeValue
   const { estimatedCost: gasEstimate } = useGasEstimate("initiateWithdrawal", validator, parsedAmount)

@@ -10,7 +10,7 @@ import { DelegateDialog } from "@/components/staking/DelegateDialog"
 import { UndelegateDialog } from "@/components/staking/UndelegateDialog"
 import { useValidatorTotalStake, useUserStakeOnValidator } from "@/hooks/useStakingReads"
 import { useValidators, findValidator } from "@/hooks/useValidators"
-import { formatTokenAmount } from "@/lib/format"
+import { formatTokenAmount, asBigint } from "@/lib/format"
 import { copyToClipboard } from "@/lib/clipboard"
 import { useToast } from "@/hooks/useToast"
 import ArrowLeft from "lucide-react/dist/esm/icons/arrow-left"
@@ -124,7 +124,7 @@ export function ValidatorDetailPage() {
               {loadingTotal ? (
                 <Skeleton className="h-7 w-32 mt-1" />
               ) : (
-                <p className="text-xl font-bold">{formatTokenAmount(typeof totalStake === "bigint" ? totalStake : 0n, 18, 0)}</p>
+                <p className="text-xl font-bold">{formatTokenAmount(asBigint(totalStake), 18, 0)}</p>
               )}
             </div>
             {isConnected && (

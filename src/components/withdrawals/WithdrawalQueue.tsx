@@ -1,9 +1,11 @@
 import { useAccount } from "wagmi"
 import { usePendingWithdrawals } from "@/hooks/useWithdrawals"
+import { useWithdrawDelay } from "@/hooks/useStakingReads"
 import { useWithdrawalValidators } from "@/hooks/useWithdrawalValidators"
 import { useValidators } from "@/hooks/useValidators"
 import { useClaimWithdrawal, useBatchClaimWithdrawals } from "@/hooks/useStakingWrites"
 import { useToast } from "@/hooks/useToast"
+import { useTxToast } from "@/hooks/useTxToast"
 import { formatContractError } from "@/lib/errorFormat"
 import { WithdrawalCard } from "./WithdrawalCard"
 import { Button } from "@/components/ui/button"
@@ -16,6 +18,7 @@ import Loader2 from "lucide-react/dist/esm/icons/loader-2"
 export function WithdrawalQueue() {
   const { isConnected } = useAccount()
   const { data: withdrawals, isLoading } = usePendingWithdrawals()
+  const { data: withdrawDelay } = useWithdrawDelay()
   const { data: withdrawalValidators } = useWithdrawalValidators()
   const { data: allValidators } = useValidators()
   const { claimWithdrawal, isSigningTx, isConfirmingTx, isSuccess: isClaimed, isSafeQueued: isClaimSafeQueued, error: claimError, txHash: claimTxHash } = useClaimWithdrawal()
@@ -47,27 +50,21 @@ export function WithdrawalQueue() {
   const showClaimAll = supportsBatching && claimableCount >= 2
   const isBatchBusy = isBatchSigning || isBatchConfirming
 
-  useEffect(() => {
-    if (isClaimed) {
-      toast({ variant: "success", title: "Withdrawal claimed", description: "SAFE tokens sent to your wallet", txHash: claimTxHash! })
-    }
-  }, [isClaimed, toast, claimTxHash])
-
-  useEffect(() => {
-    if (claimError) {
-      toast({ variant: "error", title: "Claim failed", description: formatContractError(claimError) })
-    }
-  }, [claimError, toast])
-
-  useEffect(() => {
-    if (isClaimSafeQueued) {
-      toast({
-        variant: "success",
-        title: "Transaction queued in Safe",
-        description: "Your claim has been sent to Safe Wallet for signing.",
-      })
-    }
-  }, [isClaimSafeQueued, toast])
+  useTxToast(
+    {
+      successTitle: "Withdrawal claimed",
+      successDescription: "SAFE tokens sent to your wallet",
+      errorTitle: "Claim failed",
+      safeQueuedDescription: "Your claim has been sent to Safe Wallet for signing.",
+    },
+    {
+      isSuccess: isClaimed,
+      error: claimError,
+      isSafeQueued: isClaimSafeQueued,
+      txHash: claimTxHash,
+      reset: () => { setClaimingIndex(null) },
+    },
+  )
 
   useEffect(() => {
     if (isBatchClaimed) {
@@ -155,13 +152,14 @@ export function WithdrawalQueue() {
       </div>
       {withdrawals.map((w, i) => (
         <WithdrawalCard
-          key={i}
+          key={`${w.amount}-${w.claimableAt}`}
           amount={w.amount}
           claimableAt={Number(w.claimableAt)}
           isFirst={i === 0}
           onClaim={() => { setClaimingIndex(i); claimWithdrawal() }}
           isSigningTx={claimingIndex === i && isSigningTx}
           isConfirmingTx={claimingIndex === i && isConfirmingTx}
+          withdrawDelay={withdrawDelay !== undefined ? Number(withdrawDelay) : undefined}
           validator={withdrawalValidators?.[i]}
           validators={allValidators}
         />

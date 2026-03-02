@@ -22,7 +22,7 @@ export function useSanctionsCheck(): SanctionsResult {
 
     async function check() {
       try {
-        const response = await fetch(sanctionsApiUrl!)
+        const response = await fetch(sanctionsApiUrl as string)
         if (!cancelled) {
           setAllowed(response.status !== 403)
         }

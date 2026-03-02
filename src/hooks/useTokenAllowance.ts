@@ -15,7 +15,7 @@ export function useTokenAllowance() {
     address: token,
     abi: erc20Abi,
     functionName: "allowance",
-    args: [address!, staking],
+    args: address ? [address, staking] : undefined,
     query: { enabled: !!address },
   })
 

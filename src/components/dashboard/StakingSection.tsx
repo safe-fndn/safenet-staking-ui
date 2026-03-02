@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { Link } from "react-router-dom"
 import { useAccount } from "wagmi"
 import { useValidators, findValidator, type ValidatorInfo } from "@/hooks/useValidators"
@@ -61,11 +61,13 @@ function PositionRow({ position, validators }: { position: Position; validators?
           </Button>
         </td>
       </tr>
-      <UndelegateDialog
-        validator={position.validator}
-        open={undelegateOpen}
-        onOpenChange={setUndelegateOpen}
-      />
+      {undelegateOpen && (
+        <UndelegateDialog
+          validator={position.validator}
+          open={undelegateOpen}
+          onOpenChange={setUndelegateOpen}
+        />
+      )}
     </>
   )
 }
@@ -73,7 +75,10 @@ function PositionRow({ position, validators }: { position: Position; validators?
 export function StakingSection() {
   const { isConnected } = useAccount()
   const { data: validators } = useValidators()
-  const validatorAddresses = validators?.map((v) => v.address) ?? []
+  const validatorAddresses = useMemo(
+    () => (validators ?? []).map((v) => v.address),
+    [validators],
+  )
   const { data: stakes, isLoading } = useUserStakesOnValidators(validatorAddresses)
   const { data: rewards } = useRewards()
   const [claimOpen, setClaimOpen] = useState(false)
