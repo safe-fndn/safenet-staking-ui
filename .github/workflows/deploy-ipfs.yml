@@ -56,12 +56,12 @@ jobs:
           echo "### Build Manifest" >> "$GITHUB_STEP_SUMMARY"
           echo "**Checksum:** \`${HASH}\`" >> "$GITHUB_STEP_SUMMARY"
 
-      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+      - uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: dist
           path: dist
           retention-days: 14
-      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+      - uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: build-manifest
           path: /tmp/build-checksums.txt
