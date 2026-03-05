@@ -52,7 +52,7 @@ export function ValidatorCard({
 
   return (
     <>
-      <Card className={!isActive ? "opacity-60" : undefined}>
+      <Card className={!isActive ? "opacity-60" : "hover:shadow-[var(--shadow-card-hover)]"}>
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <CardTitle className="text-base">
@@ -113,7 +113,7 @@ export function ValidatorCard({
 
           {isConnected && (
             <div className="flex gap-2 pt-2">
-              <Button size="sm" className="flex-1" onClick={() => setDelegateOpen(true)} disabled={!isActive}>
+              <Button size="sm" variant="gradient" className="flex-1" onClick={() => setDelegateOpen(true)} disabled={!isActive}>
                 Stake
               </Button>
               <Button

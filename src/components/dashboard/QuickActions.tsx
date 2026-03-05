@@ -20,7 +20,7 @@ export function QuickActions() {
 
   return (
     <div className="flex flex-wrap gap-3">
-      <Button variant="outline" onClick={() => navigate("/validators")}>
+      <Button variant="gradient" onClick={() => navigate("/validators")}>
         <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
         Stake
       </Button>

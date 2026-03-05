@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom"
 
-const docsUrl = import.meta.env.VITE_DOCS_URL || "https://docs.safefoundation.org/safenet/introduction"
+const docsUrl = import.meta.env.VITE_DOCS_URL || "https://docs.safefoundation.org/safenet/overview/introduction"
 
 export function Footer() {
   return (

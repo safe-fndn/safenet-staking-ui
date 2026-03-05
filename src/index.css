@@ -1,30 +1,30 @@
-@import "@fontsource-variable/dm-sans";
+@import "@fontsource-variable/geist-mono";
 @import "tailwindcss";
 
 @custom-variant dark (&:is(.dark *));
 
-/* Safe Global palette — light mode */
+/* Safenet brand palette — light mode */
 :root {
-  /* Override WalletConnect modal font to use self-hosted DM Sans (avoids fonts.reown.com fetch) */
-  --w3m-font-family: "DM Sans Variable", "DM Sans", ui-sans-serif, system-ui, sans-serif;
-  --background: #F4F4F4;
-  --foreground: #121312;
+  /* Override WalletConnect modal font (avoids fonts.reown.com fetch) */
+  --w3m-font-family: "Geist Mono Variable", "Geist Mono", ui-monospace, monospace;
+  --background: #E5E8E6;
+  --foreground: #000000;
   --card: #FFFFFF;
-  --card-foreground: #121312;
+  --card-foreground: #000000;
   --popover: #FFFFFF;
-  --popover-foreground: #121312;
-  --primary: #121312;
+  --popover-foreground: #000000;
+  --primary: #000000;
   --primary-foreground: #FFFFFF;
   --secondary: #EFFFF4;
-  --secondary-foreground: #121312;
-  --muted: #EEEFF0;
-  --muted-foreground: #A1A3A7;
+  --secondary-foreground: #000000;
+  --muted: #CCD1CE;
+  --muted-foreground: #808B85;
   --accent: #EFFFF4;
-  --accent-foreground: #121312;
+  --accent-foreground: #000000;
   --destructive: #FF5F72;
   --destructive-foreground: #FFFFFF;
-  --border: #DCDEE0;
-  --input: #DCDEE0;
+  --border: #BFC5C1;
+  --input: #B2B9B5;
   --ring: #12FF80;
   --safe-green: #12FF80;
   --safe-green-dark: #0FDA6D;
@@ -36,26 +36,26 @@
   --radius: 0.375rem;
 }
 
-/* Safe Global palette — dark mode */
+/* Safenet brand palette — dark mode */
 .dark {
-  --background: #121312;
+  --background: #000000;
   --foreground: #FFFFFF;
-  --card: #1C1C1C;
+  --card: #1A2E23;
   --card-foreground: #FFFFFF;
-  --popover: #1C1C1C;
+  --popover: #1A2E23;
   --popover-foreground: #FFFFFF;
   --primary: #12FF80;
-  --primary-foreground: #121312;
-  --secondary: #303033;
+  --primary-foreground: #000000;
+  --secondary: #33453B;
   --secondary-foreground: #FFFFFF;
-  --muted: #303033;
-  --muted-foreground: #A1A3A7;
-  --accent: #1B2A22;
+  --muted: #33453B;
+  --muted-foreground: #99A29D;
+  --accent: #1A2E23;
   --accent-foreground: #FFFFFF;
   --destructive: #FF5F72;
   --destructive-foreground: #FFFFFF;
-  --border: #303033;
-  --input: #636669;
+  --border: #33453B;
+  --input: #66746D;
   --ring: #12FF80;
   --safe-green: #12FF80;
   --safe-green-dark: #0CB259;
@@ -67,7 +67,7 @@
 }
 
 @theme inline {
-  --font-sans: "DM Sans Variable", "DM Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Geist Mono Variable", "Geist Mono", ui-monospace, monospace;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -124,4 +124,16 @@
     margin: 0;
     min-height: 100vh;
   }
+}
+
+/* Quiet Luxury — card shadow system */
+:root {
+  --shadow-card: 0 1px 3px 0 rgb(0 0 0 / 0.06), 0 1px 2px -1px rgb(0 0 0 / 0.06);
+  --shadow-card-hover: 0 4px 12px -2px rgb(0 0 0 / 0.10), 0 2px 4px -2px rgb(0 0 0 / 0.06);
+  --shadow-elevated: 0 8px 24px -4px rgb(0 0 0 / 0.10), 0 4px 8px -4px rgb(0 0 0 / 0.06);
+}
+.dark {
+  --shadow-card: 0 1px 3px 0 rgb(0 0 0 / 0.30), 0 1px 2px -1px rgb(0 0 0 / 0.20);
+  --shadow-card-hover: 0 4px 12px -2px rgb(0 0 0 / 0.40), 0 2px 4px -2px rgb(0 0 0 / 0.30);
+  --shadow-elevated: 0 8px 24px -4px rgb(0 0 0 / 0.50), 0 4px 8px -4px rgb(0 0 0 / 0.30);
 }

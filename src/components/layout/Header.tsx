@@ -9,16 +9,6 @@ import Sun from "lucide-react/dist/esm/icons/sun"
 import Moon from "lucide-react/dist/esm/icons/moon"
 import { Button } from "@/components/ui/button"
 
-function SafeSymbol({ className }: { className?: string }) {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 661.6 661.5" fill="currentColor" className={className} aria-hidden="true">
-      <path d="M532,330.7h-49.4c-14.8,0-26.7,12-26.7,26.7v71.7c0,14.8-12,26.7-26.7,26.7H232.5c-14.8,0-26.7,12-26.7,26.7V532c0,14.8,12,26.7,26.7,26.7h208c14.8,0,26.5-12,26.5-26.7v-39.6c0-14.8,12-25.2,26.7-25.2H532c14.8,0,26.7-12,26.7-26.7v-83.3C558.7,342.3,546.7,330.7,532,330.7z"/>
-      <path d="M205.8,232.5c0-14.8,12-26.7,26.7-26.7H429c14.8,0,26.7-12,26.7-26.7v-49.4c0-14.8-12-26.7-26.7-26.7H221.1c-14.8,0-26.7,12-26.7,26.7v38.1c0,14.8-12,26.7-26.7,26.7h-38c-14.8,0-26.7,12-26.7,26.7v83.4c0,14.8,12,26.1,26.8,26.1h49.4c14.8,0,26.7-12,26.7-26.7L205.8,232.5z"/>
-      <path d="M307.5,278.8H355c15.5,0,28,12.6,28,28v47.5c0,15.5-12.6,28-28,28h-47.5c-15.5,0-28-12.6-28-28v-47.5C279.5,291.3,292.1,278.8,307.5,278.8z"/>
-    </svg>
-  )
-}
-
 const navItems = [
   { label: "Dashboard", path: "/" },
   { label: "Validators", path: "/validators" },
@@ -36,9 +26,8 @@ export function Header() {
     <header className="border-b bg-card">
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
         <div className="flex items-center gap-8">
-          <Link to="/" className="flex items-center gap-2 text-lg font-bold tracking-tight" onClick={closeMobileMenu}>
-            <SafeSymbol className="h-6 w-6" />
-            Safe<span className="text-safe-green">{"{"}</span>Staking<span className="text-safe-green">{"}"}</span>
+          <Link to="/" className="flex items-center" onClick={closeMobileMenu}>
+            <img src="/Safenet.svg" alt="Safenet" className="h-5 dark:invert" />
           </Link>
           <nav className="hidden md:flex items-center gap-1">
             {navItems.map((item) => (

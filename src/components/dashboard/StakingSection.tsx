@@ -15,7 +15,7 @@ import { truncateAddress, formatTokenAmount } from "@/lib/format"
 import Info from "lucide-react/dist/esm/icons/info"
 import type { Address } from "viem"
 
-const rewardsDocsUrl = "https://docs.safefoundation.org/safenet/protocol/rewards#minimum-payout-threshold"
+const rewardsDocsUrl = "https://docs.safefoundation.org/safenet/staking/rewards"
 
 interface Position {
   validator: Address
@@ -122,7 +122,7 @@ export function StakingSection() {
 
   return (
     <>
-      <Card>
+      <Card style={{ boxShadow: "var(--shadow-elevated)" }}>
         <CardHeader>
           <div className="flex items-center gap-2">
             <CardTitle>Your Rewards</CardTitle>
@@ -161,6 +161,7 @@ export function StakingSection() {
             </div>
             <Button
               size="sm"
+              variant="gradient"
               disabled={!rewards.canClaim}
               onClick={() => setClaimOpen(true)}
             >
