@@ -30,7 +30,7 @@ vi.mock("@/hooks/useStakingReads", () => ({
 
 vi.mock("@/hooks/useRewards", () => ({
   useRewards: vi.fn(() => ({
-    data: { claimable: 50n * 10n ** 18n, canClaim: true, rootStale: false },
+    data: { claimable: 50n * 10n ** 18n, totalClaimed: 0n, canClaim: true, rootStale: false },
   })),
 }))
 

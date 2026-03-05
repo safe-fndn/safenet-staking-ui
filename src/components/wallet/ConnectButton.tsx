@@ -159,7 +159,7 @@ export function ConnectButton() {
   return (
     <div className="flex items-center gap-3">
       {balance !== undefined && (
-        <span className="text-sm text-muted-foreground">
+        <span className="hidden lg:inline-flex items-center gap-1 text-sm text-muted-foreground whitespace-nowrap">
           {formatTokenAmount(typeof balance === "bigint" ? balance : 0n, 18, 0)} <SafeTokenBadge />
         </span>
       )}

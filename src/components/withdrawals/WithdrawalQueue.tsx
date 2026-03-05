@@ -37,10 +37,26 @@ export function WithdrawalQueue() {
   const [claimingIndex, setClaimingIndex] = useState<number | null>(null)
 
   const [now, setNow] = useState(() => Math.floor(Date.now() / 1000))
+  const nextClaimableAt = useMemo(
+    () => {
+      if (!withdrawals) return null
+      const upcoming = withdrawals
+        .map((w) => Number(w.claimableAt))
+        .filter((t) => t > now)
+      return upcoming.length > 0 ? Math.min(...upcoming) : null
+    },
+    [withdrawals, now],
+  )
   useEffect(() => {
-    const id = setInterval(() => setNow(Math.floor(Date.now() / 1000)), 15_000)
-    return () => clearInterval(id)
-  }, [])
+    if (nextClaimableAt === null) return
+    const ms = (nextClaimableAt - Math.floor(Date.now() / 1000)) * 1000 + 500
+    if (ms <= 0) {
+      setNow(Math.floor(Date.now() / 1000))
+      return
+    }
+    const id = setTimeout(() => setNow(Math.floor(Date.now() / 1000)), ms)
+    return () => clearTimeout(id)
+  }, [nextClaimableAt])
   const claimableCount = useMemo(
     () => withdrawals
       ? withdrawals.filter((w) => Number(w.claimableAt) <= now).length

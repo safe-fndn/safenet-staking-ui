@@ -8,6 +8,7 @@ const { merkleDrop } = getContractAddresses(activeChain.id)
 
 export interface RewardsData {
   claimable: bigint
+  totalClaimed: bigint
   canClaim: boolean
   rootStale: boolean
 }
@@ -41,7 +42,7 @@ export function useRewards() {
 
   if (!proof || cumulativeClaimed === undefined) {
     return {
-      data: { claimable: 0n, canClaim: false, rootStale: false },
+      data: { claimable: 0n, totalClaimed: 0n, canClaim: false, rootStale: false },
       isLoading,
     }
   }
@@ -53,6 +54,7 @@ export function useRewards() {
   return {
     data: {
       claimable,
+      totalClaimed: cumulativeClaimed,
       canClaim: claimable > 0n && !rootStale,
       rootStale,
     },
