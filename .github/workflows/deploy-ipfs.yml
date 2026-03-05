@@ -47,6 +47,7 @@ jobs:
           VITE_TOU_URL: ${{ vars.VITE_TOU_URL }}
           VITE_DOCS_URL: ${{ vars.VITE_DOCS_URL }}
           VITE_FAQ_URL: ${{ vars.VITE_FAQ_URL }}
+          VITE_MERKLE_DROP_ADDRESS: ${{ vars.VITE_MERKLE_DROP_ADDRESS }}
         run: yarn build
 
       - name: Compute build checksum
