@@ -63,11 +63,10 @@ describe("ValidatorCard", () => {
     expect(screen.getByText("Active")).toBeInTheDocument()
   })
 
-  it("shows Inactive badge and warning for inactive validator", () => {
+  it("shows Inactive badge for inactive validator", () => {
     renderCard({ isActive: false })
 
     expect(screen.getByText("Inactive")).toBeInTheDocument()
-    expect(screen.getByText("Validator is inactive")).toBeInTheDocument()
   })
 
   it("shows Stake and Unstake buttons when connected", () => {

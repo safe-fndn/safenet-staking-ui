@@ -19,11 +19,12 @@ export function useTokenAllowance() {
     query: { enabled: !!address },
   })
 
-  const { writeContract, data: txHash, isPending, isSuccess: isSubmitted, reset, error } = useWriteContract()
+  const { writeContract, data: txHash, isPending, isSuccess: isSubmitted, reset, error: writeError } = useWriteContract()
 
-  const { isLoading: isWaitingForApproval, isSuccess: isApproved } = useWaitForTransactionReceipt({
+  const { isLoading: isWaitingForApproval, isSuccess: isApproved, error: receiptError } = useWaitForTransactionReceipt({
     hash: txHash,
   })
+  const error = writeError ?? receiptError
 
   // In Safe App mode, the approval tx is queued in Safe (not yet on-chain), so
   // isApproved never fires. Detect this so the UI can inform the user.

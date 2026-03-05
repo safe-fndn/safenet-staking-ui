@@ -153,15 +153,9 @@ export function StakingSection() {
             <div>
               <span className="text-sm text-muted-foreground">Claimable SAFE</span>
               <p className="font-semibold">{formatTokenAmount(rewards.claimable, 18, 0)}</p>
-              {rewards.rootStale ? (
-                <p className="text-xs text-amber-600 mt-0.5">
-                  Rewards data is being updated. Claiming will be available again shortly.
-                </p>
-              ) : (
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Rewards are distributed every 2 weeks based on staking activity.
-                </p>
-              )}
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Rewards are distributed every 2 weeks based on staking activity.
+              </p>
             </div>
             <Button
               size="sm"

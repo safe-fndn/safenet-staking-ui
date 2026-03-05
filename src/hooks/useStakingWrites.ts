@@ -69,8 +69,9 @@ const STAKING_FN_NAMES = [
 const STAKING_EXTRA_KEYS = [["validators"]]
 
 export function useStake() {
-  const { writeContract, data: txHash, isPending, isSuccess: isSubmitted, reset, error } = useWriteContract()
-  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash: txHash })
+  const { writeContract, data: txHash, isPending, isSuccess: isSubmitted, reset, error: writeError } = useWriteContract()
+  const { isLoading: isConfirming, isSuccess, error: receiptError } = useWaitForTransactionReceipt({ hash: txHash })
+  const error = writeError ?? receiptError
 
   // When running as a Safe App, writeContract resolves with a Safe tx hash (not an
   // on-chain hash). useWaitForTransactionReceipt never resolves, so detect the
@@ -166,8 +167,9 @@ export function useBatchStake() {
 }
 
 export function useInitiateWithdrawal() {
-  const { writeContract, data: txHash, isPending, isSuccess: isSubmitted, reset, error } = useWriteContract()
-  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash: txHash })
+  const { writeContract, data: txHash, isPending, isSuccess: isSubmitted, reset, error: writeError } = useWriteContract()
+  const { isLoading: isConfirming, isSuccess, error: receiptError } = useWaitForTransactionReceipt({ hash: txHash })
+  const error = writeError ?? receiptError
 
   const isSafeQueued = isSafeApp && isSubmitted && !isSuccess
 
@@ -186,8 +188,9 @@ export function useInitiateWithdrawal() {
 }
 
 export function useClaimWithdrawal() {
-  const { writeContract, data: txHash, isPending, isSuccess: isSubmitted, reset, error } = useWriteContract()
-  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash: txHash })
+  const { writeContract, data: txHash, isPending, isSuccess: isSubmitted, reset, error: writeError } = useWriteContract()
+  const { isLoading: isConfirming, isSuccess, error: receiptError } = useWaitForTransactionReceipt({ hash: txHash })
+  const error = writeError ?? receiptError
 
   const isSafeQueued = isSafeApp && isSubmitted && !isSuccess
 

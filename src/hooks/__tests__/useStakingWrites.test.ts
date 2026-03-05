@@ -19,6 +19,7 @@ vi.mock("wagmi", () => ({
   useWaitForTransactionReceipt: vi.fn(() => ({
     isLoading: false,
     isSuccess: false,
+    error: null,
   })),
   useSendCalls: vi.fn(() => ({
     mutate: vi.fn(),

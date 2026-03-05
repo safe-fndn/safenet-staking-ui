@@ -111,10 +111,6 @@ export function ValidatorCard({
             </div>
           )}
 
-          {!isActive && (
-            <p className="text-xs text-warning">Validator is inactive</p>
-          )}
-
           {isConnected && (
             <div className="flex gap-2 pt-2">
               <Button size="sm" className="flex-1" onClick={() => setDelegateOpen(true)} disabled={!isActive}>

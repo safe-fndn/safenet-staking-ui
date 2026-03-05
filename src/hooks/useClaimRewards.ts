@@ -13,8 +13,9 @@ const REWARD_FN_NAMES = ["cumulativeClaimed", "balanceOf"]
 const REWARD_EXTRA_KEYS = [["rewardProof"]]
 
 export function useClaimRewards() {
-  const { writeContract, data: txHash, isPending, reset, error } = useWriteContract()
-  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash: txHash })
+  const { writeContract, data: txHash, isPending, reset, error: writeError } = useWriteContract()
+  const { isLoading: isConfirming, isSuccess, error: receiptError } = useWaitForTransactionReceipt({ hash: txHash })
+  const error = writeError ?? receiptError
 
   useInvalidateOnSuccess(isSuccess, REWARD_FN_NAMES, REWARD_EXTRA_KEYS)
 
