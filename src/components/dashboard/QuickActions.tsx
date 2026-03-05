@@ -29,7 +29,8 @@ export function QuickActions() {
         Unstake
       </Button>
       <Button
-        variant={hasClaimable ? "default" : "outline"}
+        variant="outline"
+        className={hasClaimable ? "border-success text-success" : undefined}
         onClick={() => navigate("/withdrawals")}
       >
         <HandCoins className="h-4 w-4" aria-hidden="true" />

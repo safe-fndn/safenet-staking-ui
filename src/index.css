@@ -36,26 +36,28 @@
   --radius: 0.375rem;
 }
 
-/* Safenet brand palette — dark mode */
+/* Safenet brand palette — dark mode
+   Derived from brand guide: pure black surfaces, white 10% borders,
+   green accent only — no green-tinted surfaces. */
 .dark {
   --background: #000000;
   --foreground: #FFFFFF;
-  --card: #1A2E23;
+  --card: #080D0A;
   --card-foreground: #FFFFFF;
-  --popover: #1A2E23;
+  --popover: #080D0A;
   --popover-foreground: #FFFFFF;
   --primary: #12FF80;
   --primary-foreground: #000000;
-  --secondary: #33453B;
+  --secondary: #121A16;
   --secondary-foreground: #FFFFFF;
-  --muted: #33453B;
-  --muted-foreground: #99A29D;
-  --accent: #1A2E23;
+  --muted: #121A16;
+  --muted-foreground: #7A8580;
+  --accent: #0E1511;
   --accent-foreground: #FFFFFF;
   --destructive: #FF5F72;
   --destructive-foreground: #FFFFFF;
-  --border: #33453B;
-  --input: #66746D;
+  --border: #1A231E;
+  --input: #2A332E;
   --ring: #12FF80;
   --safe-green: #12FF80;
   --safe-green-dark: #0CB259;
@@ -133,7 +135,7 @@
   --shadow-elevated: 0 8px 24px -4px rgb(0 0 0 / 0.10), 0 4px 8px -4px rgb(0 0 0 / 0.06);
 }
 .dark {
-  --shadow-card: 0 1px 3px 0 rgb(0 0 0 / 0.30), 0 1px 2px -1px rgb(0 0 0 / 0.20);
-  --shadow-card-hover: 0 4px 12px -2px rgb(0 0 0 / 0.40), 0 2px 4px -2px rgb(0 0 0 / 0.30);
-  --shadow-elevated: 0 8px 24px -4px rgb(0 0 0 / 0.50), 0 4px 8px -4px rgb(0 0 0 / 0.30);
+  --shadow-card: none;
+  --shadow-card-hover: 0 0 0 1px rgb(18 255 128 / 0.08);
+  --shadow-elevated: 0 0 0 1px rgb(18 255 128 / 0.10), 0 4px 16px -4px rgb(0 0 0 / 0.40);
 }

@@ -10,7 +10,7 @@ export function ValidatorsPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-bold">Safenet Validators</h1>
+        <h1 className="text-4xl font-bold tracking-tight">Safenet Validators</h1>
         <p className="text-muted-foreground">Select a validator to stake your SAFE tokens</p>
       </div>
       <ValidatorList autoOpenDelegate={delegateParam} />

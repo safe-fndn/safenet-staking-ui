@@ -38,8 +38,8 @@ export function Header() {
                 className={cn(
                   "px-3 py-2 text-sm font-medium rounded-md transition-colors",
                   pathname === item.path
-                    ? "bg-secondary text-foreground"
-                    : "text-muted-foreground hover:text-foreground hover:bg-secondary/50",
+                    ? "text-foreground bg-secondary/60"
+                    : "text-muted-foreground hover:text-foreground hover:bg-secondary/30",
                 )}
               >
                 {item.label}
@@ -84,8 +84,8 @@ export function Header() {
                 className={cn(
                   "px-3 py-2 text-sm font-medium rounded-md transition-colors",
                   pathname === item.path
-                    ? "bg-secondary text-foreground"
-                    : "text-muted-foreground hover:text-foreground hover:bg-secondary/50",
+                    ? "text-foreground bg-secondary/60"
+                    : "text-muted-foreground hover:text-foreground hover:bg-secondary/30",
                 )}
               >
                 {item.label}

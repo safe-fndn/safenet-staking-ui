@@ -112,7 +112,7 @@ export function ValidatorCard({
           )}
 
           {isConnected && (
-            <div className="flex gap-2 pt-2">
+            <div className="flex gap-2 pt-3 mt-1 border-t border-border/40">
               <Button size="sm" variant="gradient" className="flex-1" onClick={() => setDelegateOpen(true)} disabled={!isActive}>
                 Stake
               </Button>

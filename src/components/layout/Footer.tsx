@@ -4,8 +4,8 @@ const docsUrl = import.meta.env.VITE_DOCS_URL || "https://docs.safefoundation.or
 
 export function Footer() {
   return (
-    <footer className="border-t mt-auto">
-      <div className="container mx-auto flex items-center justify-center gap-6 px-4 py-4 text-sm text-muted-foreground">
+    <footer className="border-t border-border/50 mt-auto">
+      <div className="container mx-auto flex items-center justify-center gap-6 px-4 py-5 text-sm text-muted-foreground">
         <Link to="/terms" className="hover:text-foreground transition-colors">
           Terms of Use
         </Link>

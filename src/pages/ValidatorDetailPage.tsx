@@ -82,7 +82,7 @@ export function ValidatorDetailPage() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <div className="space-y-1">
-              <CardTitle className="text-2xl">
+              <CardTitle className="text-2xl tracking-tight">
                 {validatorInfo.label}
               </CardTitle>
               <div className="flex items-center gap-2">
@@ -119,7 +119,7 @@ export function ValidatorDetailPage() {
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
-            <div className="rounded-lg border p-4">
+            <div className="rounded-lg bg-muted/30 p-4">
               <p className="text-sm text-muted-foreground">Total SAFE Staked</p>
               {loadingTotal ? (
                 <Skeleton className="h-7 w-32 mt-1" />
@@ -128,7 +128,7 @@ export function ValidatorDetailPage() {
               )}
             </div>
             {isConnected && (
-              <div className="rounded-lg border p-4">
+              <div className="rounded-lg bg-muted/30 p-4">
                 <p className="text-sm text-muted-foreground">Your SAFE Staked</p>
                 {loadingUser ? (
                   <Skeleton className="h-7 w-32 mt-1" />
@@ -141,7 +141,7 @@ export function ValidatorDetailPage() {
 
           {isConnected && (
             <div className="flex gap-3">
-              <Button onClick={() => setDelegateOpen(true)} disabled={!isActive}>
+              <Button variant="gradient" onClick={() => setDelegateOpen(true)} disabled={!isActive}>
                 Stake
               </Button>
               <Button variant="outline" disabled={!hasStake} onClick={() => setUndelegateOpen(true)}>
