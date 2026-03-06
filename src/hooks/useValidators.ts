@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query"
 import { type Address, getAddress } from "viem"
 
 const DEFAULT_URL =
-  "https://raw.githubusercontent.com/safe-fndn/safenet-validator-info/refs/heads/main/assets/safenet-validator-info.json"
+  "https://raw.githubusercontent.com/safe-fndn/safenet-beta-data/refs/heads/main/assets/validator-info.json"
 
 export interface ValidatorInfo {
   address: Address

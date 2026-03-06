@@ -20,9 +20,13 @@ function isValidProof(data: unknown): data is RewardProof {
   )
 }
 
+const DEFAULT_REWARDS_BASE_URL =
+  "https://raw.githubusercontent.com/safe-fndn/safenet-beta-data/refs/heads/main/assets/rewards"
+
 async function fetchProof(address: Address): Promise<RewardProof | null> {
   const normalized = getAddress(address)
-  const url = `${import.meta.env.BASE_URL}rewards/proofs/${normalized.toLowerCase()}.json`
+  const baseUrl = import.meta.env.VITE_REWARDS_BASE_URL || DEFAULT_REWARDS_BASE_URL
+  const url = `${baseUrl}/proofs/${normalized.toLowerCase()}.json`
   const response = await fetch(url)
   if (response.status === 404) return null
   if (!response.ok) throw new Error(`Failed to fetch reward proof: ${response.status}`)
