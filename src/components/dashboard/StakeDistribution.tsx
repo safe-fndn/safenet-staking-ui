@@ -23,8 +23,8 @@ const LazyPieChart = lazy(() =>
             nameKey="name"
             paddingAngle={2}
           >
-            {data.map((_, i) => (
-              <m.Cell key={i} fill={colors[i % colors.length]} />
+            {data.map((entry, i) => (
+              <m.Cell key={entry.name} fill={colors[i % colors.length]} />
             ))}
           </m.Pie>
           <m.Tooltip

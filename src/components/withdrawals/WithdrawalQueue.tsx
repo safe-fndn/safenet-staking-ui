@@ -50,19 +50,13 @@ export function WithdrawalQueue() {
   useEffect(() => {
     if (nextClaimableAt === null) return
     const ms = (nextClaimableAt - Math.floor(Date.now() / 1000)) * 1000 + 500
-    if (ms <= 0) {
-      setNow(Math.floor(Date.now() / 1000))
-      return
-    }
-    const id = setTimeout(() => setNow(Math.floor(Date.now() / 1000)), ms)
+    const delay = ms <= 0 ? 0 : ms
+    const id = setTimeout(() => setNow(Math.floor(Date.now() / 1000)), delay)
     return () => clearTimeout(id)
   }, [nextClaimableAt])
-  const claimableCount = useMemo(
-    () => withdrawals
-      ? withdrawals.filter((w) => Number(w.claimableAt) <= now).length
-      : 0,
-    [withdrawals, now],
-  )
+  const claimableCount = withdrawals
+    ? withdrawals.filter((w) => Number(w.claimableAt) <= now).length
+    : 0
   const showClaimAll = supportsBatching && claimableCount >= 2
   const isBatchBusy = isBatchSigning || isBatchConfirming
 
