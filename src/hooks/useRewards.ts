@@ -18,13 +18,16 @@ export function useRewards() {
 
   const { data: proof, isLoading: isProofLoading } = useRewardProof(address, !!merkleDrop)
 
+  const hasProof = !!proof
+
   const { data: cumulativeClaimed, isLoading: isClaimedLoading } = useReadContract({
     address: merkleDrop,
     abi: merkleDropAbi,
     functionName: "cumulativeClaimed",
     args: address ? [address] : undefined,
     query: {
-      enabled: !!address && !!merkleDrop,
+      enabled: !!address && !!merkleDrop && hasProof,
+      refetchInterval: 15_000,
     },
   })
 
@@ -33,7 +36,7 @@ export function useRewards() {
     abi: merkleDropAbi,
     functionName: "merkleRoot",
     query: {
-      enabled: !!merkleDrop,
+      enabled: !!merkleDrop && hasProof,
       staleTime: 60_000,
     },
   })

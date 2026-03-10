@@ -1,49 +1,32 @@
-import { useState, useEffect } from "react"
+import { useQuery } from "@tanstack/react-query"
 
-const sanctionsApiUrl = import.meta.env.VITE_SANCTIONS_API_URL as string | undefined
+const sanctionsApiUrl = import.meta.env.VITE_SANCTIONS_API_URL as
+  | string
+  | undefined
 
 interface SanctionsResult {
   allowed: boolean
   isLoading: boolean
 }
 
+async function checkSanctions(): Promise<boolean> {
+  const response = await fetch(sanctionsApiUrl as string)
+  return response.status !== 403
+}
+
 export function useSanctionsCheck(): SanctionsResult {
-  const [allowed, setAllowed] = useState(true)
-  const [isLoading, setIsLoading] = useState(!!sanctionsApiUrl)
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ["sanctions"],
+    queryFn: checkSanctions,
+    enabled: !!sanctionsApiUrl,
+    retry: false,
+    staleTime: Infinity,
+  })
 
-  useEffect(() => {
-    if (!sanctionsApiUrl) {
-      setAllowed(true)
-      setIsLoading(false)
-      return
-    }
+  if (!sanctionsApiUrl) return { allowed: true, isLoading: false }
 
-    let cancelled = false
+  // Fail-closed: block on error
+  if (isError) return { allowed: false, isLoading: false }
 
-    async function check() {
-      try {
-        const response = await fetch(sanctionsApiUrl as string)
-        if (!cancelled) {
-          setAllowed(response.status !== 403)
-        }
-      } catch {
-        // On network error, block access (fail-closed when sanctions API is configured)
-        if (!cancelled) {
-          setAllowed(false)
-        }
-      } finally {
-        if (!cancelled) {
-          setIsLoading(false)
-        }
-      }
-    }
-
-    check()
-
-    return () => {
-      cancelled = true
-    }
-  }, [])
-
-  return { allowed, isLoading }
+  return { allowed: data ?? true, isLoading }
 }

@@ -1,4 +1,47 @@
-import { useState, useEffect } from "react"
+import { useQuery } from "@tanstack/react-query"
+
+const CACHE_KEY = "geoblock_check"
+const DEFAULT_CACHE_DAYS = 7
+const cacheDays =
+  Number(import.meta.env.VITE_GEOBLOCK_CACHE_DAYS) || DEFAULT_CACHE_DAYS
+const CACHE_TTL_MS = cacheDays * 24 * 60 * 60 * 1000
+
+interface CachedGeoblock {
+  country: string
+  timestamp: number
+}
+
+function readCache(): string | null {
+  try {
+    const raw = localStorage.getItem(CACHE_KEY)
+    if (!raw) return null
+    const cached: CachedGeoblock = JSON.parse(raw)
+    if (Date.now() - cached.timestamp > CACHE_TTL_MS) {
+      localStorage.removeItem(CACHE_KEY)
+      return null
+    }
+    return cached.country
+  } catch {
+    localStorage.removeItem(CACHE_KEY)
+    return null
+  }
+}
+
+function writeCache(country: string): void {
+  const entry: CachedGeoblock = { country, timestamp: Date.now() }
+  localStorage.setItem(CACHE_KEY, JSON.stringify(entry))
+}
+
+async function fetchCountry(): Promise<string> {
+  const cached = readCache()
+  if (cached) return cached
+
+  const response = await fetch("https://api.country.is")
+  if (!response.ok) throw new Error("Geo lookup failed")
+  const data: { country: string } = await response.json()
+  writeCache(data.country)
+  return data.country
+}
 
 // ITAR/OFAC blocked country codes (ISO 3166-1 alpha-2)
 const BLOCKED_COUNTRIES = new Set([
@@ -17,15 +60,15 @@ const BLOCKED_COUNTRIES = new Set([
   "LB", // Lebanon
   "MM", // Myanmar
   "SD", // Sudan
-  "SY", // Syria
+  "SY", // Syrian Arab Republic
   "ZW", // Zimbabwe
   "IQ", // Iraq
-  "LY", // Libya
+  "LY", // Libyan Arab Jamahiriya
   "SS", // South Sudan
   "CF", // Central African Republic
   "ET", // Ethiopia
   "KH", // Cambodia
-  "UA", // Ukraine (Crimea / occupied territories — conservative: entire UA)
+  "UA", // Ukraine (Crimea / occupied territories)
 ])
 
 interface GeoblockResult {
@@ -34,38 +77,17 @@ interface GeoblockResult {
 }
 
 export function useGeoblockCheck(): GeoblockResult {
-  const [allowed, setAllowed] = useState(true)
-  const [isLoading, setIsLoading] = useState(true)
+  const { data: country, isLoading, isError } = useQuery({
+    queryKey: ["geoblock"],
+    queryFn: fetchCountry,
+    staleTime: CACHE_TTL_MS,
+    gcTime: CACHE_TTL_MS,
+    retry: false,
+  })
 
-  useEffect(() => {
-    let cancelled = false
+  if (isLoading) return { allowed: true, isLoading: true }
 
-    async function check() {
-      try {
-        const response = await fetch("https://api.country.is")
-        if (!response.ok) throw new Error("Geo lookup failed")
-        const data: { country: string } = await response.json()
-        if (!cancelled) {
-          setAllowed(!BLOCKED_COUNTRIES.has(data.country))
-        }
-      } catch {
-        // Fail-open: if geo lookup fails, allow access
-        if (!cancelled) {
-          setAllowed(true)
-        }
-      } finally {
-        if (!cancelled) {
-          setIsLoading(false)
-        }
-      }
-    }
-
-    check()
-
-    return () => {
-      cancelled = true
-    }
-  }, [])
-
-  return { allowed, isLoading }
+  // Fail-closed: block on error or blocked country
+  const allowed = !isError && !!country && !BLOCKED_COUNTRIES.has(country)
+  return { allowed, isLoading: false }
 }

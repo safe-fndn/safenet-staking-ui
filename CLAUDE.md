@@ -72,7 +72,7 @@ Validator metadata (label, commission, participation rate) is fetched from the r
 ### Compliance
 
 - **IP-level sanctions** (`src/hooks/useSanctionsCheck.ts`): Fetches `VITE_SANCTIONS_API_URL` on mount; no-op if env var is unset.
-- **Geo-blocking** (`src/hooks/useGeoblockCheck.ts`): Checks user's country via `api.country.is` against an OFAC/ITAR blocked country list. Fails open on lookup errors.
+- **Geo-blocking** (`src/hooks/useGeoblockCheck.ts`): Checks user's country via `api.country.is` against an OFAC/ITAR blocked country list. Result is cached in `localStorage` (key: `geoblock_check`) for `VITE_GEOBLOCK_CACHE_DAYS` days (default 7). Fails closed on lookup errors.
 - **Wallet sanctions** (`src/hooks/useWalletSanctionsCheck.ts`): Checks connected wallet address against the sanctions API. Blocks the UI if flagged.
 
 ### UI Components
@@ -145,6 +145,7 @@ Wagmi config (`src/config/wagmi.ts`) uses `safe()` (auto-detects Safe Wallet ifr
 | `VITE_WALLETCONNECT_PROJECT_ID` | No | Enables WalletConnect connector |
 | `VITE_MERKLE_DROP_ADDRESS` | No | Merkle drop contract address for rewards claiming |
 | `VITE_SANCTIONS_API_URL` | No | Sanctions check endpoint (403 = blocked) |
+| `VITE_GEOBLOCK_CACHE_DAYS` | No | Geo-block cache duration in days (defaults to 7) |
 | `VITE_DOCS_URL` | No | Footer documentation link (defaults to Safe docs) |
 
 ## Adding a New Chain
