@@ -34,6 +34,9 @@ The app will be available at `http://localhost:5173`.
 | `VITE_WALLETCONNECT_PROJECT_ID` | No | Enables WalletConnect connector |
 | `VITE_MERKLE_DROP_ADDRESS` | No | Merkle drop contract address for rewards claiming |
 | `VITE_SANCTIONS_API_URL` | No | Sanctions check endpoint (HTTP 403 = blocked) |
+| `VITE_GEOBLOCK_CACHE_DAYS` | No | Geo-block cache duration in days (defaults to 7) |
+| `VITE_VALIDATOR_INFO_URL` | No | Validator info JSON endpoint (defaults to GitHub raw URL) |
+| `VITE_REWARDS_BASE_URL` | No | Base URL for reward proof files (defaults to GitHub raw URL) |
 | `VITE_DOCS_URL` | No | Documentation link in footer (defaults to Safe docs) |
 | `PINATA_JWT` | No | Pinata API JWT for IPFS deployment |
 | `PINATA_GATEWAY` | No | Pinata gateway domain for IPFS deployment |
