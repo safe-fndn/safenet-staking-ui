@@ -102,7 +102,7 @@ function App() {
   }
 
   if (!sanctionsAllowed || !geoAllowed) {
-    return <RestrictedScreen title="Access Restricted" description="SAFE Staking and Rewards are unavailable in your region." linkText="Learn more about eligibility here" />
+    return <RestrictedScreen title="Access Restricted" description="SAFE Staking and Rewards are unavailable in your region." />
   }
 
   return (

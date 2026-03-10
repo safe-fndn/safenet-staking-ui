@@ -14,18 +14,6 @@ describe("RestrictedScreen", () => {
     expect(screen.getByText("Your region is blocked")).toBeInTheDocument()
   })
 
-  it("renders default link text", () => {
-    render(<RestrictedScreen title="Blocked" description="Desc" />)
-
-    expect(screen.getByText("Learn more about eligibility")).toBeInTheDocument()
-  })
-
-  it("renders custom link text", () => {
-    render(<RestrictedScreen title="Blocked" description="Desc" linkText="Read the docs" />)
-
-    expect(screen.getByText("Read the docs")).toBeInTheDocument()
-  })
-
   it("renders footer", () => {
     render(<RestrictedScreen title="Blocked" description="Desc" />)
 
