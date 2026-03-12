@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest"
+import { describe, it, expect, vi, beforeEach, type Mock } from "vitest"
 import { renderHook } from "@testing-library/react"
 
 const mockFetch = vi.fn()
@@ -7,14 +7,15 @@ vi.stubGlobal("fetch", mockFetch)
 let capturedQueryFn: (() => Promise<unknown>) | undefined
 
 vi.mock("@tanstack/react-query", () => ({
-  useQuery: vi.fn((opts: { queryFn?: () => Promise<unknown> }) => {
-    capturedQueryFn = opts.queryFn
+  useQuery: vi.fn((opts: Record<string, unknown>) => {
+    capturedQueryFn = opts.queryFn as (() => Promise<unknown>) | undefined
     return { data: undefined, isLoading: true, isError: false }
   }),
 }))
 
 const { useGeoblockCheck } = await import("../useGeoblockCheck")
-const reactQuery = vi.mocked(await import("@tanstack/react-query"))
+const reactQuery = await import("@tanstack/react-query")
+const useQueryMock = reactQuery.useQuery as unknown as Mock
 
 describe("useGeoblockCheck", () => {
   beforeEach(() => {
@@ -25,11 +26,11 @@ describe("useGeoblockCheck", () => {
 
   describe("hook return values", () => {
     it("returns allowed=true and isLoading=true while loading", () => {
-      reactQuery.useQuery.mockReturnValue({
+      useQueryMock.mockReturnValue({
         data: undefined,
         isLoading: true,
         isError: false,
-      } as ReturnType<typeof reactQuery.useQuery>)
+      })
 
       const { result } = renderHook(() => useGeoblockCheck())
 
@@ -38,11 +39,11 @@ describe("useGeoblockCheck", () => {
     })
 
     it("returns allowed=true for non-blocked country", () => {
-      reactQuery.useQuery.mockReturnValue({
+      useQueryMock.mockReturnValue({
         data: "US",
         isLoading: false,
         isError: false,
-      } as ReturnType<typeof reactQuery.useQuery>)
+      })
 
       const { result } = renderHook(() => useGeoblockCheck())
 
@@ -51,11 +52,11 @@ describe("useGeoblockCheck", () => {
     })
 
     it("returns allowed=false for blocked country (Iran)", () => {
-      reactQuery.useQuery.mockReturnValue({
+      useQueryMock.mockReturnValue({
         data: "IR",
         isLoading: false,
         isError: false,
-      } as ReturnType<typeof reactQuery.useQuery>)
+      })
 
       const { result } = renderHook(() => useGeoblockCheck())
 
@@ -63,11 +64,11 @@ describe("useGeoblockCheck", () => {
     })
 
     it("returns allowed=false for blocked country (Russia)", () => {
-      reactQuery.useQuery.mockReturnValue({
+      useQueryMock.mockReturnValue({
         data: "RU",
         isLoading: false,
         isError: false,
-      } as ReturnType<typeof reactQuery.useQuery>)
+      })
 
       const { result } = renderHook(() => useGeoblockCheck())
 
@@ -75,11 +76,11 @@ describe("useGeoblockCheck", () => {
     })
 
     it("returns allowed=false on error (fail-closed)", () => {
-      reactQuery.useQuery.mockReturnValue({
+      useQueryMock.mockReturnValue({
         data: undefined,
         isLoading: false,
         isError: true,
-      } as ReturnType<typeof reactQuery.useQuery>)
+      })
 
       const { result } = renderHook(() => useGeoblockCheck())
 
@@ -89,14 +90,16 @@ describe("useGeoblockCheck", () => {
 
   describe("queryFn (fetchCountry)", () => {
     beforeEach(() => {
-      reactQuery.useQuery.mockImplementation(
-        (opts: { queryFn?: () => Promise<unknown> }) => {
-          capturedQueryFn = opts.queryFn
+      useQueryMock.mockImplementation(
+        (opts: Record<string, unknown>) => {
+          capturedQueryFn = opts.queryFn as
+            | (() => Promise<unknown>)
+            | undefined
           return {
             data: undefined,
             isLoading: true,
             isError: false,
-          } as ReturnType<typeof reactQuery.useQuery>
+          }
         },
       )
       renderHook(() => useGeoblockCheck())
@@ -188,7 +191,7 @@ describe("useGeoblockCheck", () => {
     it("passes correct query key and options", () => {
       renderHook(() => useGeoblockCheck())
 
-      expect(reactQuery.useQuery).toHaveBeenCalledWith(
+      expect(useQueryMock).toHaveBeenCalledWith(
         expect.objectContaining({
           queryKey: ["geoblock"],
           retry: false,

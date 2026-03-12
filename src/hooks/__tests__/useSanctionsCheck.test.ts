@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest"
+import { describe, it, expect, vi, beforeEach, type Mock } from "vitest"
 import { renderHook } from "@testing-library/react"
 
 const mockFetch = vi.fn()
@@ -12,12 +12,10 @@ let capturedOptions:
   | undefined
 
 vi.mock("@tanstack/react-query", () => ({
-  useQuery: vi.fn(
-    (opts: { queryFn?: () => Promise<unknown>; enabled?: boolean }) => {
-      capturedOptions = opts
-      return { data: undefined, isLoading: true, isError: false }
-    },
-  ),
+  useQuery: vi.fn((opts: Record<string, unknown>) => {
+    capturedOptions = opts as typeof capturedOptions
+    return { data: undefined, isLoading: true, isError: false }
+  }),
 }))
 
 describe("useSanctionsCheck", () => {
@@ -29,7 +27,7 @@ describe("useSanctionsCheck", () => {
 
   describe("when VITE_SANCTIONS_API_URL is set", () => {
     let useSanctionsCheck: () => { allowed: boolean; isLoading: boolean }
-    let reactQuery: typeof import("@tanstack/react-query")
+    let useQueryMock: Mock
 
     beforeEach(async () => {
       vi.stubEnv(
@@ -37,16 +35,17 @@ describe("useSanctionsCheck", () => {
         "https://sanctions.example.com/check",
       )
       ;({ useSanctionsCheck } = await import("../useSanctionsCheck"))
-      reactQuery = vi.mocked(await import("@tanstack/react-query"))
+      const reactQuery = await import("@tanstack/react-query")
+      useQueryMock = reactQuery.useQuery as unknown as Mock
     })
 
     describe("hook return values", () => {
       it("returns allowed=true and isLoading=true while loading", () => {
-        reactQuery.useQuery.mockReturnValue({
+        useQueryMock.mockReturnValue({
           data: undefined,
           isLoading: true,
           isError: false,
-        } as ReturnType<typeof reactQuery.useQuery>)
+        })
 
         const { result } = renderHook(() => useSanctionsCheck())
 
@@ -55,11 +54,11 @@ describe("useSanctionsCheck", () => {
       })
 
       it("returns allowed=true on successful non-403 response", () => {
-        reactQuery.useQuery.mockReturnValue({
+        useQueryMock.mockReturnValue({
           data: true,
           isLoading: false,
           isError: false,
-        } as ReturnType<typeof reactQuery.useQuery>)
+        })
 
         const { result } = renderHook(() => useSanctionsCheck())
 
@@ -68,11 +67,11 @@ describe("useSanctionsCheck", () => {
       })
 
       it("returns allowed=false on 403 response", () => {
-        reactQuery.useQuery.mockReturnValue({
+        useQueryMock.mockReturnValue({
           data: false,
           isLoading: false,
           isError: false,
-        } as ReturnType<typeof reactQuery.useQuery>)
+        })
 
         const { result } = renderHook(() => useSanctionsCheck())
 
@@ -81,11 +80,11 @@ describe("useSanctionsCheck", () => {
       })
 
       it("returns allowed=false on error (fail-closed)", () => {
-        reactQuery.useQuery.mockReturnValue({
+        useQueryMock.mockReturnValue({
           data: undefined,
           isLoading: false,
           isError: true,
-        } as ReturnType<typeof reactQuery.useQuery>)
+        })
 
         const { result } = renderHook(() => useSanctionsCheck())
 
@@ -96,17 +95,14 @@ describe("useSanctionsCheck", () => {
 
     describe("queryFn (checkSanctions)", () => {
       beforeEach(() => {
-        reactQuery.useQuery.mockImplementation(
-          (opts: {
-            queryFn?: () => Promise<unknown>
-            enabled?: boolean
-          }) => {
-            capturedOptions = opts
+        useQueryMock.mockImplementation(
+          (opts: Record<string, unknown>) => {
+            capturedOptions = opts as typeof capturedOptions
             return {
               data: undefined,
               isLoading: true,
               isError: false,
-            } as ReturnType<typeof reactQuery.useQuery>
+            }
           },
         )
         renderHook(() => useSanctionsCheck())
@@ -142,7 +138,7 @@ describe("useSanctionsCheck", () => {
       it("passes correct query key and options", () => {
         renderHook(() => useSanctionsCheck())
 
-        expect(reactQuery.useQuery).toHaveBeenCalledWith(
+        expect(useQueryMock).toHaveBeenCalledWith(
           expect.objectContaining({
             queryKey: ["sanctions"],
             enabled: true,
@@ -157,12 +153,13 @@ describe("useSanctionsCheck", () => {
   describe("when VITE_SANCTIONS_API_URL is not set", () => {
     it("returns allowed=true and isLoading=false", async () => {
       vi.stubEnv("VITE_SANCTIONS_API_URL", "")
-      const reactQuery = vi.mocked(await import("@tanstack/react-query"))
-      reactQuery.useQuery.mockReturnValue({
+      const reactQuery = await import("@tanstack/react-query")
+      const mock = reactQuery.useQuery as unknown as Mock
+      mock.mockReturnValue({
         data: undefined,
         isLoading: false,
         isError: false,
-      } as ReturnType<typeof reactQuery.useQuery>)
+      })
 
       const { useSanctionsCheck } = await import("../useSanctionsCheck")
       const { result } = renderHook(() => useSanctionsCheck())
@@ -173,25 +170,23 @@ describe("useSanctionsCheck", () => {
 
     it("disables the query", async () => {
       vi.stubEnv("VITE_SANCTIONS_API_URL", "")
-      const reactQuery = vi.mocked(await import("@tanstack/react-query"))
-      reactQuery.useQuery.mockImplementation(
-        (opts: {
-          queryFn?: () => Promise<unknown>
-          enabled?: boolean
-        }) => {
-          capturedOptions = opts
+      const reactQuery = await import("@tanstack/react-query")
+      const mock = reactQuery.useQuery as unknown as Mock
+      mock.mockImplementation(
+        (opts: Record<string, unknown>) => {
+          capturedOptions = opts as typeof capturedOptions
           return {
             data: undefined,
             isLoading: false,
             isError: false,
-          } as ReturnType<typeof reactQuery.useQuery>
+          }
         },
       )
 
       const { useSanctionsCheck } = await import("../useSanctionsCheck")
       renderHook(() => useSanctionsCheck())
 
-      expect(reactQuery.useQuery).toHaveBeenCalledWith(
+      expect(mock).toHaveBeenCalledWith(
         expect.objectContaining({
           enabled: false,
         }),
