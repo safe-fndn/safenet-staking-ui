@@ -53,35 +53,35 @@ describe("WithdrawalCard", () => {
   it("shows enabled Claim button when claimable", () => {
     render(<WithdrawalCard {...defaultProps} />)
 
-    expect(screen.getByRole("button", { name: "Claim" })).toBeEnabled()
+    expect(screen.getByRole("button", { name: /Claim/i })).toBeEnabled()
   })
 
   it("calls onClaim when Claim button clicked", async () => {
     const user = userEvent.setup()
     render(<WithdrawalCard {...defaultProps} />)
 
-    await user.click(screen.getByRole("button", { name: "Claim" }))
+    await user.click(screen.getByRole("button", { name: /Claim/i }))
 
     expect(mockOnClaim).toHaveBeenCalled()
   })
 
-  it("disables Claim button when not first in queue", () => {
+  it("hides Claim button when not first in queue", () => {
     render(<WithdrawalCard {...defaultProps} isFirst={false} />)
 
-    expect(screen.getByRole("button", { name: "Claim" })).toBeDisabled()
+    expect(screen.queryByRole("button", { name: /Claim/i })).not.toBeInTheDocument()
   })
 
   it("shows signing state on Claim button", () => {
     render(<WithdrawalCard {...defaultProps} isSigningTx={true} />)
 
-    expect(screen.getByText("Confirm in Wallet…")).toBeInTheDocument()
+    expect(screen.getByText("Signing…")).toBeInTheDocument()
     expect(screen.getByRole("button")).toBeDisabled()
   })
 
   it("shows confirming state on Claim button", () => {
     render(<WithdrawalCard {...defaultProps} isConfirmingTx={true} />)
 
-    expect(screen.getByText("Confirming onchain…")).toBeInTheDocument()
+    expect(screen.getByText("Confirming…")).toBeInTheDocument()
   })
 
   it("shows countdown and progress bar when in cooldown", async () => {
@@ -92,7 +92,7 @@ describe("WithdrawalCard", () => {
 
     // Should show progress bar (cooldown in progress)
     expect(screen.getByText("Cooldown progress")).toBeInTheDocument()
-    // Claim button present but disabled during cooldown
-    expect(screen.getByRole("button", { name: "Claim" })).toBeDisabled()
+    // Claim button not shown during cooldown
+    expect(screen.queryByRole("button", { name: /Claim/i })).not.toBeInTheDocument()
   })
 })

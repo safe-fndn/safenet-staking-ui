@@ -2,9 +2,7 @@ import { useState, useEffect } from "react"
 import { Link } from "react-router-dom"
 import type { Address } from "viem"
 import { useAccount } from "wagmi"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { DelegateDialog } from "@/components/staking/DelegateDialog"
 import { UndelegateDialog } from "@/components/staking/UndelegateDialog"
@@ -50,88 +48,190 @@ export function ValidatorCard({
     }
   }, [autoOpenDelegate, isActive])
 
+  const cardBorder = isActive
+    ? "border-black/12 dark:border-white/32"
+    : "border-black/[0.06] dark:border-white/[0.06]"
+
+  const cardBg = isActive
+    ? "bg-white dark:bg-card"
+    : "bg-[#F7F7F7] dark:bg-[#1A1B1A]/60"
+
+  // Inactive cards dim the name and values to 60% opacity
+  const nameColor = isActive
+    ? "text-foreground"
+    : "text-black/60 dark:text-white/60"
+  const valueColor = isActive
+    ? "text-foreground"
+    : "text-black/60 dark:text-white/60"
+
   return (
     <>
-      <Card className={!isActive ? "opacity-60" : "hover:shadow-[var(--shadow-card-hover)]"}>
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-base">
-              <Link to={`/validators/${validator}`} className="hover:underline">
-                {metadata ? metadata.label : <span className="font-mono">{truncateAddress(validator)}</span>}
-              </Link>
-            </CardTitle>
-            {isActive ? (
-              <Badge variant="secondary">Active</Badge>
-            ) : (
-              <Badge className="bg-warning/20 text-warning hover:bg-warning/30">Inactive</Badge>
-            )}
-          </div>
-          {metadata && (
-            <button
-              className="text-xs font-mono text-muted-foreground hover:text-foreground transition-colors text-left"
-              onClick={async () => {
-                const ok = await copyToClipboard(validator)
-                if (ok) toast({ variant: "success", title: "Address copied" })
-              }}
-              title="Copy validator address"
+      <div
+        className={`flex flex-col border ${cardBorder} ${cardBg}`}
+      >
+        {/* Header: name + badge, 78px, border-bottom */}
+        <div
+          className="flex items-center justify-between
+            px-6 py-4 border-b border-black/12 dark:border-white/12"
+          style={{ minHeight: 78 }}
+        >
+          <div className="min-w-0 flex flex-col gap-1">
+            <Link
+              to={`/validators/${validator}`}
+              className={`text-2xl font-normal hover:underline truncate block
+                leading-none ${nameColor}`}
             >
-              {truncateAddress(validator)}
-            </button>
-          )}
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {metadata && (
-            <div className="flex gap-4 text-xs text-muted-foreground">
-              <span>Commission: {metadata.commission}%</span>
-              <span>Participation (14d): {metadata.participationRate}%</span>
-            </div>
-          )}
-
-          <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">Total SAFE Staked</span>
-            {loadingTotal ? (
-              <Skeleton className="h-4 w-24" />
-            ) : (
-              <span className="font-medium">
-                {formatTokenAmount(totalStake ?? 0n, 18, 0)}
-              </span>
+              {metadata
+                ? metadata.label
+                : <span className="font-mono">
+                    {truncateAddress(validator)}
+                  </span>}
+            </Link>
+            {metadata && (
+              <button
+                className="text-sm font-mono uppercase
+                  text-black/30 dark:text-white/30
+                  hover:text-foreground transition-colors text-left
+                  leading-[18px]"
+                onClick={async () => {
+                  const ok = await copyToClipboard(validator)
+                  if (ok) {
+                    toast({ variant: "success", title: "Address copied" })
+                  }
+                }}
+                title="Copy validator address"
+              >
+                {truncateAddress(validator)}
+              </button>
             )}
           </div>
+          {isActive ? (
+            <span
+              className="shrink-0 inline-flex items-center
+                px-[7px] py-[3px] text-sm font-mono uppercase
+                leading-[18px]
+                text-[#007441] dark:text-[#27D18B]
+                bg-[#27D18B]/[0.18]
+                border border-[#27D18B]/[0.42]"
+            >
+              Active
+            </span>
+          ) : (
+            <span
+              className="shrink-0 inline-flex items-center
+                px-[7px] py-[3px] text-sm font-mono uppercase
+                leading-[18px]
+                text-[#4E0B00] dark:text-[#FF7A66]
+                bg-[#FF7A66]/[0.20]
+                border border-[#FF7A66]/[0.45]"
+            >
+              Inactive
+            </span>
+          )}
+        </div>
 
-          {isConnected && (
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Your SAFE Staked</span>
+        {/* Content: two columns with vertical divider */}
+        <div className="flex flex-1 min-h-0">
+          {/* Left column — Commission */}
+          <div className="flex-1 flex flex-col gap-1 px-6 py-4">
+            <span className="text-base font-heading text-black/30 dark:text-white/30 leading-none">
+              Commission:
+            </span>
+            <span className={`text-xl font-mono leading-none uppercase ${valueColor}`}>
+              {metadata ? `${metadata.commission}%` : "—"}
+            </span>
+          </div>
+          {/* Vertical divider */}
+          <div className="w-px bg-black/12 dark:bg-white/12 self-stretch" />
+          {/* Right column — Participation */}
+          <div className="flex-1 flex flex-col gap-1 px-6 py-4">
+            <span className="text-base font-heading text-black/30 dark:text-white/30 leading-none">
+              Participation (14d):
+            </span>
+            <span className={`text-xl font-mono leading-none uppercase ${valueColor}`}>
+              {metadata ? `${metadata.participationRate}%` : "—"}
+            </span>
+          </div>
+        </div>
+
+        {/* Footer: Total SAFE Staked, border-top */}
+        <div
+          className="flex items-center justify-between
+            px-6 py-4 border-t border-black/12 dark:border-white/12"
+          style={{ minHeight: 52 }}
+        >
+          <span className="text-base font-heading text-black/30 dark:text-white/30 leading-none">
+            Total SAFE Staked
+          </span>
+          {loadingTotal ? (
+            <Skeleton className="h-5 w-28" />
+          ) : (
+            <span className={`text-xl font-mono leading-none uppercase ${valueColor}`}>
+              {formatTokenAmount(totalStake ?? 0n, 18, 0)}
+            </span>
+          )}
+        </div>
+
+        {/* Connected: user stake + actions */}
+        {isConnected && (
+          <>
+            <div
+              className="flex items-center justify-between
+                px-6 py-4 border-t border-black/12 dark:border-white/12"
+              style={{ minHeight: 52 }}
+            >
+              <span className="text-base font-heading text-black/30 dark:text-white/30 leading-none">
+                Your Stake
+              </span>
               {loadingUser ? (
-                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-5 w-28" />
               ) : (
-                <span className="font-medium">
+                <span className={`text-xl font-mono leading-none uppercase ${valueColor}`}>
                   {formatTokenAmount(userStake ?? 0n, 18, 0)}
                 </span>
               )}
             </div>
-          )}
-
-          {isConnected && (
-            <div className="flex gap-2 pt-3 mt-1 border-t border-border/40">
-              <Button size="sm" variant="gradient" className="flex-1" onClick={() => setDelegateOpen(true)} disabled={!isActive}>
+            <div
+              className="flex gap-3 px-6 py-3
+                border-t border-black/12 dark:border-white/12"
+            >
+              <Button
+                size="sm"
+                variant="gradient"
+                className="flex-1 uppercase"
+                onClick={() => setDelegateOpen(true)}
+                disabled={!isActive}
+              >
                 Stake
               </Button>
               <Button
                 size="sm"
                 variant="outline"
-                className="flex-1"
+                className="flex-1 uppercase"
                 disabled={!hasStake}
                 onClick={() => setUndelegateOpen(true)}
               >
                 Unstake
               </Button>
             </div>
-          )}
-        </CardContent>
-      </Card>
+          </>
+        )}
+      </div>
 
-      {delegateOpen && <DelegateDialog validator={validator} open={delegateOpen} onOpenChange={setDelegateOpen} />}
-      {undelegateOpen && <UndelegateDialog validator={validator} open={undelegateOpen} onOpenChange={setUndelegateOpen} />}
+      {delegateOpen && (
+        <DelegateDialog
+          validator={validator}
+          open={delegateOpen}
+          onOpenChange={setDelegateOpen}
+        />
+      )}
+      {undelegateOpen && (
+        <UndelegateDialog
+          validator={validator}
+          open={undelegateOpen}
+          onOpenChange={setUndelegateOpen}
+        />
+      )}
     </>
   )
 }

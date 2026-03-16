@@ -104,9 +104,9 @@ describe("ValidatorList", () => {
     expect(screen.getByTestId(`validator-card-${TEST_ACCOUNTS.validator2}`)).toBeInTheDocument()
   })
 
-  it("shows search controls", () => {
+  it("renders all validators without filtering", () => {
     mockUseValidators.mockReturnValue({
-      data: [MOCK_VALIDATORS[0]],
+      data: [...MOCK_VALIDATORS],
       isLoading: false,
       error: null,
       refetch: vi.fn(),
@@ -118,6 +118,7 @@ describe("ValidatorList", () => {
       </MemoryRouter>,
     )
 
-    expect(screen.getByPlaceholderText("Search by name or address…")).toBeInTheDocument()
+    const cards = screen.getAllByText("ValidatorCard")
+    expect(cards).toHaveLength(MOCK_VALIDATORS.length)
   })
 })

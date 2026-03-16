@@ -53,8 +53,10 @@ describe("ValidatorCard", () => {
     renderCard()
 
     expect(screen.getByText("Gnosis")).toBeInTheDocument()
-    expect(screen.getByText("Commission: 5%")).toBeInTheDocument()
-    expect(screen.getByText("Participation (14d): 99.9%")).toBeInTheDocument()
+    expect(screen.getByText("Commission:")).toBeInTheDocument()
+    expect(screen.getByText("5%")).toBeInTheDocument()
+    expect(screen.getByText("Participation (14d):")).toBeInTheDocument()
+    expect(screen.getByText("99.9%")).toBeInTheDocument()
   })
 
   it("shows Active badge for active validator", () => {
@@ -94,6 +96,6 @@ describe("ValidatorCard", () => {
     renderCard()
 
     expect(screen.getByText("Total SAFE Staked")).toBeInTheDocument()
-    expect(screen.getByText("Your SAFE Staked")).toBeInTheDocument()
+    expect(screen.getByText("Your Stake")).toBeInTheDocument()
   })
 })

@@ -3,11 +3,26 @@
 
 @custom-variant dark (&:is(.dark *));
 
+@font-face {
+  font-family: "Citerne";
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  src: url("./assets/fonts/Citerne-Regular.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Citerne";
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+  src: url("./assets/fonts/Citerne-Medium.woff2") format("woff2");
+}
+
 /* Safenet brand palette — light mode */
 :root {
   /* Override WalletConnect modal font (avoids fonts.reown.com fetch) */
   --w3m-font-family: "Geist Mono Variable", "Geist Mono", ui-monospace, monospace;
-  --background: #E5E8E6;
+  --background: #FFFFFF;
   --foreground: #000000;
   --card: #FFFFFF;
   --card-foreground: #000000;
@@ -23,7 +38,7 @@
   --accent-foreground: #000000;
   --destructive: #FF5F72;
   --destructive-foreground: #FFFFFF;
-  --border: #BFC5C1;
+  --border: rgba(0, 0, 0, 0.12);
   --input: #B2B9B5;
   --ring: #12FF80;
   --safe-green: #12FF80;
@@ -36,32 +51,30 @@
   --radius: 0.375rem;
 }
 
-/* Safenet brand palette — dark mode
-   Derived from brand guide: pure black surfaces, white 10% borders,
-   green accent only — no green-tinted surfaces. */
+/* Safenet brand palette — dark mode (Oakline design) */
 .dark {
-  --background: #000000;
+  --background: #121312;
   --foreground: #FFFFFF;
-  --card: #080D0A;
+  --card: #1A1B1A;
   --card-foreground: #FFFFFF;
-  --popover: #080D0A;
+  --popover: #1A1B1A;
   --popover-foreground: #FFFFFF;
   --primary: #12FF80;
   --primary-foreground: #000000;
-  --secondary: #121A16;
+  --secondary: #1E201E;
   --secondary-foreground: #FFFFFF;
-  --muted: #121A16;
-  --muted-foreground: #7A8580;
-  --accent: #0E1511;
+  --muted: #1E201E;
+  --muted-foreground: #A1A3A7;
+  --accent: #1E201E;
   --accent-foreground: #FFFFFF;
   --destructive: #FF5F72;
   --destructive-foreground: #FFFFFF;
-  --border: #1A231E;
-  --input: #2A332E;
+  --border: rgba(255, 255, 255, 0.32);
+  --input: rgba(255, 255, 255, 0.15);
   --ring: #12FF80;
   --safe-green: #12FF80;
   --safe-green-dark: #0CB259;
-  --success: #00B460;
+  --success: #27D18B;
   --warning: #FF8061;
   --info: #5FDDFF;
   --safe-light-green: #B0FFC9;
@@ -70,6 +83,7 @@
 
 @theme inline {
   --font-sans: "Geist Mono Variable", "Geist Mono", ui-monospace, monospace;
+  --font-heading: "Citerne", "Georgia", serif;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);

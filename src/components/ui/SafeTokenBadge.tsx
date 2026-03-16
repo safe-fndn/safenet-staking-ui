@@ -6,9 +6,11 @@ interface SafeTokenBadgeProps {
 
 export function SafeTokenBadge({ className }: SafeTokenBadgeProps) {
   return (
-    <span className={cn("inline-flex items-center gap-1", className)}>
-      <img src="/token.png" alt="" className="h-4 w-4" aria-hidden="true" />
-      SAFE
-    </span>
+    <img
+      src="/token.png"
+      alt=""
+      className={cn("h-5 w-5 shrink-0", className)}
+      aria-hidden="true"
+    />
   )
 }

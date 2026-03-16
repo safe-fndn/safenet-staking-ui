@@ -7,8 +7,25 @@ import { useTokenBalance } from "@/hooks/useTokenBalance"
 import { useToast } from "@/hooks/useToast"
 import { copyToClipboard } from "@/lib/clipboard"
 import Copy from "lucide-react/dist/esm/icons/copy"
+import ArrowUpRight from "lucide-react/dist/esm/icons/arrow-up-right"
 import { SafeTokenBadge } from "@/components/ui/SafeTokenBadge"
 import { isSafeApp } from "@/lib/safe"
+
+function ConnectWalletButton({ onClick, ref: buttonRef, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement> & { ref?: React.Ref<HTMLButtonElement> }) {
+  return (
+    <button
+      ref={buttonRef}
+      onClick={onClick}
+      className="flex items-center gap-10 bg-primary text-primary-foreground font-mono text-sm uppercase tracking-[-0.02em] pl-3 pr-2 py-2 h-10 transition-colors hover:bg-primary/90"
+      {...props}
+    >
+      <span>Connect Wallet</span>
+      <span className="flex items-center justify-center w-6 h-6 border border-primary-foreground/50">
+        <ArrowUpRight className="w-4 h-4" aria-hidden="true" />
+      </span>
+    </button>
+  )
+}
 
 export function ConnectButton() {
   const hasInjectedWallet = typeof window.ethereum !== "undefined"
@@ -103,25 +120,21 @@ export function ConnectButton() {
     // Single connector: connect directly without menu
     if (connectors.length === 1) {
       return (
-        <Button onClick={() => connect({ connector: connectors[0] })}>
-          Connect Wallet
-        </Button>
+        <ConnectWalletButton onClick={() => connect({ connector: connectors[0] })} />
       )
     }
 
     return (
       <div className="relative" ref={menuRef} role="none" onKeyDown={handleKeyDown}>
-        <Button
+        <ConnectWalletButton
           ref={triggerRef}
           onClick={() => setMenuOpen((v) => !v)}
           aria-haspopup="true"
           aria-expanded={menuOpen}
-        >
-          Connect Wallet
-        </Button>
+        />
         {menuOpen && (
           <div
-            className="absolute right-0 top-full mt-2 w-56 rounded-lg border bg-card p-2 shadow-lg z-50"
+            className="absolute right-0 top-full mt-2 w-56 rounded-none border bg-card p-2 shadow-lg z-50"
             role="menu"
           >
             {connectors.map((connector, i) => (
@@ -130,7 +143,7 @@ export function ConnectButton() {
                 ref={(el) => { itemRefs.current[i] = el }}
                 role="menuitem"
                 tabIndex={-1}
-                className="flex w-full items-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium hover:bg-accent focus:bg-accent focus:outline-none transition-colors text-left"
+                className="flex w-full items-center gap-2 rounded-none px-3 py-2.5 text-sm font-medium hover:bg-accent focus:bg-accent focus:outline-none transition-colors text-left"
                 onClick={() => {
                   setMenuOpen(false)
                   connect({ connector })
@@ -159,12 +172,20 @@ export function ConnectButton() {
   return (
     <div className="flex items-center gap-3">
       {balance !== undefined && (
-        <span className="hidden lg:inline-flex items-center gap-1 text-sm text-muted-foreground whitespace-nowrap">
-          {formatTokenAmount(typeof balance === "bigint" ? balance : 0n, 18, 0)} <SafeTokenBadge />
+        <span
+          className="hidden lg:inline-flex items-center gap-3 h-8
+            px-3 whitespace-nowrap
+            bg-white dark:bg-card
+            border border-black/20 dark:border-white/20"
+        >
+          <span className="text-base font-semibold tracking-[-0.02em]">
+            {formatTokenAmount(typeof balance === "bigint" ? balance : 0n, 18, 0)}
+          </span>
+          <SafeTokenBadge />
         </span>
       )}
       <button
-        className="flex items-center gap-1.5 text-sm font-mono bg-secondary px-3 py-1.5 rounded-md hover:bg-secondary/80 transition-colors"
+        className="flex items-center gap-1.5 text-sm font-mono bg-secondary px-3 py-1.5 rounded-none hover:bg-secondary/80 transition-colors"
         onClick={async () => {
           if (!address) return
           const ok = await copyToClipboard(address)
@@ -176,7 +197,7 @@ export function ConnectButton() {
         <Copy className="h-3 w-3 text-muted-foreground" aria-hidden="true" />
       </button>
       {!isSafeApp && (
-        <Button variant="outline" size="sm" onClick={() => disconnect()}>
+        <Button variant="outline" size="sm" className="uppercase" onClick={() => disconnect()}>
           Disconnect
         </Button>
       )}

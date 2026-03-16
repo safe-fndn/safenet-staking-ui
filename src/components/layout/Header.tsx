@@ -23,23 +23,24 @@ export function Header() {
   const closeMobileMenu = () => setMobileMenuOpen(false)
 
   return (
-    <header className="border-b bg-card">
+    <header className="border-b border-border bg-background">
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
         <div className="flex items-center gap-8">
-          <Link to="/" className="flex items-center" onClick={closeMobileMenu}>
-            <img src="/Safenet.svg" alt="Safenet" className="h-5 dark:invert" />
+          <Link to="/" className="flex flex-col items-start" onClick={closeMobileMenu}>
+            <img src="/SafenetLogo.svg" alt="Safenet" className="h-[22px] dark:invert" />
+            <span className="self-end font-mono text-[10.89px] leading-[95%] text-foreground">BETA</span>
           </Link>
-          <nav className="hidden md:flex items-center gap-1">
+          <nav className="hidden md:flex items-stretch h-16 gap-1 -mb-px">
             {navItems.map((item) => (
               <Link
                 key={item.path}
                 to={item.path}
                 aria-current={pathname === item.path ? "page" : undefined}
                 className={cn(
-                  "px-3 py-2 text-sm font-medium rounded-md transition-colors",
+                  "flex items-center px-6 text-sm font-mono uppercase leading-5 transition-colors border-b-2",
                   pathname === item.path
-                    ? "text-foreground bg-secondary/60"
-                    : "text-muted-foreground hover:text-foreground hover:bg-secondary/30",
+                    ? "text-foreground border-foreground"
+                    : "text-muted-foreground border-transparent hover:text-foreground",
                 )}
               >
                 {item.label}
@@ -82,10 +83,10 @@ export function Header() {
                 onClick={closeMobileMenu}
                 aria-current={pathname === item.path ? "page" : undefined}
                 className={cn(
-                  "px-3 py-2 text-sm font-medium rounded-md transition-colors",
+                  "px-6 py-2 text-sm font-mono uppercase leading-5 transition-colors border-b-2 -mb-[1px]",
                   pathname === item.path
-                    ? "text-foreground bg-secondary/60"
-                    : "text-muted-foreground hover:text-foreground hover:bg-secondary/30",
+                    ? "text-foreground border-foreground"
+                    : "text-muted-foreground border-transparent hover:text-foreground",
                 )}
               >
                 {item.label}

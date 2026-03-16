@@ -19,8 +19,13 @@ vi.mock("@/components/dashboard/StakeDistribution", () => ({
   StakeDistribution: () => <div data-testid="stake-distribution">StakeDistribution</div>,
 }))
 
-vi.mock("@/components/onboarding/OnboardingBanner", () => ({
-  OnboardingBanner: () => <div data-testid="onboarding-banner">OnboardingBanner</div>,
+vi.mock("@/components/PageHero", () => ({
+  PageHero: (props: Record<string, unknown>) => (
+    <div data-testid="page-hero">
+      <h1>{String(props.title)}</h1>
+      <p>{String(props.subtitle)}</p>
+    </div>
+  ),
 }))
 
 describe("DashboardPage", () => {
@@ -34,7 +39,7 @@ describe("DashboardPage", () => {
   it("renders all child sections", () => {
     render(<DashboardPage />)
 
-    expect(screen.getByTestId("onboarding-banner")).toBeInTheDocument()
+    expect(screen.getByTestId("page-hero")).toBeInTheDocument()
     expect(screen.getByTestId("stats-overview")).toBeInTheDocument()
     expect(screen.getByTestId("quick-actions")).toBeInTheDocument()
     expect(screen.getByTestId("staking-section")).toBeInTheDocument()

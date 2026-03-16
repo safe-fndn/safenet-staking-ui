@@ -2,16 +2,22 @@ import { StatsOverview } from "@/components/dashboard/StatsOverview"
 import { QuickActions } from "@/components/dashboard/QuickActions"
 import { StakingSection } from "@/components/dashboard/StakingSection"
 import { StakeDistribution } from "@/components/dashboard/StakeDistribution"
-import { OnboardingBanner } from "@/components/onboarding/OnboardingBanner"
+import { PageHero } from "@/components/PageHero"
+import heroShields from "@/assets/hero-shields.svg"
+import heroShieldsDark from "@/assets/hero-shields-dark.svg"
 
 export function DashboardPage() {
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-4xl font-bold tracking-tight">Stake your SAFE</h1>
-        <p className="text-muted-foreground">Earn rewards for helping secure the Safenet Beta</p>
-      </div>
-      <OnboardingBanner />
+    <div className="space-y-6">
+      <PageHero
+        illustration={heroShields}
+        illustrationDark={heroShieldsDark}
+        illustrationAlt="Safe staking shields"
+        title="Stake your SAFE"
+        subtitle="Earn rewards for helping secure the Safenet Beta"
+        serialLabel="// 001"
+        specLabel={'[ 3.5" SAFE SHIELD ]'}
+      />
       <StatsOverview />
       <QuickActions />
       <StakingSection />

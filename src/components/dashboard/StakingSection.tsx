@@ -149,7 +149,7 @@ export function StakingSection() {
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Rewards */}
-          <div className="flex items-center justify-between rounded-lg bg-muted/30 p-3">
+          <div className="flex items-center justify-between rounded-none bg-muted/30 p-3">
             <div>
               <span className="text-sm text-muted-foreground">Claimable SAFE</span>
               <p className="font-semibold">{formatTokenAmount(rewards.claimable, 18, 0)}</p>

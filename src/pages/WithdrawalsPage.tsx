@@ -1,12 +1,18 @@
 import { WithdrawalQueue } from "@/components/withdrawals/WithdrawalQueue"
+import { PageHero } from "@/components/PageHero"
+import heroWithdrawals from "@/assets/hero-withdrawals.svg"
 
 export function WithdrawalsPage() {
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-4xl font-bold tracking-tight">Withdrawals</h1>
-        <p className="text-muted-foreground">Manage your pending withdrawals and withdraw undelegated tokens</p>
-      </div>
+      <PageHero
+        illustration={heroWithdrawals}
+        illustrationAlt="Safe withdrawals"
+        title="Withdrawals"
+        subtitle="Manage your pending withdrawals and withdraw undelegated tokens"
+        serialLabel="// 001"
+        specLabel={'[ 3.5" SAFE SHIELD ]'}
+      />
       <WithdrawalQueue />
     </div>
   )
