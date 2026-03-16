@@ -11,7 +11,7 @@ import { WithdrawalCard } from "./WithdrawalCard"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect, useMemo, useCallback } from "react"
 import Info from "lucide-react/dist/esm/icons/info"
 import Loader2 from "lucide-react/dist/esm/icons/loader-2"
 
@@ -21,7 +21,7 @@ export function WithdrawalQueue() {
   const { data: withdrawDelay } = useWithdrawDelay()
   const { data: withdrawalValidators } = useWithdrawalValidators()
   const { data: allValidators } = useValidators()
-  const { claimWithdrawal, isSigningTx, isConfirmingTx, isSuccess: isClaimed, isSafeQueued: isClaimSafeQueued, error: claimError, txHash: claimTxHash } = useClaimWithdrawal()
+  const { claimWithdrawal, isSigningTx, isConfirmingTx, isSuccess: isClaimed, isSafeQueued: isClaimSafeQueued, error: claimError, txHash: claimTxHash, reset: resetClaim } = useClaimWithdrawal()
   const {
     batchClaimWithdrawals,
     supportsBatching,
@@ -60,6 +60,11 @@ export function WithdrawalQueue() {
   const showClaimAll = supportsBatching && claimableCount >= 2
   const isBatchBusy = isBatchSigning || isBatchConfirming
 
+  const handleClaimReset = useCallback(() => {
+    resetClaim()
+    setClaimingIndex(null)
+  }, [resetClaim])
+
   useTxToast(
     {
       successTitle: "Withdrawal claimed",
@@ -72,7 +77,7 @@ export function WithdrawalQueue() {
       error: claimError,
       isSafeQueued: isClaimSafeQueued,
       txHash: claimTxHash,
-      reset: () => { setClaimingIndex(null) },
+      reset: handleClaimReset,
     },
   )
 

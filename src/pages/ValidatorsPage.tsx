@@ -16,8 +16,6 @@ export function ValidatorsPage() {
         illustrationAlt="Safe validator square"
         title="Safenet Validators"
         subtitle="Select a validator to stake your SAFE tokens"
-        serialLabel="// 001"
-        specLabel={'[ 3.5" SAFE SHIELD ]'}
       />
       <ValidatorList autoOpenDelegate={delegateParam} />
     </div>

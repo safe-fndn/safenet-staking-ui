@@ -310,6 +310,19 @@ describe("DelegateDialog", () => {
     )
   })
 
+  it("does not render stepper component", async () => {
+    mockApprovalFlow.needsApproval = true
+
+    const user = userEvent.setup()
+    render(<TooltipProvider><DelegateDialog {...defaultProps} /></TooltipProvider>)
+
+    await user.type(screen.getByPlaceholderText("0.0"), "100")
+
+    // Stepper was removed — verify no step indicators render
+    expect(screen.queryByText("Approve")).not.toBeInTheDocument()
+    expect(screen.queryByText("Done")).not.toBeInTheDocument()
+  })
+
   it("uses batch approve and stake when batching is supported", async () => {
     mockUseBatchStake.supportsBatching = true
     mockApprovalFlow.needsApproval = true

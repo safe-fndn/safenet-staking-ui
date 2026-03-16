@@ -4,8 +4,6 @@ interface PageHeroProps {
   illustrationAlt: string
   title: string
   subtitle: string
-  serialLabel?: string
-  specLabel?: string
 }
 
 export function PageHero({
@@ -14,8 +12,6 @@ export function PageHero({
   illustrationAlt,
   title,
   subtitle,
-  serialLabel,
-  specLabel,
 }: PageHeroProps) {
   return (
     <div className="relative overflow-hidden border border-black/12 dark:border-[#12FF80]/20 p-6 min-h-[300px] flex items-center justify-center">
@@ -33,24 +29,6 @@ export function PageHero({
           backgroundPosition: "0 0, 0 4px, 4px -4px, -4px 0",
         }}
       />
-
-      {/* Annotations */}
-      {serialLabel && (
-        <span
-          className="absolute left-0 top-0 text-sm leading-none text-foreground font-mono whitespace-nowrap"
-          style={{ writingMode: "vertical-rl" }}
-        >
-          {serialLabel}
-        </span>
-      )}
-      {specLabel && (
-        <span
-          className="absolute right-0 bottom-0 text-sm leading-none uppercase text-foreground font-mono whitespace-nowrap"
-          style={{ writingMode: "vertical-rl" }}
-        >
-          {specLabel}
-        </span>
-      )}
 
       {/* Content */}
       <div className="relative flex flex-col items-center text-center px-4 gap-8">

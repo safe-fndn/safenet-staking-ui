@@ -15,8 +15,6 @@ export function DashboardPage() {
         illustrationAlt="Safe staking shields"
         title="Stake your SAFE"
         subtitle="Earn rewards for helping secure the Safenet Beta"
-        serialLabel="// 001"
-        specLabel={'[ 3.5" SAFE SHIELD ]'}
       />
       <StatsOverview />
       <QuickActions />

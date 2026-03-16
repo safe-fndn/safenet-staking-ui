@@ -5,6 +5,7 @@ import { WithdrawalQueue } from "../withdrawals/WithdrawalQueue"
 import { MOCK_VALIDATORS } from "@/__tests__/test-data"
 
 const mockClaimWithdrawal = vi.fn()
+const mockResetClaim = vi.fn()
 const mockToast = vi.fn()
 
 const mockUseAccount = vi.fn()
@@ -61,6 +62,7 @@ describe("WithdrawalQueue", () => {
       isSafeQueued: false,
       error: null,
       txHash: undefined,
+      reset: mockResetClaim,
     })
     mockUseBatchClaimWithdrawals.mockReturnValue({
       batchClaimWithdrawals: vi.fn(),
@@ -138,5 +140,33 @@ describe("WithdrawalQueue", () => {
     renderQueue()
 
     expect(screen.getByLabelText("Withdrawal queue info")).toBeInTheDocument()
+  })
+
+  it("calls useClaimWithdrawal reset after successful claim (regression: infinite toast loop)", () => {
+    mockUseAccount.mockReturnValue({ isConnected: true })
+    mockUsePendingWithdrawals.mockReturnValue({
+      data: [
+        { amount: 50n * 10n ** 18n, claimableAt: BigInt(Math.floor(Date.now() / 1000) - 3600) },
+      ],
+      isLoading: false,
+    })
+    mockUseClaimWithdrawal.mockReturnValue({
+      claimWithdrawal: mockClaimWithdrawal,
+      isSigningTx: false,
+      isConfirmingTx: false,
+      isSuccess: true,
+      isSafeQueued: false,
+      error: null,
+      txHash: "0xabc",
+      reset: mockResetClaim,
+    })
+
+    renderQueue()
+
+    // reset must be called to clear isSuccess and prevent infinite re-renders
+    expect(mockResetClaim).toHaveBeenCalled()
+    expect(mockToast).toHaveBeenCalledWith(
+      expect.objectContaining({ variant: "success", title: "Withdrawal claimed" }),
+    )
   })
 })

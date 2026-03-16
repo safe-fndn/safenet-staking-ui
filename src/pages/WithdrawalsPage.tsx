@@ -10,8 +10,6 @@ export function WithdrawalsPage() {
         illustrationAlt="Safe withdrawals"
         title="Withdrawals"
         subtitle="Manage your pending withdrawals and withdraw undelegated tokens"
-        serialLabel="// 001"
-        specLabel={'[ 3.5" SAFE SHIELD ]'}
       />
       <WithdrawalQueue />
     </div>

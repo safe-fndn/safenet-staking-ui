@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { type Address } from "viem"
 import {
   Dialog,
@@ -8,7 +8,6 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog"
 import { TxButton } from "@/components/ui/TxButton"
-import { Stepper } from "@/components/ui/stepper"
 import { AmountInput } from "./AmountInput"
 import { useTokenBalance } from "@/hooks/useTokenBalance"
 import { useApprovalFlow } from "@/hooks/useApprovalFlow"
@@ -77,38 +76,6 @@ export function DelegateDialog({ validator, open, onOpenChange }: DelegateDialog
 
   const isBatchFlow = supportsBatching && needsApproval
 
-  // Stepper logic
-  const steps = useMemo(
-    () => {
-      if (isBatchFlow) return ["Stake", "Done"]
-      if (needsApproval) return ["Approve", "Stake", "Done"]
-      return ["Stake", "Done"]
-    },
-    [needsApproval, isBatchFlow],
-  )
-
-  const { currentStep, completedSteps } = useMemo(() => {
-    if (isStaked || isBatchSuccess) {
-      return { currentStep: steps.length - 1, completedSteps: steps.map((_, i) => i) }
-    }
-    if (isBatchFlow) {
-      return { currentStep: 0, completedSteps: [] as number[] }
-    }
-    if (needsApproval) {
-      if (isApprovalPending) {
-        return { currentStep: 0, completedSteps: [] as number[] }
-      }
-      if (isSigningTx || isConfirmingTx) {
-        return { currentStep: 1, completedSteps: [0] }
-      }
-      return { currentStep: 0, completedSteps: [] as number[] }
-    }
-    if (isSigningTx || isConfirmingTx) {
-      return { currentStep: 0, completedSteps: [] as number[] }
-    }
-    return { currentStep: 0, completedSteps: [] as number[] }
-  }, [needsApproval, isBatchFlow, isApprovalPending, isSigningTx, isConfirmingTx, isStaked, isBatchSuccess, steps])
-
   const closeAndClearAmount = useCallback(() => {
     setAmount("")
     onOpenChange(false)
@@ -165,8 +132,6 @@ export function DelegateDialog({ validator, open, onOpenChange }: DelegateDialog
     }
   }, [open, resetApprovalFlow, resetStake, resetBatch])
 
-  const showStepper = parsedAmount > 0n && (needsApproval || isSigningTx || isConfirmingTx || isBatchSigning || isBatchConfirming)
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
@@ -176,10 +141,6 @@ export function DelegateDialog({ validator, open, onOpenChange }: DelegateDialog
             Stake tokens to validator {truncateAddress(validator)}
           </DialogDescription>
         </DialogHeader>
-
-        {showStepper && (
-          <Stepper steps={steps} currentStep={currentStep} completedSteps={completedSteps} />
-        )}
 
         <AmountInput
           value={amount}
