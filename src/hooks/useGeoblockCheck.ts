@@ -32,15 +32,28 @@ function writeCache(country: string): void {
   localStorage.setItem(CACHE_KEY, JSON.stringify(entry))
 }
 
+async function fetchFromCountryIs(): Promise<string> {
+  const response = await fetch("https://api.country.is")
+  if (!response.ok) throw new Error("country.is lookup failed")
+  const data: { country: string } = await response.json()
+  return data.country
+}
+
+async function fetchFromIpapi(): Promise<string> {
+  const response = await fetch("https://ipapi.co/country")
+  if (!response.ok) throw new Error("ipapi.co lookup failed")
+  const country = (await response.text()).trim()
+  if (!/^[A-Z]{2}$/.test(country)) throw new Error("ipapi.co invalid response")
+  return country
+}
+
 async function fetchCountry(): Promise<string> {
   const cached = readCache()
   if (cached) return cached
 
-  const response = await fetch("https://api.country.is")
-  if (!response.ok) throw new Error("Geo lookup failed")
-  const data: { country: string } = await response.json()
-  writeCache(data.country)
-  return data.country
+  const country = await fetchFromCountryIs().catch(() => fetchFromIpapi())
+  writeCache(country)
+  return country
 }
 
 // ITAR/OFAC blocked country codes (ISO 3166-1 alpha-2)

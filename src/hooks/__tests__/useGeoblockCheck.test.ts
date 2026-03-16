@@ -158,14 +158,29 @@ describe("useGeoblockCheck", () => {
       expect(stored.timestamp).toBeGreaterThan(0)
     })
 
-    it("throws on non-ok response", async () => {
+    it("falls back to ipapi.co when country.is fails", async () => {
+      mockFetch.mockResolvedValueOnce({ ok: false, status: 500 })
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        text: () => Promise.resolve("US"),
+      })
+
+      const country = await capturedQueryFn!()
+
+      expect(country).toBe("US")
+      expect(mockFetch).toHaveBeenCalledTimes(2)
+    })
+
+    it("throws when both providers fail", async () => {
+      mockFetch.mockResolvedValueOnce({ ok: false, status: 500 })
       mockFetch.mockResolvedValueOnce({ ok: false, status: 500 })
 
-      await expect(capturedQueryFn!()).rejects.toThrow("Geo lookup failed")
+      await expect(capturedQueryFn!()).rejects.toThrow("ipapi.co lookup failed")
       expect(localStorage.getItem("geoblock_check")).toBeNull()
     })
 
-    it("throws on network error", async () => {
+    it("throws on network error from both providers", async () => {
+      mockFetch.mockRejectedValueOnce(new Error("Network error"))
       mockFetch.mockRejectedValueOnce(new Error("Network error"))
 
       await expect(capturedQueryFn!()).rejects.toThrow("Network error")
