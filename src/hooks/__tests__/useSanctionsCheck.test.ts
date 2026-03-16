@@ -108,8 +108,8 @@ describe("useSanctionsCheck", () => {
         renderHook(() => useSanctionsCheck())
       })
 
-      it("returns true for non-403 response", async () => {
-        mockFetch.mockResolvedValueOnce({ status: 200 })
+      it("returns true for 200 response", async () => {
+        mockFetch.mockResolvedValueOnce({ ok: true, status: 200 })
 
         const result = await capturedOptions!.queryFn!()
 
@@ -118,11 +118,19 @@ describe("useSanctionsCheck", () => {
       })
 
       it("returns false for 403 response", async () => {
-        mockFetch.mockResolvedValueOnce({ status: 403 })
+        mockFetch.mockResolvedValueOnce({ ok: false, status: 403 })
 
         const result = await capturedOptions!.queryFn!()
 
         expect(result).toBe(false)
+      })
+
+      it("throws on 500 response (fail-closed)", async () => {
+        mockFetch.mockResolvedValueOnce({ ok: false, status: 500 })
+
+        await expect(capturedOptions!.queryFn!()).rejects.toThrow(
+          "Sanctions check failed: 500",
+        )
       })
 
       it("throws on network error", async () => {

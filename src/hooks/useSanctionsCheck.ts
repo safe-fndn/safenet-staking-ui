@@ -11,7 +11,9 @@ interface SanctionsResult {
 
 async function checkSanctions(): Promise<boolean> {
   const response = await fetch(sanctionsApiUrl as string)
-  return response.status !== 403
+  if (response.status === 403) return false
+  if (!response.ok) throw new Error(`Sanctions check failed: ${response.status}`)
+  return true
 }
 
 export function useSanctionsCheck(): SanctionsResult {
