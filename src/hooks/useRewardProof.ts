@@ -23,10 +23,16 @@ function isValidProof(data: unknown): data is RewardProof {
 const DEFAULT_REWARDS_BASE_URL =
   "https://raw.githubusercontent.com/safe-fndn/safenet-beta-data/refs/heads/main/assets/rewards"
 
+function radixProofPath(addr: string): string {
+  const hex = addr.slice(2, 10).toLowerCase()
+  return `${hex.slice(0, 2)}/${hex.slice(2, 4)}/${hex.slice(4, 6)}/${hex.slice(6, 8)}`
+}
+
 async function fetchProof(address: Address): Promise<RewardProof | null> {
   const normalized = getAddress(address)
+  const lower = normalized.toLowerCase()
   const baseUrl = import.meta.env.VITE_REWARDS_BASE_URL || DEFAULT_REWARDS_BASE_URL
-  const url = `${baseUrl}/proofs/${normalized.toLowerCase()}.json`
+  const url = `${baseUrl}/proofs/${radixProofPath(lower)}/${lower}.json`
   const response = await fetch(url)
   if (response.status === 404) return null
   if (!response.ok) throw new Error(`Failed to fetch reward proof: ${response.status}`)

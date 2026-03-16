@@ -78,10 +78,17 @@ function main() {
       proof,
     }
 
-    const filePath = resolve(
+    const lower = entry.address.toLowerCase()
+    const hex = lower.slice(2, 10)
+    const radixDir = resolve(
       PROOFS_DIR,
-      `${entry.address.toLowerCase()}.json`,
+      hex.slice(0, 2),
+      hex.slice(2, 4),
+      hex.slice(4, 6),
+      hex.slice(6, 8),
     )
+    mkdirSync(radixDir, { recursive: true })
+    const filePath = resolve(radixDir, `${lower}.json`)
     writeFileSync(filePath, JSON.stringify(proofFile, null, 2) + "\n")
     written++
   }
