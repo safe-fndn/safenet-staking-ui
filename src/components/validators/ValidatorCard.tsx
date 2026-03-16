@@ -198,7 +198,7 @@ export function ValidatorCard({
               <Button
                 size="sm"
                 variant="gradient"
-                className="flex-1 uppercase"
+                className="flex-1"
                 onClick={() => setDelegateOpen(true)}
                 disabled={!isActive}
               >
@@ -207,7 +207,7 @@ export function ValidatorCard({
               <Button
                 size="sm"
                 variant="outline"
-                className="flex-1 uppercase"
+                className="flex-1"
                 disabled={!hasStake}
                 onClick={() => setUndelegateOpen(true)}
               >

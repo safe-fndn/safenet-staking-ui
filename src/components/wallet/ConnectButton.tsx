@@ -197,7 +197,7 @@ export function ConnectButton() {
         <Copy className="h-3 w-3 text-muted-foreground" aria-hidden="true" />
       </button>
       {!isSafeApp && (
-        <Button variant="outline" size="sm" className="uppercase" onClick={() => disconnect()}>
+        <Button variant="outline" size="sm" onClick={() => disconnect()}>
           Disconnect
         </Button>
       )}
