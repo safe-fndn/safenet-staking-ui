@@ -70,7 +70,7 @@ export function PageHero({
           <h1 className="font-heading text-4xl md:text-5xl lg:text-[56px] font-normal tracking-[-0.02em] leading-none">
             {title}
           </h1>
-          <p className="mt-6 text-sm md:text-lg uppercase tracking-[-0.02em] text-foreground/50 max-w-md mx-auto font-mono opacity-[0.56]">
+          <p className="mt-6 text-sm md:text-lg uppercase tracking-[-0.02em] text-foreground/50 font-mono opacity-[0.56]">
             {subtitle}
           </p>
         </div>
