@@ -8,8 +8,9 @@
  *   PINATA_GATEWAY      — Your dedicated gateway domain (e.g. "my-gateway.mypinata.cloud")
  *
  * Usage:
- *   node scripts/deploy-ipfs.mjs              # build + upload
+ *   node scripts/deploy-ipfs.mjs              # build + upload, name: "safenet-staking-ui"
  *   node scripts/deploy-ipfs.mjs --skip-build # upload only (dist/ must exist)
+ *   node scripts/deploy-ipfs.mjs --folder     # upload with timestamped name, e.g. "safenet-staking-ui-2026-03-18_14-30-00"
  */
 
 import { execSync } from "node:child_process";
@@ -21,6 +22,16 @@ const ROOT = resolve(import.meta.dirname, "..");
 const DIST = resolve(ROOT, "dist");
 
 const skipBuild = process.argv.includes("--skip-build");
+const useFolder = process.argv.includes("--folder");
+
+const timestamp = new Date()
+  .toISOString()
+  .replace(/T/, "_")
+  .replace(/:/g, "-")
+  .slice(0, 19);
+const uploadName = useFolder
+  ? `safenet-staking-ui-${timestamp}`
+  : "safenet-staking-ui";
 
 function run(cmd, opts = {}) {
   console.log(`\n> ${cmd}`);
@@ -71,7 +82,7 @@ if (!existsSync(resolve(DIST, "index.html"))) {
 }
 
 // --- 2. Upload to Pinata / IPFS ---
-console.log("\n--- Uploading dist/ to IPFS via Pinata ---");
+console.log(`\n--- Uploading dist/ to IPFS via Pinata (name: "${uploadName}") ---`);
 
 const pinata = new PinataSDK({
   pinataJwt: jwt,
@@ -83,7 +94,7 @@ console.log(`Collected ${files.length} files from dist/`);
 
 const upload = await pinata.upload.public
   .fileArray(files)
-  .name("safenet-staking-ui");
+  .name(uploadName);
 
 const cid = upload.cid;
 const gatewayUrl = `https://${gateway}/ipfs/${cid}`;
