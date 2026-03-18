@@ -69,7 +69,7 @@ export function WithdrawalCard({
             )}
             {validator && !isZero && (
               <span
-                className="text-sm font-mono uppercase leading-[18px]
+                className="text-sm font-mono leading-[18px]
                   text-black/30 dark:text-white/30"
               >
                 {truncateAddress(validator)}
