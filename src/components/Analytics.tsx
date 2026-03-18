@@ -20,6 +20,7 @@ export function Analytics() {
     script.src = scriptUrl
     script.async = true
     script.defer = true
+    script.setAttribute("data-hash-mode", "true")
     document.head.appendChild(script)
 
     return () => {
