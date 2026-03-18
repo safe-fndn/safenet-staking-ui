@@ -38,6 +38,9 @@ The app will be available at `http://localhost:5173`.
 | `VITE_VALIDATOR_INFO_URL` | No | Validator info JSON endpoint (defaults to GitHub raw URL) |
 | `VITE_REWARDS_BASE_URL` | No | Base URL for reward proof files (defaults to GitHub raw URL) |
 | `VITE_DOCS_URL` | No | Documentation link in footer (defaults to Safe docs) |
+| `VITE_TERMS_URL` | No | Footer terms link (hidden if unset) |
+| `VITE_PRIVACY_URL` | No | Footer privacy link (hidden if unset) |
+| `VITE_IMPRINT_URL` | No | Footer imprint link (hidden if unset) |
 | `PINATA_JWT` | No | Pinata API JWT for IPFS deployment |
 | `PINATA_GATEWAY` | No | Pinata gateway domain for IPFS deployment |
 
