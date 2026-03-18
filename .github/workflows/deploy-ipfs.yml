@@ -44,9 +44,13 @@ jobs:
           VITE_STAKING_DEPLOY_BLOCK: ${{ vars.VITE_STAKING_DEPLOY_BLOCK }}
           VITE_WALLETCONNECT_PROJECT_ID: ${{ vars.VITE_WALLETCONNECT_PROJECT_ID }}
           VITE_SANCTIONS_API_URL: ${{ vars.VITE_SANCTIONS_API_URL }}
-          VITE_TOU_URL: ${{ vars.VITE_TOU_URL }}
+          VITE_GEOBLOCK_CACHE_DAYS: ${{ vars.VITE_GEOBLOCK_CACHE_DAYS }}
+          VITE_VALIDATOR_INFO_URL: ${{ vars.VITE_VALIDATOR_INFO_URL }}
+          VITE_REWARDS_BASE_URL: ${{ vars.VITE_REWARDS_BASE_URL }}
           VITE_DOCS_URL: ${{ vars.VITE_DOCS_URL }}
-          VITE_FAQ_URL: ${{ vars.VITE_FAQ_URL }}
+          VITE_TERMS_URL: ${{ vars.VITE_TERMS_URL }}
+          VITE_PRIVACY_URL: ${{ vars.VITE_PRIVACY_URL }}
+          VITE_IMPRINT_URL: ${{ vars.VITE_IMPRINT_URL }}
           VITE_MERKLE_DROP_ADDRESS: ${{ vars.VITE_MERKLE_DROP_ADDRESS }}
         run: yarn build
 
