@@ -14,7 +14,7 @@ export function ValidatorsPage() {
       <PageHero
         illustration={heroSquare}
         illustrationAlt="Safe validator square"
-        title="Safenet Validators"
+        title="Safenet Beta"
         subtitle="Select a validator to stake your SAFE tokens"
       />
       <ValidatorList autoOpenDelegate={delegateParam} />

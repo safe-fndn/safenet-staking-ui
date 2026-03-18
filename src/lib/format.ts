@@ -31,7 +31,8 @@ export function safeParseEther(amount: string): bigint {
 }
 
 export function truncateAddress(address: string): string {
-  return `${address.slice(0, 6)}...${address.slice(-4)}`
+  const lower = address.toLowerCase()
+  return `${lower.slice(0, 6)}...${lower.slice(-4)}`
 }
 
 export function formatCountdown(seconds: number): string {

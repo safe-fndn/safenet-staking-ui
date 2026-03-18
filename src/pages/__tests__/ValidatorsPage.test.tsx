@@ -19,7 +19,7 @@ describe("ValidatorsPage", () => {
       </MemoryRouter>,
     )
 
-    expect(screen.getByText("Safenet Validators")).toBeInTheDocument()
+    expect(screen.getByText("Safenet Beta")).toBeInTheDocument()
     expect(screen.getByText(/Select a validator to stake your SAFE/)).toBeInTheDocument()
   })
 

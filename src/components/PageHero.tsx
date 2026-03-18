@@ -4,6 +4,7 @@ interface PageHeroProps {
   illustrationAlt: string
   title: string
   subtitle: string
+  children?: React.ReactNode
 }
 
 export function PageHero({
@@ -12,6 +13,7 @@ export function PageHero({
   illustrationAlt,
   title,
   subtitle,
+  children,
 }: PageHeroProps) {
   return (
     <div className="relative overflow-hidden border border-black/12 dark:border-[#12FF80]/20 p-6 min-h-[300px] flex items-center justify-center">
@@ -51,6 +53,7 @@ export function PageHero({
           <p className="mt-6 text-sm md:text-lg uppercase tracking-[-0.02em] text-foreground/50 font-mono opacity-[0.56]">
             {subtitle}
           </p>
+          {children}
         </div>
       </div>
     </div>

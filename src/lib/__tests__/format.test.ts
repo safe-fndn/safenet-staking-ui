@@ -49,6 +49,10 @@ describe("truncateAddress", () => {
     expect(truncateAddress("0x1234567890abcdef1234567890abcdef12345678")).toBe("0x1234...5678")
   })
 
+  it("lowercases checksummed addresses", () => {
+    expect(truncateAddress("0xABcdEF1234567890abcdef1234567890AbCdEf12")).toBe("0xabcd...ef12")
+  })
+
   it("handles a short string", () => {
     expect(truncateAddress("0x1234")).toBe("0x1234...1234")
   })

@@ -89,7 +89,7 @@ export function ValidatorCard({
             </Link>
             {metadata && (
               <button
-                className="text-sm font-mono uppercase
+                className="text-sm font-mono
                   text-black/30 dark:text-white/30
                   hover:text-foreground transition-colors text-left
                   leading-[18px]"
