@@ -9,6 +9,10 @@ const mockInitiateWithdrawal = vi.fn()
 const mockReset = vi.fn()
 const mockToast = vi.fn()
 
+vi.mock("@/hooks/useWrongNetwork", () => ({
+  useWrongNetwork: () => false,
+}))
+
 vi.mock("@/hooks/useStakingReads", () => ({
   useUserStakeOnValidator: vi.fn(() => ({ data: AMOUNTS.userStakeValidator1 })),
   useWithdrawDelay: vi.fn(() => ({ data: AMOUNTS.withdrawDelay })),

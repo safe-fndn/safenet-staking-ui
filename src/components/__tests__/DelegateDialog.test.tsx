@@ -31,6 +31,10 @@ const mockApprovalFlow = {
   resetApprovalFlow: mockResetApprovalFlow,
 }
 
+vi.mock("@/hooks/useWrongNetwork", () => ({
+  useWrongNetwork: () => false,
+}))
+
 vi.mock("@/hooks/useApprovalFlow", () => ({
   useApprovalFlow: vi.fn(() => mockApprovalFlow),
 }))

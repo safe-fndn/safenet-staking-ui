@@ -1,6 +1,7 @@
 import * as React from "react"
 import { Button, type ButtonProps } from "./button"
 import Loader2 from "lucide-react/dist/esm/icons/loader-2"
+import { useWrongNetwork } from "@/hooks/useWrongNetwork"
 
 interface TxButtonProps extends ButtonProps {
   /** True while the user is signing the transaction in their wallet. */
@@ -33,12 +34,13 @@ const TxButton = React.forwardRef<HTMLButtonElement, TxButtonProps>(
     },
     ref,
   ) => {
+    const wrongNetwork = useWrongNetwork()
     const isBusy = isSigningTx || isConfirmingTx
 
     return (
       <Button
         ref={ref}
-        disabled={disabled || isBusy}
+        disabled={disabled || isBusy || wrongNetwork}
         {...rest}
       >
         {isSigningTx ? (

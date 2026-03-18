@@ -13,11 +13,13 @@ import { useValidators, findValidator } from "@/hooks/useValidators"
 import { formatTokenAmount, asBigint } from "@/lib/format"
 import { copyToClipboard } from "@/lib/clipboard"
 import { useToast } from "@/hooks/useToast"
+import { useWrongNetwork } from "@/hooks/useWrongNetwork"
 import ArrowLeft from "lucide-react/dist/esm/icons/arrow-left"
 import Copy from "lucide-react/dist/esm/icons/copy"
 export function ValidatorDetailPage() {
   const { address: validatorAddress } = useParams<{ address: string }>()
   const { isConnected } = useAccount()
+  const wrongNetwork = useWrongNetwork()
   const { toast } = useToast()
 
   const isValidAddress = !!validatorAddress && isAddress(validatorAddress)
@@ -141,10 +143,10 @@ export function ValidatorDetailPage() {
 
           {isConnected && (
             <div className="flex gap-3">
-              <Button variant="gradient" onClick={() => setDelegateOpen(true)} disabled={!isActive}>
+              <Button variant="gradient" onClick={() => setDelegateOpen(true)} disabled={!isActive || wrongNetwork}>
                 Stake
               </Button>
-              <Button variant="outline" disabled={!hasStake} onClick={() => setUndelegateOpen(true)}>
+              <Button variant="outline" disabled={!hasStake || wrongNetwork} onClick={() => setUndelegateOpen(true)}>
                 Unstake
               </Button>
             </div>

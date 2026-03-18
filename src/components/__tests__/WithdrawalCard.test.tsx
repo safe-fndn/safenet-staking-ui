@@ -4,6 +4,10 @@ import userEvent from "@testing-library/user-event"
 import { WithdrawalCard } from "../withdrawals/WithdrawalCard"
 import { AMOUNTS, TEST_ACCOUNTS, MOCK_VALIDATORS } from "@/__tests__/test-data"
 
+vi.mock("@/hooks/useWrongNetwork", () => ({
+  useWrongNetwork: () => false,
+}))
+
 vi.mock("@/hooks/useCountdown", () => ({
   useCountdown: vi.fn(() => 0), // default: claimable (0 seconds left)
 }))

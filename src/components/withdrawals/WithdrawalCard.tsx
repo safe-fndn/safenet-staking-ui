@@ -5,6 +5,7 @@ import {
   truncateAddress,
 } from "@/lib/format"
 import { useCountdown } from "@/hooks/useCountdown"
+import { useWrongNetwork } from "@/hooks/useWrongNetwork"
 import { findValidator, type ValidatorInfo } from "@/hooks/useValidators"
 import type { Address } from "viem"
 import Loader2 from "lucide-react/dist/esm/icons/loader-2"
@@ -34,7 +35,8 @@ export function WithdrawalCard({
   validators,
 }: WithdrawalCardProps) {
   const secondsLeft = useCountdown(claimableAt)
-  const canClaim = isFirst && secondsLeft === 0
+  const wrongNetwork = useWrongNetwork()
+  const canClaim = isFirst && secondsLeft === 0 && !wrongNetwork
   const isBusy = isSigningTx || isConfirmingTx
 
   const totalDelay = withdrawDelay ?? 0

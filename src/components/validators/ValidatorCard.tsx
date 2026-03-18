@@ -10,6 +10,7 @@ import { type ValidatorInfo, findValidator } from "@/hooks/useValidators"
 import { truncateAddress, formatTokenAmount } from "@/lib/format"
 import { copyToClipboard } from "@/lib/clipboard"
 import { useToast } from "@/hooks/useToast"
+import { useWrongNetwork } from "@/hooks/useWrongNetwork"
 
 interface ValidatorCardProps {
   validator: Address
@@ -37,6 +38,7 @@ export function ValidatorCard({
   const loadingUser = loadingUserStake ?? false
   const metadata = findValidator(validators, validator)
   const { toast } = useToast()
+  const wrongNetwork = useWrongNetwork()
   const [delegateOpen, setDelegateOpen] = useState(false)
   const [undelegateOpen, setUndelegateOpen] = useState(false)
 
@@ -200,7 +202,7 @@ export function ValidatorCard({
                 variant="gradient"
                 className="flex-1"
                 onClick={() => setDelegateOpen(true)}
-                disabled={!isActive}
+                disabled={!isActive || wrongNetwork}
               >
                 Stake
               </Button>
@@ -208,7 +210,7 @@ export function ValidatorCard({
                 size="sm"
                 variant="outline"
                 className="flex-1"
-                disabled={!hasStake}
+                disabled={!hasStake || wrongNetwork}
                 onClick={() => setUndelegateOpen(true)}
               >
                 Unstake
