@@ -8,6 +8,7 @@ import X from "lucide-react/dist/esm/icons/x"
 import Sun from "lucide-react/dist/esm/icons/sun"
 import Moon from "lucide-react/dist/esm/icons/moon"
 import { Button } from "@/components/ui/button"
+import safenetLogo from "@/assets/SafenetLogo.svg"
 
 const navItems = [
   { label: "Dashboard", path: "/" },
@@ -27,7 +28,7 @@ export function Header() {
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
         <div className="flex items-center gap-8">
           <Link to="/" className="flex flex-col items-start" onClick={closeMobileMenu}>
-            <img src="/SafenetLogo.svg" alt="Safenet" className="h-[22px] dark:invert" />
+            <img src={safenetLogo} alt="Safenet" className="h-[22px] dark:invert" />
             <span className="self-end font-mono text-[10.89px] leading-[95%] text-foreground">BETA</span>
           </Link>
           <nav className="hidden md:flex items-stretch h-16 gap-1 -mb-px">
