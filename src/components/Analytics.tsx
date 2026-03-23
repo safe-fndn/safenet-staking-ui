@@ -1,47 +1,19 @@
 import { useEffect } from "react"
+import { init } from "@plausible-analytics/tracker"
 
-const scriptUrl = import.meta.env.VITE_PLAUSIBLE_SCRIPT_URL
+const domain = import.meta.env.VITE_PLAUSIBLE_DOMAIN
 
 /**
- * Injects the Plausible analytics script when VITE_PLAUSIBLE_SCRIPT_URL is set.
- * Uses hashBasedRouting to track hash-based navigation (HashRouter).
+ * Initialises Plausible Analytics when VITE_PLAUSIBLE_DOMAIN is set.
+ * Uses hash-based routing to track hash-based navigation.
  * No-op if the env var is not configured.
  */
 export function Analytics() {
   useEffect(() => {
-    if (!scriptUrl) return
+    if (!domain) return
 
-    window.plausible =
-      window.plausible ||
-      function (...args: unknown[]) {
-        ;(window.plausible.q = window.plausible.q || []).push(args)
-      }
-    window.plausible.init =
-      window.plausible.init ||
-      function (i?: unknown) {
-        ;(window.plausible as { o?: unknown }).o = i || {}
-      }
-    window.plausible.init({ hashBasedRouting: true })
-
-    const script = document.createElement("script")
-    script.src = scriptUrl
-    script.async = true
-    script.defer = true
-    document.head.appendChild(script)
-
-    return () => {
-      document.head.removeChild(script)
-    }
+    init({ domain, hashBasedRouting: true, autoCapturePageviews: true })
   }, [])
 
   return null
-}
-
-declare global {
-  interface Window {
-    plausible: ((...args: unknown[]) => void) & {
-      q?: unknown[]
-      init?: (i?: unknown) => void
-    }
-  }
 }
