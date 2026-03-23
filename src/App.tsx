@@ -5,6 +5,7 @@ import { Layout } from "@/components/layout/Layout"
 import { ErrorBoundary } from "@/components/ErrorBoundary"
 import { Toaster } from "@/components/ui/toaster"
 import { RestrictedScreen } from "@/components/RestrictedScreen"
+import { Analytics } from "@/components/Analytics"
 import { useAutoConnect } from "@/hooks/useAutoConnect"
 import { useSanctionsCheck } from "@/hooks/useSanctionsCheck"
 import { useGeoblockCheck } from "@/hooks/useGeoblockCheck"
@@ -107,6 +108,7 @@ function App() {
 
   return (
     <HashRouter>
+      <Analytics />
       <DisconnectWatcher />
       <WalletSanctionsGate>
         <Routes>
