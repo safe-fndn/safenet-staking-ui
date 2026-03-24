@@ -1,7 +1,7 @@
 {
-  "name": "Safe Staking",
+  "name": "Safenet Beta Staking",
   "short_name": "Safe Staking",
-  "description": "Stake SAFE tokens to participate in Safenet Beta.",
+  "description": "Stake SAFE to participate in Safenet Beta.",
   "icons": [
     {
       "src": "/android-chrome-192x192.png",
