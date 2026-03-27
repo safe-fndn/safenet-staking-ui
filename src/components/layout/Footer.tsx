@@ -27,6 +27,9 @@ export function Footer() {
         <a href={docsUrl} target="_blank" rel="noopener noreferrer" className={linkClass}>
           Documentation
         </a>
+        <a href="https://docs.safefoundation.org/safenet/resources/faq" target="_blank" rel="noopener noreferrer" className={linkClass}>
+          FAQ
+        </a>
       </div>
     </footer>
   )

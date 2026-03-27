@@ -18,5 +18,6 @@ describe("Footer", () => {
     expect(screen.getByText("Privacy")).toBeInTheDocument()
     expect(screen.getByText("Imprint")).toBeInTheDocument()
     expect(screen.getByText("Documentation")).toBeInTheDocument()
+    expect(screen.getByText("FAQ")).toBeInTheDocument()
   })
 })
