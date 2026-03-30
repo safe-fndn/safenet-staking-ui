@@ -135,6 +135,18 @@ export function StakingSection() {
               <TooltipContent className="max-w-xs text-xs">
                 <p>Rewards are subject to a minimum payout threshold.</p>
                 <p className="mt-1">KYC may be required to claim rewards.</p>
+                <p className="mt-1">
+                  Rewards are subject to DAO approval.{" "}
+                  <a
+                    href="https://forum.safefoundation.org/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline text-primary-foreground/80 hover:text-primary-foreground"
+                  >
+                    Follow the proposal here
+                  </a>
+                  .
+                </p>
                 <a
                   href={rewardsDocsUrl}
                   target="_blank"
