@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
 import { render, screen } from "@testing-library/react"
 import { MemoryRouter } from "react-router-dom"
+import { TooltipProvider } from "@radix-ui/react-tooltip"
 import { ValidatorCard } from "../validators/ValidatorCard"
 import { TEST_ACCOUNTS, MOCK_VALIDATORS } from "@/__tests__/test-data"
 
@@ -37,14 +38,16 @@ describe("ValidatorCard", () => {
   function renderCard(props = {}) {
     return render(
       <MemoryRouter>
-        <ValidatorCard
-          validator={TEST_ACCOUNTS.validator1}
-          isActive={true}
-          totalStake={5000n * 10n ** 18n}
-          userStake={100n * 10n ** 18n}
-          validators={[...MOCK_VALIDATORS]}
-          {...props}
-        />
+        <TooltipProvider>
+          <ValidatorCard
+            validator={TEST_ACCOUNTS.validator1}
+            isActive={true}
+            totalStake={5000n * 10n ** 18n}
+            userStake={100n * 10n ** 18n}
+            validators={[...MOCK_VALIDATORS]}
+            {...props}
+          />
+        </TooltipProvider>
       </MemoryRouter>,
     )
   }

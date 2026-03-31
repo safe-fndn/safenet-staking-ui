@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
 import { render, screen } from "@testing-library/react"
 import { MemoryRouter, Route, Routes } from "react-router-dom"
+import { TooltipProvider } from "@radix-ui/react-tooltip"
 import { ValidatorDetailPage } from "../ValidatorDetailPage"
 import { TEST_ACCOUNTS, MOCK_VALIDATORS } from "@/__tests__/test-data"
 
@@ -41,9 +42,11 @@ vi.mock("@/components/staking/UndelegateDialog", () => ({
 function renderWithRoute(address: string) {
   return render(
     <MemoryRouter initialEntries={[`/validators/${address}`]}>
-      <Routes>
-        <Route path="/validators/:address" element={<ValidatorDetailPage />} />
-      </Routes>
+      <TooltipProvider>
+        <Routes>
+          <Route path="/validators/:address" element={<ValidatorDetailPage />} />
+        </Routes>
+      </TooltipProvider>
     </MemoryRouter>,
   )
 }
