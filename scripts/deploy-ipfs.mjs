@@ -10,7 +10,7 @@
  * Usage:
  *   node scripts/deploy-ipfs.mjs              # build + upload, name: "safenet-staking-ui"
  *   node scripts/deploy-ipfs.mjs --skip-build # upload only (dist/ must exist)
- *   node scripts/deploy-ipfs.mjs --folder     # upload with timestamped name, e.g. "safenet-staking-ui-2026-03-18_14-30-00"
+ *   node scripts/deploy-ipfs.mjs --folder     # upload with timestamped name, e.g. "safenet-staking-ui-2026-03-18T14:30:00.000Z"
  */
 
 import { execSync } from "node:child_process";
@@ -24,13 +24,8 @@ const DIST = resolve(ROOT, "dist");
 const skipBuild = process.argv.includes("--skip-build");
 const useFolder = process.argv.includes("--folder");
 
-const timestamp = new Date()
-  .toISOString()
-  .replace(/T/, "_")
-  .replace(/:/g, "-")
-  .slice(0, 19);
 const uploadName = useFolder
-  ? `safenet-staking-ui-${timestamp}`
+  ? `safenet-staking-ui-${new Date().toISOString()}`
   : "safenet-staking-ui";
 
 function run(cmd, opts = {}) {
