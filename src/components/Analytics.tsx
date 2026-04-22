@@ -1,37 +1,35 @@
-import { useEffect, useRef } from "react"
+import { useEffect } from "react"
 import { useLocation } from "react-router-dom"
 import { init, track } from "@plausible-analytics/tracker"
 
+const domain = import.meta.env.VITE_PLAUSIBLE_DOMAIN
+
+// Called at module load time — runs once, outside React's lifecycle.
+if (domain) {
+  init({
+    domain,
+    // Keep hashBasedRouting so the tracker adds h=1 to every event payload.
+    // The Plausible server uses this flag to preserve the hash in the recorded
+    // URL (e.g. /#/validators); without it the server strips the hash and
+    // every page reports as /.
+    hashBasedRouting: true,
+    // Disable auto-capture: HashRouter navigates via pushState, which fires
+    // popstate not hashchange, so Plausible's built-in listener never sees
+    // in-app transitions. Pageviews are fired manually via useLocation().
+    autoCapturePageviews: false,
+  })
+}
+
 /**
- * Tracks pageviews via Plausible Analytics.
- *
+ * Tracks a pageview on every route change.
  * Must render inside a Router so useLocation() is available.
- * We drive pageviews manually via useLocation() because HashRouter
- * navigates via pushState (which fires popstate, not hashchange), so
- * Plausible's hashBasedRouting option never sees in-app transitions.
  */
 export function Analytics() {
   const location = useLocation()
-  const initialized = useRef(false)
 
   useEffect(() => {
-    const domain = import.meta.env.VITE_PLAUSIBLE_DOMAIN
     if (!domain) return
-
-    if (!initialized.current) {
-      init({ domain, autoCapturePageviews: false })
-      initialized.current = true
-    }
-
-    // Reconstruct a clean URL so Plausible records "/validators" rather
-    // than "/#/validators" — location.pathname is the in-hash path that
-    // React Router exposes, e.g. "/validators" or "/withdrawals".
-    const url = new URL(
-      location.pathname + location.search,
-      window.location.origin,
-    ).href
-
-    track("pageview", { url })
+    track("pageview", {})
   }, [location.pathname, location.search])
 
   return null

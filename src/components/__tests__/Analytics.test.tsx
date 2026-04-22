@@ -2,19 +2,41 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
 import { render, screen, waitFor } from "@testing-library/react"
 import { MemoryRouter, Routes, Route, Link } from "react-router-dom"
 import userEvent from "@testing-library/user-event"
-import { Analytics } from "../Analytics"
 
-const mockInit = vi.fn()
-const mockTrack = vi.fn()
+let mockInit: ReturnType<typeof vi.fn>
+let mockTrack: ReturnType<typeof vi.fn>
 
-vi.mock("@plausible-analytics/tracker", () => ({
-  init: (...args: unknown[]) => mockInit(...args),
-  track: (...args: unknown[]) => mockTrack(...args),
-  DEFAULT_FILE_TYPES: [],
-}))
+beforeEach(() => {
+  // Reset the module registry so the module-level init() call in
+  // Analytics.tsx is re-evaluated fresh for each test.
+  vi.resetModules()
+  mockInit = vi.fn()
+  mockTrack = vi.fn()
+  vi.doMock("@plausible-analytics/tracker", () => ({
+    init: mockInit,
+    track: mockTrack,
+    DEFAULT_FILE_TYPES: [],
+  }))
+})
 
-// Minimal wrapper: renders Analytics inside a router with navigable routes.
-function TestApp({ initialPath = "/" }: { initialPath?: string }) {
+afterEach(() => {
+  vi.unstubAllEnvs()
+})
+
+// Dynamically imports Analytics after mocks and env stubs are in place.
+async function loadAnalytics() {
+  const { Analytics } = await import("../Analytics")
+  return Analytics
+}
+
+// Minimal router wrapper with navigable routes.
+function TestApp({
+  Analytics,
+  initialPath = "/",
+}: {
+  Analytics: React.ComponentType
+  initialPath?: string
+}) {
   return (
     <MemoryRouter initialEntries={[initialPath]}>
       <Analytics />
@@ -37,81 +59,65 @@ function TestApp({ initialPath = "/" }: { initialPath?: string }) {
 }
 
 describe("Analytics", () => {
-  const originalEnv = import.meta.env.VITE_PLAUSIBLE_DOMAIN
-
-  beforeEach(() => {
-    vi.clearAllMocks()
-  })
-
-  afterEach(() => {
-    vi.stubEnv("VITE_PLAUSIBLE_DOMAIN", originalEnv ?? "")
-  })
-
   describe("when VITE_PLAUSIBLE_DOMAIN is configured", () => {
     beforeEach(() => {
       vi.stubEnv("VITE_PLAUSIBLE_DOMAIN", "staking.safe.global")
     })
 
-    it("calls init once with the correct options on first render", () => {
-      render(<TestApp />)
+    it("calls init with autoCapturePageviews disabled", async () => {
+      await loadAnalytics()
 
       expect(mockInit).toHaveBeenCalledOnce()
       expect(mockInit).toHaveBeenCalledWith({
         domain: "staking.safe.global",
+        hashBasedRouting: true,
         autoCapturePageviews: false,
       })
     })
 
-    it("tracks the initial pageview for the root route", () => {
-      render(<TestApp initialPath="/" />)
+    it("keeps hashBasedRouting: true so h=1 is included in every payload", async () => {
+      await loadAnalytics()
 
-      expect(mockTrack).toHaveBeenCalledOnce()
-      expect(mockTrack).toHaveBeenCalledWith(
-        "pageview",
-        expect.objectContaining({ url: expect.stringContaining("/") }),
+      expect(mockInit).toHaveBeenCalledWith(
+        expect.objectContaining({ hashBasedRouting: true }),
       )
     })
 
-    it("tracks the initial pageview when landing on /validators", () => {
-      render(<TestApp initialPath="/validators" />)
+    it("tracks the initial pageview on mount", async () => {
+      const Analytics = await loadAnalytics()
+      render(<TestApp Analytics={Analytics} />)
 
       expect(mockTrack).toHaveBeenCalledOnce()
-      expect(mockTrack).toHaveBeenCalledWith(
-        "pageview",
-        expect.objectContaining({ url: expect.stringMatching(/\/validators$/) }),
-      )
+      expect(mockTrack).toHaveBeenCalledWith("pageview", {})
     })
 
     it("tracks a new pageview when navigating to /validators", async () => {
       const user = userEvent.setup()
-      render(<TestApp initialPath="/" />)
+      const Analytics = await loadAnalytics()
+      render(<TestApp Analytics={Analytics} />)
       expect(mockTrack).toHaveBeenCalledTimes(1)
 
       await user.click(screen.getByRole("link", { name: "go to validators" }))
 
       await waitFor(() => expect(mockTrack).toHaveBeenCalledTimes(2))
-      expect(mockTrack).toHaveBeenLastCalledWith(
-        "pageview",
-        expect.objectContaining({ url: expect.stringMatching(/\/validators$/) }),
-      )
+      expect(mockTrack).toHaveBeenLastCalledWith("pageview", {})
     })
 
     it("tracks a new pageview when navigating to /withdrawals", async () => {
       const user = userEvent.setup()
-      render(<TestApp initialPath="/" />)
+      const Analytics = await loadAnalytics()
+      render(<TestApp Analytics={Analytics} />)
 
       await user.click(screen.getByRole("link", { name: "go to withdrawals" }))
 
       await waitFor(() => expect(mockTrack).toHaveBeenCalledTimes(2))
-      expect(mockTrack).toHaveBeenLastCalledWith(
-        "pageview",
-        expect.objectContaining({ url: expect.stringMatching(/\/withdrawals$/) }),
-      )
+      expect(mockTrack).toHaveBeenLastCalledWith("pageview", {})
     })
 
     it("does not call init again on subsequent navigations", async () => {
       const user = userEvent.setup()
-      render(<TestApp initialPath="/" />)
+      const Analytics = await loadAnalytics()
+      render(<TestApp Analytics={Analytics} />)
 
       await user.click(screen.getByRole("link", { name: "go to validators" }))
       await waitFor(() => screen.getByRole("link", { name: "go home" }))
@@ -120,23 +126,15 @@ describe("Analytics", () => {
       expect(mockInit).toHaveBeenCalledOnce()
     })
 
-    it("includes query params in the tracked URL", () => {
-      render(<TestApp initialPath="/validators?delegate=0xabc" />)
+    it("does not track a duplicate pageview on re-render without navigation", async () => {
+      const Analytics = await loadAnalytics()
+      const { rerender } = render(<TestApp Analytics={Analytics} />)
+      expect(mockTrack).toHaveBeenCalledTimes(1)
 
-      expect(mockTrack).toHaveBeenCalledWith(
-        "pageview",
-        expect.objectContaining({
-          url: expect.stringMatching(/\/validators\?delegate=0xabc$/),
-        }),
-      )
-    })
+      rerender(<TestApp Analytics={Analytics} />)
+      rerender(<TestApp Analytics={Analytics} />)
 
-    it("sends a valid absolute URL with the window origin as the base", () => {
-      render(<TestApp initialPath="/validators" />)
-
-      const [, { url }] = mockTrack.mock.calls[0] as [string, { url: string }]
-      expect(() => new URL(url)).not.toThrow()
-      expect(new URL(url).pathname).toBe("/validators")
+      expect(mockTrack).toHaveBeenCalledTimes(1)
     })
   })
 
@@ -145,19 +143,21 @@ describe("Analytics", () => {
       vi.stubEnv("VITE_PLAUSIBLE_DOMAIN", "")
     })
 
-    it("does not call init", () => {
-      render(<TestApp />)
+    it("does not call init", async () => {
+      await loadAnalytics()
       expect(mockInit).not.toHaveBeenCalled()
     })
 
-    it("does not track any pageviews on initial render", () => {
-      render(<TestApp />)
+    it("does not track any pageviews on initial render", async () => {
+      const Analytics = await loadAnalytics()
+      render(<TestApp Analytics={Analytics} />)
       expect(mockTrack).not.toHaveBeenCalled()
     })
 
-    it("does not track pageviews after navigation either", async () => {
+    it("does not track pageviews after navigation", async () => {
       const user = userEvent.setup()
-      render(<TestApp initialPath="/" />)
+      const Analytics = await loadAnalytics()
+      render(<TestApp Analytics={Analytics} initialPath="/" />)
 
       await user.click(screen.getByRole("link", { name: "go to validators" }))
       await waitFor(() => screen.getByRole("link", { name: "go home" }))
