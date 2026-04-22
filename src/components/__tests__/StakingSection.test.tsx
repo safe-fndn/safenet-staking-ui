@@ -42,6 +42,10 @@ vi.mock("@/components/dashboard/ClaimRewardsDialog", () => ({
   ClaimRewardsDialog: () => null,
 }))
 
+vi.mock("@/hooks/useKycRequired", () => ({
+  useKycRequired: vi.fn(() => false),
+}))
+
 function renderSection() {
   return render(
     <MemoryRouter>
@@ -65,7 +69,7 @@ describe("StakingSection", () => {
   })
 
   it("shows staking title and rewards when connected", () => {
-    mockUseAccount.mockReturnValue({ isConnected: true })
+    mockUseAccount.mockReturnValue({ isConnected: true, address: "0x1234567890123456789012345678901234567890" })
 
     renderSection()
 
@@ -81,6 +85,41 @@ describe("StakingSection", () => {
 
     expect(screen.getByText("Gnosis")).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "Unstake" })).toBeInTheDocument()
+  })
+
+  it("shows compliance note when address is KYC-required", async () => {
+    mockUseAccount.mockReturnValue({
+      isConnected: true,
+      address: "0x1234567890123456789012345678901234567890",
+    })
+    const mod = await import("@/hooks/useKycRequired")
+    vi.mocked(mod.useKycRequired).mockReturnValueOnce(true)
+
+    renderSection()
+
+    expect(screen.getByText(/pending compliance checks/)).toBeInTheDocument()
+    expect(screen.getByRole("link", { name: "legal@safefoundation.org" })).toBeInTheDocument()
+  })
+
+  it("hides compliance note when address is not KYC-required", () => {
+    mockUseAccount.mockReturnValue({
+      isConnected: true,
+      address: "0x1234567890123456789012345678901234567890",
+    })
+
+    renderSection()
+
+    expect(screen.queryByText(/pending compliance checks/)).not.toBeInTheDocument()
+  })
+
+  it("hides compliance note when kycRequired is true but address is undefined", async () => {
+    mockUseAccount.mockReturnValue({ isConnected: true, address: undefined })
+    const mod = await import("@/hooks/useKycRequired")
+    vi.mocked(mod.useKycRequired).mockReturnValueOnce(true)
+
+    renderSection()
+
+    expect(screen.queryByText(/pending compliance checks/)).not.toBeInTheDocument()
   })
 
   it("shows empty state when no positions", async () => {
