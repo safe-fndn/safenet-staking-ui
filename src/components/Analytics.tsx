@@ -1,19 +1,38 @@
-import { useEffect } from "react"
-import { init } from "@plausible-analytics/tracker"
-
-const domain = import.meta.env.VITE_PLAUSIBLE_DOMAIN
+import { useEffect, useRef } from "react"
+import { useLocation } from "react-router-dom"
+import { init, track } from "@plausible-analytics/tracker"
 
 /**
- * Initialises Plausible Analytics when VITE_PLAUSIBLE_DOMAIN is set.
- * Uses hash-based routing to track hash-based navigation.
- * No-op if the env var is not configured.
+ * Tracks pageviews via Plausible Analytics.
+ *
+ * Must render inside a Router so useLocation() is available.
+ * We drive pageviews manually via useLocation() because HashRouter
+ * navigates via pushState (which fires popstate, not hashchange), so
+ * Plausible's hashBasedRouting option never sees in-app transitions.
  */
 export function Analytics() {
+  const location = useLocation()
+  const initialized = useRef(false)
+
   useEffect(() => {
+    const domain = import.meta.env.VITE_PLAUSIBLE_DOMAIN
     if (!domain) return
 
-    init({ domain, hashBasedRouting: true, autoCapturePageviews: true })
-  }, [])
+    if (!initialized.current) {
+      init({ domain, autoCapturePageviews: false })
+      initialized.current = true
+    }
+
+    // Reconstruct a clean URL so Plausible records "/validators" rather
+    // than "/#/validators" — location.pathname is the in-hash path that
+    // React Router exposes, e.g. "/validators" or "/withdrawals".
+    const url = new URL(
+      location.pathname + location.search,
+      window.location.origin,
+    ).href
+
+    track("pageview", { url })
+  }, [location.pathname, location.search])
 
   return null
 }
