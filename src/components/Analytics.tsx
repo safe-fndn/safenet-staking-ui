@@ -3,6 +3,7 @@ import { useLocation } from "react-router-dom"
 import { init, track } from "@plausible-analytics/tracker"
 
 const domain = import.meta.env.VITE_PLAUSIBLE_DOMAIN
+const endpoint = import.meta.env.VITE_PLAUSIBLE_ENDPOINT
 
 // Called at module load time — runs once, outside React's lifecycle.
 if (domain) {
@@ -17,6 +18,7 @@ if (domain) {
     // popstate not hashchange, so Plausible's built-in listener never sees
     // in-app transitions. Pageviews are fired manually via useLocation().
     autoCapturePageviews: false,
+    ...(endpoint ? { endpoint } : {}),
   })
 }
 

@@ -64,7 +64,7 @@ describe("Analytics", () => {
       vi.stubEnv("VITE_PLAUSIBLE_DOMAIN", "staking.safe.global")
     })
 
-    it("calls init with autoCapturePageviews disabled", async () => {
+    it("calls init with hashBasedRouting:true and autoCapturePageviews:false", async () => {
       await loadAnalytics()
 
       expect(mockInit).toHaveBeenCalledOnce()
@@ -75,12 +75,16 @@ describe("Analytics", () => {
       })
     })
 
-    it("keeps hashBasedRouting: true so h=1 is included in every payload", async () => {
+    it("passes a custom endpoint when VITE_PLAUSIBLE_ENDPOINT is set", async () => {
+      vi.stubEnv("VITE_PLAUSIBLE_ENDPOINT", "https://plausible.example.com/api/event")
       await loadAnalytics()
 
-      expect(mockInit).toHaveBeenCalledWith(
-        expect.objectContaining({ hashBasedRouting: true }),
-      )
+      expect(mockInit).toHaveBeenCalledWith({
+        domain: "staking.safe.global",
+        hashBasedRouting: true,
+        autoCapturePageviews: false,
+        endpoint: "https://plausible.example.com/api/event",
+      })
     })
 
     it("tracks the initial pageview on mount", async () => {
