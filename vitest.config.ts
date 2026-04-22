@@ -8,6 +8,9 @@ export default defineConfig({
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
+    // @plausible-analytics/tracker uses the "module" field without "exports" or "main".
+    // Vitest's Node resolver doesn't check "module" by default, so we include it here.
+    mainFields: ["browser", "module", "jsnext:main", "jsnext"],
   },
   test: {
     environment: "jsdom",
