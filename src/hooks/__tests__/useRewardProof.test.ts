@@ -112,8 +112,8 @@ describe("useRewardProof", () => {
     it("accepts a minimal valid proof", async () => {
       const proof = {
         cumulativeAmount: "1000",
-        merkleRoot: "0xabc123",
-        proof: ["0xdef456"],
+        merkleRoot: "0x5aea53631d726e3cb245cb1ce31834212ab6667a4726d25168a583d3b57b6cc1",
+        proof: ["0x1998aa1fb0e54f96da60317f799a85422585dda3a8368e6af3a465c3dd455e50"],
       }
       mockFetch.mockResolvedValueOnce({
         ok: true,
@@ -170,7 +170,22 @@ describe("useRewardProof", () => {
         json: async () => ({
           cumulativeAmount: "0",
           kycAmount: 12345,
-          merkleRoot: "0xabc",
+          merkleRoot: "0x5aea53631d726e3cb245cb1ce31834212ab6667a4726d25168a583d3b57b6cc1",
+          proof: null,
+        }),
+      })
+
+      await expect(callQueryFn()).rejects.toThrow("Invalid reward proof format")
+    })
+
+    it("rejects proof with non-numeric kycAmount string", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          cumulativeAmount: "0",
+          kycAmount: "not-a-number",
+          merkleRoot: "0x5aea53631d726e3cb245cb1ce31834212ab6667a4726d25168a583d3b57b6cc1",
           proof: null,
         }),
       })
@@ -185,7 +200,7 @@ describe("useRewardProof", () => {
         json: async () => ({
           cumulativeAmount: "0",
           kyc: "yes",
-          merkleRoot: "0xabc",
+          merkleRoot: "0x5aea53631d726e3cb245cb1ce31834212ab6667a4726d25168a583d3b57b6cc1",
           proof: null,
         }),
       })
