@@ -100,7 +100,7 @@ describe("StakingSection", () => {
         merkleRoot: "0x5aea53631d726e3cb245cb1ce31834212ab6667a4726d25168a583d3b57b6cc1",
         proof: null,
       },
-    } as ReturnType<typeof mod.useRewardProof>)
+    } as unknown as ReturnType<typeof mod.useRewardProof>)
 
     renderSection()
 
@@ -121,7 +121,7 @@ describe("StakingSection", () => {
         merkleRoot: "0x5aea53631d726e3cb245cb1ce31834212ab6667a4726d25168a583d3b57b6cc1",
         proof: ["0x1998aa1fb0e54f96da60317f799a85422585dda3a8368e6af3a465c3dd455e50"],
       },
-    } as ReturnType<typeof mod.useRewardProof>)
+    } as unknown as ReturnType<typeof mod.useRewardProof>)
 
     renderSection()
 
@@ -143,7 +143,7 @@ describe("StakingSection", () => {
         merkleRoot: "0x5aea53631d726e3cb245cb1ce31834212ab6667a4726d25168a583d3b57b6cc1",
         proof: ["0x1998aa1fb0e54f96da60317f799a85422585dda3a8368e6af3a465c3dd455e50"],
       },
-    } as ReturnType<typeof mod.useRewardProof>)
+    } as unknown as ReturnType<typeof mod.useRewardProof>)
 
     renderSection()
 
@@ -164,7 +164,7 @@ describe("StakingSection", () => {
         merkleRoot: "0x5aea53631d726e3cb245cb1ce31834212ab6667a4726d25168a583d3b57b6cc1",
         proof: null,
       },
-    } as ReturnType<typeof mod.useRewardProof>)
+    } as unknown as ReturnType<typeof mod.useRewardProof>)
 
     renderSection()
 
@@ -184,7 +184,7 @@ describe("StakingSection", () => {
         merkleRoot: "0x5aea53631d726e3cb245cb1ce31834212ab6667a4726d25168a583d3b57b6cc1",
         proof: ["0xabc"],
       },
-    } as ReturnType<typeof mod.useRewardProof>)
+    } as unknown as ReturnType<typeof mod.useRewardProof>)
 
     renderSection()
 
@@ -203,7 +203,7 @@ describe("StakingSection", () => {
         merkleRoot: "0x5aea53631d726e3cb245cb1ce31834212ab6667a4726d25168a583d3b57b6cc1",
         proof: ["0x1998aa1fb0e54f96da60317f799a85422585dda3a8368e6af3a465c3dd455e50"],
       },
-    } as ReturnType<typeof mod.useRewardProof>)
+    } as unknown as ReturnType<typeof mod.useRewardProof>)
 
     renderSection()
 
@@ -231,7 +231,7 @@ describe("StakingSection", () => {
         merkleRoot: "0x5aea53631d726e3cb245cb1ce31834212ab6667a4726d25168a583d3b57b6cc1",
         proof: null,
       },
-    } as ReturnType<typeof mod.useRewardProof>)
+    } as unknown as ReturnType<typeof mod.useRewardProof>)
 
     renderSection()
 
