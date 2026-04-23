@@ -7,6 +7,9 @@ import { MOCK_VALIDATORS } from "@/__tests__/test-data"
 import type { RewardProof } from "@/hooks/useRewardProof"
 
 const mockUseAccount = vi.fn()
+// vi.hoisted ensures this is initialized before the vi.mock() calls below,
+// which are hoisted to the top of the file by Vitest at compile time.
+// The narrow return type avoids casting partial objects in each test.
 const { mockUseRewardProof } = vi.hoisted(() => ({
   mockUseRewardProof: vi.fn((): { data: RewardProof | null } => ({ data: null })),
 }))

@@ -9,7 +9,7 @@
     "lint": "eslint .",
     "deploy:ipfs": "node --env-file-if-exists=.env scripts/deploy-ipfs.mjs",
     "preview": "vite preview",
-    "test": "vitest run",
+    "test": "tsc -b && vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test --config e2e/playwright.config.ts",
