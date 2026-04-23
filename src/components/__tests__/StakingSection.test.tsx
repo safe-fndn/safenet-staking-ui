@@ -108,6 +108,27 @@ describe("StakingSection", () => {
     expect(screen.getByRole("link", { name: "legal@safefoundation.org" })).toBeInTheDocument()
   })
 
+  it("shows compliance note AND keeps claim button enabled when kycAmount > 0, kyc absent, but proof and cumulativeAmount are both present", async () => {
+    mockUseAccount.mockReturnValue({
+      isConnected: true,
+      address: "0x1234567890123456789012345678901234567890",
+    })
+    const mod = await import("@/hooks/useRewardProof")
+    vi.mocked(mod.useRewardProof).mockReturnValueOnce({
+      data: {
+        cumulativeAmount: "973890821912297403820",
+        kycAmount: "826720638286750773563",
+        merkleRoot: "0x5aea53631d726e3cb245cb1ce31834212ab6667a4726d25168a583d3b57b6cc1",
+        proof: ["0x1998aa1fb0e54f96da60317f799a85422585dda3a8368e6af3a465c3dd455e50"],
+      },
+    } as ReturnType<typeof mod.useRewardProof>)
+
+    renderSection()
+
+    expect(screen.getByText(/pending compliance checks/)).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Claim Rewards" })).not.toBeDisabled()
+  })
+
   it("hides compliance note when kyc:true even with kycAmount > 0", async () => {
     mockUseAccount.mockReturnValue({
       isConnected: true,
