@@ -85,13 +85,13 @@ test.describe("Validators Page", () => {
     // Wait for validator cards to render
     await expect(page.getByRole("link", { name: "Gnosis" })).toBeVisible({ timeout: 15_000 })
 
-    // Should see Delegate buttons
-    const delegateButtons = page.getByRole("button", { name: "Delegate" })
-    await expect(delegateButtons.first()).toBeVisible()
+    // Should see Stake buttons
+    const stakeButtons = page.getByRole("button", { name: "Stake" })
+    await expect(stakeButtons.first()).toBeVisible()
 
-    // Should see Undelegate buttons
-    const undelegateButtons = page.getByRole("button", { name: "Undelegate" })
-    await expect(undelegateButtons.first()).toBeVisible()
+    // Should see Unstake buttons
+    const unstakeButtons = page.getByRole("button", { name: "Unstake" })
+    await expect(unstakeButtons.first()).toBeVisible()
   })
 
   test("validator card links to detail page", async ({ disconnectedPage: page }) => {

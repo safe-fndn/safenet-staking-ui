@@ -21,23 +21,23 @@ export class ValidatorsPage {
     this.filterActive = page.getByRole("button", { name: "Active", exact: true })
     this.filterInactive = page.getByRole("button", { name: "Inactive", exact: true })
     this.sortSelect = page.getByLabel("Sort validators")
-    this.validatorCards = page.locator("[class*='grid'] > div").filter({ has: page.getByText("Total Delegated") })
+    this.validatorCards = page.locator("[class*='grid'] > div").filter({ has: page.getByText("Total SAFE Staked") })
     this.noMatchMessage = page.getByText("No validators match your search criteria")
   }
 
   async goto() {
-    await this.page.goto("/validators")
+    await this.page.goto("/#/validators")
   }
 
   getValidatorCard(name: string): Locator {
-    return this.page.locator("div").filter({ has: this.page.getByRole("link", { name }) }).filter({ has: this.page.getByText("Total Delegated") })
+    return this.page.locator("div").filter({ has: this.page.getByRole("link", { name }) }).filter({ has: this.page.getByText("Total SAFE Staked") })
   }
 
   getDelegateButton(cardLocator: Locator): Locator {
-    return cardLocator.getByRole("button", { name: "Delegate" })
+    return cardLocator.getByRole("button", { name: "Stake" })
   }
 
   getUndelegateButton(cardLocator: Locator): Locator {
-    return cardLocator.getByRole("button", { name: "Undelegate" })
+    return cardLocator.getByRole("button", { name: "Unstake" })
   }
 }

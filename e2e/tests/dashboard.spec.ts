@@ -14,8 +14,8 @@ test.describe("Dashboard", () => {
     const dashboard = new DashboardPage(page)
     await dashboard.goto()
 
-    // Should show "Total SAFE Delegated" card
-    await expect(page.getByText("Total SAFE Delegated")).toBeVisible({ timeout: 10_000 })
+    // Should show "Total SAFE Staked" card
+    await expect(page.getByText("Total SAFE Staked")).toBeVisible({ timeout: 10_000 })
     // Should show "Active Validators" card
     await expect(page.getByText("Active Validators")).toBeVisible({ timeout: 10_000 })
   })
@@ -25,11 +25,10 @@ test.describe("Dashboard", () => {
     await dashboard.goto()
 
     // Wait for data to load
-    await expect(page.getByText("Total SAFE Delegated")).toBeVisible({ timeout: 10_000 })
+    await expect(page.getByText("Total SAFE Staked")).toBeVisible({ timeout: 10_000 })
 
     // Connected-only cards
-    await expect(page.getByText("Your Delegated SAFE")).toBeVisible({ timeout: 10_000 })
-    await expect(page.getByText("Unstaking")).toBeVisible({ timeout: 10_000 })
+    await expect(page.getByText("Your Staked SAFE")).toBeVisible({ timeout: 10_000 })
   })
 
   test("shows quick actions when connected", async ({ connectedPage: page }) => {
@@ -46,7 +45,7 @@ test.describe("Dashboard", () => {
     await dashboard.goto()
 
     // Quick actions require connection
-    await expect(page.getByRole("button", { name: "Claim Withdrawals" })).not.toBeVisible()
+    await expect(page.getByRole("button", { name: /^Withdraw$/ })).not.toBeVisible()
   })
 
   test("shows transaction history with tabs when connected", async ({ connectedPage: page }) => {
@@ -83,7 +82,7 @@ test.describe("Dashboard", () => {
     await dashboard.goto()
 
     await dashboard.quickActionDelegate.click()
-    await expect(page).toHaveURL("/validators")
+    await expect(page).toHaveURL("/#/validators")
   })
 
   test("claim quick action navigates to withdrawals", async ({ connectedPage: page }) => {
@@ -91,6 +90,6 @@ test.describe("Dashboard", () => {
     await dashboard.goto()
 
     await dashboard.quickActionClaim.click()
-    await expect(page).toHaveURL("/withdrawals")
+    await expect(page).toHaveURL("/#/withdrawals")
   })
 })

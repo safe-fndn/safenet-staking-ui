@@ -26,7 +26,7 @@ export class LayoutPage {
     this.connectButton = page.getByRole("button", { name: "Connect Wallet" })
     this.disconnectButton = page.getByRole("button", { name: "Disconnect" })
     this.logo = page.getByRole("link", { name: /Safe.*Staking/i }).first()
-    this.footerTerms = page.getByRole("link", { name: "Terms of Use" })
+    this.footerTerms = page.getByRole("link", { name: "Terms" })
     this.footerDocs = page.getByRole("link", { name: "Documentation" })
     this.footerFaq = page.getByRole("link", { name: "FAQ" })
   }

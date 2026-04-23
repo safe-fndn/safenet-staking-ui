@@ -24,7 +24,7 @@ test.describe("Validator Detail Page", () => {
     const detail = new ValidatorDetailPage(page)
     await detail.goto(VALIDATORS.gnosis)
 
-    await expect(page.getByText("Total Delegated")).toBeVisible({ timeout: 15_000 })
+    await expect(page.getByText("Total SAFE Staked")).toBeVisible({ timeout: 15_000 })
     await expect(page.getByText(/[\d,.]+ SAFE/).first()).toBeVisible()
   })
 
@@ -32,7 +32,7 @@ test.describe("Validator Detail Page", () => {
     const detail = new ValidatorDetailPage(page)
     await detail.goto(VALIDATORS.gnosis)
 
-    await expect(page.getByText("Your Delegation")).toBeVisible({ timeout: 15_000 })
+    await expect(page.getByText("Your SAFE Staked")).toBeVisible({ timeout: 15_000 })
   })
 
   test("shows delegate and undelegate buttons", async ({ connectedPage: page }) => {
@@ -50,7 +50,7 @@ test.describe("Validator Detail Page", () => {
     await expect(detail.backLink).toBeVisible({ timeout: 15_000 })
 
     await detail.backLink.click()
-    await expect(page).toHaveURL("/validators")
+    await expect(page).toHaveURL("/#/validators")
   })
 
   test("shows copy address button", async ({ connectedPage: page }) => {
