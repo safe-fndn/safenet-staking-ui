@@ -42,8 +42,8 @@ vi.mock("@/components/dashboard/ClaimRewardsDialog", () => ({
   ClaimRewardsDialog: () => null,
 }))
 
-vi.mock("@/hooks/useKycRequired", () => ({
-  useKycRequired: vi.fn(() => false),
+vi.mock("@/hooks/useRewardProof", () => ({
+  useRewardProof: vi.fn(() => ({ data: null })),
 }))
 
 function renderSection() {
@@ -87,13 +87,20 @@ describe("StakingSection", () => {
     expect(screen.getByRole("button", { name: "Unstake" })).toBeInTheDocument()
   })
 
-  it("shows compliance note when address is KYC-required", async () => {
+  it("shows compliance note when proof has kycAmount > 0 and kyc is not true", async () => {
     mockUseAccount.mockReturnValue({
       isConnected: true,
       address: "0x1234567890123456789012345678901234567890",
     })
-    const mod = await import("@/hooks/useKycRequired")
-    vi.mocked(mod.useKycRequired).mockReturnValueOnce(true)
+    const mod = await import("@/hooks/useRewardProof")
+    vi.mocked(mod.useRewardProof).mockReturnValueOnce({
+      data: {
+        cumulativeAmount: "0",
+        kycAmount: "826720638286750773563",
+        merkleRoot: "0x5aea53631d726e3cb245cb1ce31834212ab6667a4726d25168a583d3b57b6cc1",
+        proof: null,
+      },
+    } as ReturnType<typeof mod.useRewardProof>)
 
     renderSection()
 
@@ -101,7 +108,48 @@ describe("StakingSection", () => {
     expect(screen.getByRole("link", { name: "legal@safefoundation.org" })).toBeInTheDocument()
   })
 
-  it("hides compliance note when address is not KYC-required", () => {
+  it("hides compliance note when proof has kyc:true (even with kycAmount > 0)", async () => {
+    mockUseAccount.mockReturnValue({
+      isConnected: true,
+      address: "0x1234567890123456789012345678901234567890",
+    })
+    const mod = await import("@/hooks/useRewardProof")
+    vi.mocked(mod.useRewardProof).mockReturnValueOnce({
+      data: {
+        cumulativeAmount: "973890821912297403820",
+        kycAmount: "0",
+        kyc: true,
+        merkleRoot: "0x5aea53631d726e3cb245cb1ce31834212ab6667a4726d25168a583d3b57b6cc1",
+        proof: ["0x1998aa1fb0e54f96da60317f799a85422585dda3a8368e6af3a465c3dd455e50"],
+      },
+    } as ReturnType<typeof mod.useRewardProof>)
+
+    renderSection()
+
+    expect(screen.queryByText(/pending compliance checks/)).not.toBeInTheDocument()
+  })
+
+  it("hides compliance note when proof has kycAmount of 0", async () => {
+    mockUseAccount.mockReturnValue({
+      isConnected: true,
+      address: "0x1234567890123456789012345678901234567890",
+    })
+    const mod = await import("@/hooks/useRewardProof")
+    vi.mocked(mod.useRewardProof).mockReturnValueOnce({
+      data: {
+        cumulativeAmount: "100",
+        kycAmount: "0",
+        merkleRoot: "0x5aea53631d726e3cb245cb1ce31834212ab6667a4726d25168a583d3b57b6cc1",
+        proof: ["0xabc"],
+      },
+    } as ReturnType<typeof mod.useRewardProof>)
+
+    renderSection()
+
+    expect(screen.queryByText(/pending compliance checks/)).not.toBeInTheDocument()
+  })
+
+  it("hides compliance note when proof has no kycAmount field", () => {
     mockUseAccount.mockReturnValue({
       isConnected: true,
       address: "0x1234567890123456789012345678901234567890",
@@ -112,10 +160,28 @@ describe("StakingSection", () => {
     expect(screen.queryByText(/pending compliance checks/)).not.toBeInTheDocument()
   })
 
-  it("hides compliance note when kycRequired is true but address is undefined", async () => {
+  it("hides compliance note when proof is null (no proof file)", () => {
+    mockUseAccount.mockReturnValue({
+      isConnected: true,
+      address: "0x1234567890123456789012345678901234567890",
+    })
+
+    renderSection()
+
+    expect(screen.queryByText(/pending compliance checks/)).not.toBeInTheDocument()
+  })
+
+  it("hides compliance note when address is undefined even with kycAmount > 0", async () => {
     mockUseAccount.mockReturnValue({ isConnected: true, address: undefined })
-    const mod = await import("@/hooks/useKycRequired")
-    vi.mocked(mod.useKycRequired).mockReturnValueOnce(true)
+    const mod = await import("@/hooks/useRewardProof")
+    vi.mocked(mod.useRewardProof).mockReturnValueOnce({
+      data: {
+        cumulativeAmount: "0",
+        kycAmount: "826720638286750773563",
+        merkleRoot: "0x5aea53631d726e3cb245cb1ce31834212ab6667a4726d25168a583d3b57b6cc1",
+        proof: null,
+      },
+    } as ReturnType<typeof mod.useRewardProof>)
 
     renderSection()
 

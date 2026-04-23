@@ -66,7 +66,7 @@ export function ClaimRewardsDialog({ open, onOpenChange }: ClaimRewardsDialogPro
   }, [open, reset])
 
   function handleClaim() {
-    if (!address || !proof) return
+    if (!address || !proof || !proof.proof) return
     claimedAmountRef.current = rewards.claimable
     claimRewards(
       address,
