@@ -5,7 +5,7 @@
 import { test as base, type Page } from "@playwright/test"
 import { createEthereumProviderScript, createDisconnectedProviderScript } from "../mocks/ethereum-provider"
 import { createRpcHandler } from "../mocks/rpc-handler"
-import { CHAIN_ID_HEX, TEST_USER } from "./test-data"
+import { CHAIN_ID_HEX, TEST_USER, VALIDATORS } from "./test-data"
 
 export type TestFixtures = {
   /** Page with mock wallet connected (has accounts) */
@@ -13,6 +13,23 @@ export type TestFixtures = {
   /** Page with mock wallet but no connected accounts */
   disconnectedPage: Page
 }
+
+const MOCK_VALIDATORS = [
+  {
+    address: VALIDATORS.gnosis,
+    isActive: true,
+    label: "Gnosis",
+    commission: 5,
+    participationRate: 99.9,
+  },
+  {
+    address: VALIDATORS.greenfield,
+    isActive: true,
+    label: "Greenfield",
+    commission: 3,
+    participationRate: 98.5,
+  },
+]
 
 async function setupPage(page: Page, connected: boolean): Promise<Page> {
   // Inject ethereum provider before the app loads
@@ -39,6 +56,15 @@ async function setupPage(page: Page, connected: boolean): Promise<Page> {
   const handler = createRpcHandler(connected ? TEST_USER : undefined)
   await page.route("**/mock-rpc.test/**", handler)
   await page.route("**/mock-rpc.test", handler)
+
+  // Intercept validator info endpoint with test data so tests use known addresses
+  await page.route("**/mock-validators.test/**", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(MOCK_VALIDATORS),
+    })
+  })
 
   return page
 }

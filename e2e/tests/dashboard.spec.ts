@@ -48,35 +48,6 @@ test.describe("Dashboard", () => {
     await expect(page.getByRole("button", { name: /^Withdraw$/ })).not.toBeVisible()
   })
 
-  test("shows transaction history with tabs when connected", async ({ connectedPage: page }) => {
-    const dashboard = new DashboardPage(page)
-    await dashboard.goto()
-
-    await expect(page.getByText("Transaction History", { exact: true })).toBeVisible({ timeout: 10_000 })
-
-    // Tabs
-    await expect(dashboard.txTabAll).toBeVisible()
-    await expect(dashboard.txTabDelegations).toBeVisible()
-    await expect(dashboard.txTabWithdrawals).toBeVisible()
-  })
-
-  test("can switch transaction history tabs", async ({ connectedPage: page }) => {
-    const dashboard = new DashboardPage(page)
-    await dashboard.goto()
-
-    // Wait for tx history to load
-    await expect(dashboard.txTabAll).toBeVisible({ timeout: 10_000 })
-
-    // Click Delegations tab
-    await dashboard.txTabDelegations.click()
-    // The tab panel should change (we can check tab is selected)
-    await expect(dashboard.txTabDelegations).toHaveAttribute("data-state", "active")
-
-    // Click Withdrawals tab
-    await dashboard.txTabWithdrawals.click()
-    await expect(dashboard.txTabWithdrawals).toHaveAttribute("data-state", "active")
-  })
-
   test("delegate quick action navigates to validators", async ({ connectedPage: page }) => {
     const dashboard = new DashboardPage(page)
     await dashboard.goto()

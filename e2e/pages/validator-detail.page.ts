@@ -10,7 +10,6 @@ export class ValidatorDetailPage {
   readonly yourDelegation: Locator
   readonly delegateButton: Locator
   readonly undelegateButton: Locator
-  readonly txHistory: Locator
   readonly notFoundMessage: Locator
 
   constructor(page: Page) {
@@ -23,7 +22,6 @@ export class ValidatorDetailPage {
     this.yourDelegation = page.getByText("Your SAFE Staked").locator("..")
     this.delegateButton = page.getByRole("button", { name: "Stake", exact: true })
     this.undelegateButton = page.getByRole("button", { name: "Unstake", exact: true })
-    this.txHistory = page.getByText("Transaction History", { exact: true })
     this.notFoundMessage = page.getByText("Validator not found")
   }
 

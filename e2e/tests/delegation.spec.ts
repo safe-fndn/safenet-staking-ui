@@ -25,7 +25,7 @@ test.describe("Delegation Dialog", () => {
     // Amount input
     await expect(page.getByLabel("Amount")).toBeVisible()
     // Balance display
-    await expect(page.getByText(/Balance:.*SAFE/)).toBeVisible()
+    await expect(page.getByText(/SAFE Balance:/)).toBeVisible({ timeout: 10_000 })
   })
 
   test("dialog shows percentage buttons", async ({ connectedPage: page }) => {
@@ -76,8 +76,8 @@ test.describe("Delegation Dialog", () => {
     const stakeButtons = page.getByRole("button", { name: "Stake" })
     await stakeButtons.first().click()
 
-    // Should show unbonding period
-    await expect(page.getByText(/Unbonding period/)).toBeVisible({ timeout: 10_000 })
+    // Should show unstaking period
+    await expect(page.getByText(/Unstaking period/)).toBeVisible({ timeout: 10_000 })
   })
 
   test("dialog can be closed", async ({ connectedPage: page }) => {

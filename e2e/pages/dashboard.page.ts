@@ -11,12 +11,6 @@ export class DashboardPage {
   readonly quickActionDelegate: Locator
   readonly quickActionUndelegate: Locator
   readonly quickActionClaim: Locator
-  readonly onboardingBanner: Locator
-  readonly onboardingDismissButton: Locator
-  readonly txHistoryCard: Locator
-  readonly txTabAll: Locator
-  readonly txTabDelegations: Locator
-  readonly txTabWithdrawals: Locator
 
   constructor(page: Page) {
     this.page = page
@@ -29,12 +23,6 @@ export class DashboardPage {
     this.quickActionDelegate = page.getByRole("button", { name: /^Stake$/ })
     this.quickActionUndelegate = page.getByRole("button", { name: /^Unstake$/ })
     this.quickActionClaim = page.getByRole("button", { name: /^Withdraw$/ })
-    this.onboardingBanner = page.getByText("Welcome to Safe Staking")
-    this.onboardingDismissButton = page.getByRole("button", { name: "Dismiss" })
-    this.txHistoryCard = page.getByRole("heading", { name: "Transaction History" }).locator("../..")
-    this.txTabAll = page.getByRole("tab", { name: "All" })
-    this.txTabDelegations = page.getByRole("tab", { name: "Delegations" })
-    this.txTabWithdrawals = page.getByRole("tab", { name: "Withdrawals" })
   }
 
   async goto() {

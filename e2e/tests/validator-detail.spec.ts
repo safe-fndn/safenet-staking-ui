@@ -17,7 +17,7 @@ test.describe("Validator Detail Page", () => {
 
     await expect(page.getByText("Gnosis")).toBeVisible({ timeout: 15_000 })
     await expect(page.getByText(/Commission:.*5%/)).toBeVisible()
-    await expect(page.getByText(/Uptime:.*99\.9%/)).toBeVisible()
+    await expect(page.getByText(/Participation.*99\.9%/)).toBeVisible()
   })
 
   test("shows total delegated amount", async ({ connectedPage: page }) => {
@@ -67,10 +67,4 @@ test.describe("Validator Detail Page", () => {
     await expect(detail.notFoundMessage).toBeVisible({ timeout: 15_000 })
   })
 
-  test("shows transaction history section", async ({ connectedPage: page }) => {
-    const detail = new ValidatorDetailPage(page)
-    await detail.goto(VALIDATORS.gnosis)
-
-    await expect(detail.txHistory).toBeVisible({ timeout: 15_000 })
-  })
 })

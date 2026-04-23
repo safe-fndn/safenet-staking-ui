@@ -30,7 +30,7 @@ test.describe("Undelegation Dialog", () => {
     const unstakeButtons = page.getByRole("button", { name: "Unstake" })
     await unstakeButtons.first().click()
 
-    await expect(page.getByText(/Unbonding period/)).toBeVisible({ timeout: 10_000 })
+    await expect(page.getByText(/Unstaking period/)).toBeVisible({ timeout: 10_000 })
     await expect(page.getByText(/claimable after/i)).toBeVisible()
   })
 
