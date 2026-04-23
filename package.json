@@ -10,7 +10,7 @@
     "deploy:ipfs": "node --env-file-if-exists=.env scripts/deploy-ipfs.mjs",
     "preview": "vite preview",
     "test": "vitest run",
-    "check": "tsc -b --noEmit",
+    "check": "eslint . && tsc -b --noEmit",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test --config e2e/playwright.config.ts",
