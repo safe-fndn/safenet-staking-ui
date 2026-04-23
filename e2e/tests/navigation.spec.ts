@@ -17,6 +17,8 @@ test.describe("Navigation", () => {
     const layout = new LayoutPage(page)
     await layout.goto("/")
 
+    // Wait for the nav to fully render before checking active state
+    await expect(layout.navDashboard).toBeVisible()
     const active = await layout.getActiveNavItem()
     expect(active).toBe("Dashboard")
   })

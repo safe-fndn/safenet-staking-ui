@@ -20,9 +20,9 @@ export class DashboardPage {
     this.totalDelegatedCard = page.getByText("Total SAFE Staked").locator("../..")
     this.yourDelegatedCard = page.getByText("Your Staked SAFE").locator("../..")
     this.activeValidatorsCard = page.getByText("Active Validators").locator("../..")
-    this.quickActionDelegate = page.getByRole("button", { name: /^Stake$/ })
-    this.quickActionUndelegate = page.getByRole("button", { name: /^Unstake$/ })
-    this.quickActionClaim = page.getByRole("button", { name: /^Withdraw$/ })
+    this.quickActionDelegate = page.getByRole("button", { name: /^Stake$/ }).first()
+    this.quickActionUndelegate = page.getByRole("button", { name: /^Unstake$/ }).first()
+    this.quickActionClaim = page.getByRole("button", { name: /^Withdraw$/ }).first()
   }
 
   async goto() {

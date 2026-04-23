@@ -17,17 +17,17 @@ export type TestFixtures = {
 const MOCK_VALIDATORS = [
   {
     address: VALIDATORS.gnosis,
-    isActive: true,
+    is_active: true,
     label: "Gnosis",
-    commission: 5,
-    participationRate: 99.9,
+    commission: 0.05,
+    participation_rate_14d: 0.999,
   },
   {
     address: VALIDATORS.greenfield,
-    isActive: true,
+    is_active: true,
     label: "Greenfield",
-    commission: 3,
-    participationRate: 98.5,
+    commission: 0.03,
+    participation_rate_14d: 0.985,
   },
 ]
 
@@ -64,6 +64,18 @@ async function setupPage(page: Page, connected: boolean): Promise<Page> {
       contentType: "application/json",
       body: JSON.stringify(MOCK_VALIDATORS),
     })
+  })
+
+  // Mock geo-check APIs so the app renders instead of showing RestrictedScreen
+  await page.route("**/api.country.is**", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ country: "US", ip: "1.2.3.4" }),
+    })
+  })
+  await page.route("**/ipapi.co/**", async (route) => {
+    await route.fulfill({ status: 200, contentType: "text/plain", body: "US" })
   })
 
   return page

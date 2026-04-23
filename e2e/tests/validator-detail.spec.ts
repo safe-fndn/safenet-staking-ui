@@ -25,7 +25,8 @@ test.describe("Validator Detail Page", () => {
     await detail.goto(VALIDATORS.gnosis)
 
     await expect(page.getByText("Total SAFE Staked")).toBeVisible({ timeout: 15_000 })
-    await expect(page.getByText(/[\d,.]+ SAFE/).first()).toBeVisible()
+    // Total stake for mock Gnosis validator is 5,000 SAFE
+    await expect(page.getByText("5,000")).toBeVisible()
   })
 
   test("shows your delegation when connected", async ({ connectedPage: page }) => {
