@@ -170,11 +170,19 @@ describe("StakingSection", () => {
     expect(screen.queryByText(/pending compliance checks/)).not.toBeInTheDocument()
   })
 
-  it("hides compliance note when proof has no kycAmount field", () => {
+  it("hides compliance note when proof exists but has no kycAmount field", async () => {
     mockUseAccount.mockReturnValue({
       isConnected: true,
       address: "0x1234567890123456789012345678901234567890",
     })
+    const mod = await import("@/hooks/useRewardProof")
+    vi.mocked(mod.useRewardProof).mockReturnValueOnce({
+      data: {
+        cumulativeAmount: "973890821912297403820",
+        merkleRoot: "0x5aea53631d726e3cb245cb1ce31834212ab6667a4726d25168a583d3b57b6cc1",
+        proof: ["0x1998aa1fb0e54f96da60317f799a85422585dda3a8368e6af3a465c3dd455e50"],
+      },
+    } as ReturnType<typeof mod.useRewardProof>)
 
     renderSection()
 
