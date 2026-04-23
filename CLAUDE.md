@@ -10,7 +10,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Type check only:** `npx tsc --noEmit`
 - **Preview production build:** `yarn preview`
 - **Run unit/integration tests:** `yarn test` (vitest run)
-- **Type check only:** `yarn typecheck` (tsc -b --noEmit, also run in CI)
+- **Type check only:** `yarn check` (tsc -b --noEmit, also run in CI)
 - **Watch mode:** `yarn test:watch`
 - **Coverage:** `yarn test:coverage`
 - **E2E tests:** `yarn test:e2e` (Playwright)
