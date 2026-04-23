@@ -4,7 +4,7 @@ import { useAccount } from "wagmi"
 import { useValidators, findValidator, type ValidatorInfo } from "@/hooks/useValidators"
 import { useUserStakesOnValidators } from "@/hooks/useStakingReads"
 import { useRewards } from "@/hooks/useRewards"
-import { useKycRequired } from "@/hooks/useKycRequired"
+import { useRewardProof } from "@/hooks/useRewardProof"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -82,7 +82,7 @@ export function StakingSection() {
   )
   const { data: stakes, isLoading } = useUserStakesOnValidators(validatorAddresses)
   const { data: rewards } = useRewards()
-  const kycRequired = useKycRequired(address)
+  const { data: proof } = useRewardProof(address)
   const [claimOpen, setClaimOpen] = useState(false)
 
   if (!isConnected) {
@@ -184,7 +184,7 @@ export function StakingSection() {
           </div>
 
           {/* Compliance note */}
-          {kycRequired && address && (
+          {address && proof && proof.kycAmount && BigInt(proof.kycAmount) > 0n && proof.kyc !== true && (
             <p className="text-sm text-muted-foreground rounded-lg border border-border bg-muted/30 px-3 py-2">
               Some rewards for{" "}
               <span className="font-mono">{truncateAddress(address)}</span> are

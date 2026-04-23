@@ -4,8 +4,15 @@ import { MemoryRouter } from "react-router-dom"
 import { TooltipProvider } from "@radix-ui/react-tooltip"
 import { StakingSection } from "../dashboard/StakingSection"
 import { MOCK_VALIDATORS } from "@/__tests__/test-data"
+import type { RewardProof } from "@/hooks/useRewardProof"
 
 const mockUseAccount = vi.fn()
+// vi.hoisted ensures this is initialized before the vi.mock() calls below,
+// which are hoisted to the top of the file by Vitest at compile time.
+// The narrow return type avoids casting partial objects in each test.
+const { mockUseRewardProof } = vi.hoisted(() => ({
+  mockUseRewardProof: vi.fn((): { data: RewardProof | null } => ({ data: null })),
+}))
 
 vi.mock("wagmi", () => ({
   useAccount: () => mockUseAccount(),
@@ -42,8 +49,8 @@ vi.mock("@/components/dashboard/ClaimRewardsDialog", () => ({
   ClaimRewardsDialog: () => null,
 }))
 
-vi.mock("@/hooks/useKycRequired", () => ({
-  useKycRequired: vi.fn(() => false),
+vi.mock("@/hooks/useRewardProof", () => ({
+  useRewardProof: mockUseRewardProof,
 }))
 
 function renderSection() {
@@ -87,13 +94,19 @@ describe("StakingSection", () => {
     expect(screen.getByRole("button", { name: "Unstake" })).toBeInTheDocument()
   })
 
-  it("shows compliance note when address is KYC-required", async () => {
+  it("shows compliance note when proof has kycAmount > 0 and kyc is not true", () => {
     mockUseAccount.mockReturnValue({
       isConnected: true,
       address: "0x1234567890123456789012345678901234567890",
     })
-    const mod = await import("@/hooks/useKycRequired")
-    vi.mocked(mod.useKycRequired).mockReturnValueOnce(true)
+    mockUseRewardProof.mockReturnValueOnce({
+      data: {
+        cumulativeAmount: "0",
+        kycAmount: "826720638286750773563",
+        merkleRoot: "0x5aea53631d726e3cb245cb1ce31834212ab6667a4726d25168a583d3b57b6cc1",
+        proof: null,
+      },
+    })
 
     renderSection()
 
@@ -101,7 +114,104 @@ describe("StakingSection", () => {
     expect(screen.getByRole("link", { name: "legal@safefoundation.org" })).toBeInTheDocument()
   })
 
-  it("hides compliance note when address is not KYC-required", () => {
+  it("shows compliance note AND keeps claim button enabled when kycAmount > 0, kyc absent, but proof and cumulativeAmount are both present", () => {
+    mockUseAccount.mockReturnValue({
+      isConnected: true,
+      address: "0x1234567890123456789012345678901234567890",
+    })
+    mockUseRewardProof.mockReturnValueOnce({
+      data: {
+        cumulativeAmount: "973890821912297403820",
+        kycAmount: "826720638286750773563",
+        merkleRoot: "0x5aea53631d726e3cb245cb1ce31834212ab6667a4726d25168a583d3b57b6cc1",
+        proof: ["0x1998aa1fb0e54f96da60317f799a85422585dda3a8368e6af3a465c3dd455e50"],
+      },
+    })
+
+    renderSection()
+
+    expect(screen.getByText(/pending compliance checks/)).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Claim Rewards" })).not.toBeDisabled()
+  })
+
+  it("hides compliance note when kyc:true even with kycAmount > 0", () => {
+    mockUseAccount.mockReturnValue({
+      isConnected: true,
+      address: "0x1234567890123456789012345678901234567890",
+    })
+    mockUseRewardProof.mockReturnValueOnce({
+      data: {
+        cumulativeAmount: "973890821912297403820",
+        kycAmount: "826720638286750773563",
+        kyc: true,
+        merkleRoot: "0x5aea53631d726e3cb245cb1ce31834212ab6667a4726d25168a583d3b57b6cc1",
+        proof: ["0x1998aa1fb0e54f96da60317f799a85422585dda3a8368e6af3a465c3dd455e50"],
+      },
+    })
+
+    renderSection()
+
+    expect(screen.queryByText(/pending compliance checks/)).not.toBeInTheDocument()
+  })
+
+  it("shows compliance note when kycAmount > 0 and kyc is explicitly false", () => {
+    mockUseAccount.mockReturnValue({
+      isConnected: true,
+      address: "0x1234567890123456789012345678901234567890",
+    })
+    mockUseRewardProof.mockReturnValueOnce({
+      data: {
+        cumulativeAmount: "0",
+        kycAmount: "826720638286750773563",
+        kyc: false,
+        merkleRoot: "0x5aea53631d726e3cb245cb1ce31834212ab6667a4726d25168a583d3b57b6cc1",
+        proof: null,
+      },
+    })
+
+    renderSection()
+
+    expect(screen.getByText(/pending compliance checks/)).toBeInTheDocument()
+  })
+
+  it("hides compliance note when proof has kycAmount of 0", () => {
+    mockUseAccount.mockReturnValue({
+      isConnected: true,
+      address: "0x1234567890123456789012345678901234567890",
+    })
+    mockUseRewardProof.mockReturnValueOnce({
+      data: {
+        cumulativeAmount: "100",
+        kycAmount: "0",
+        merkleRoot: "0x5aea53631d726e3cb245cb1ce31834212ab6667a4726d25168a583d3b57b6cc1",
+        proof: ["0xabc"],
+      },
+    })
+
+    renderSection()
+
+    expect(screen.queryByText(/pending compliance checks/)).not.toBeInTheDocument()
+  })
+
+  it("hides compliance note when proof exists but has no kycAmount field", () => {
+    mockUseAccount.mockReturnValue({
+      isConnected: true,
+      address: "0x1234567890123456789012345678901234567890",
+    })
+    mockUseRewardProof.mockReturnValueOnce({
+      data: {
+        cumulativeAmount: "973890821912297403820",
+        merkleRoot: "0x5aea53631d726e3cb245cb1ce31834212ab6667a4726d25168a583d3b57b6cc1",
+        proof: ["0x1998aa1fb0e54f96da60317f799a85422585dda3a8368e6af3a465c3dd455e50"],
+      },
+    })
+
+    renderSection()
+
+    expect(screen.queryByText(/pending compliance checks/)).not.toBeInTheDocument()
+  })
+
+  it("hides compliance note when proof is null (no proof file)", () => {
     mockUseAccount.mockReturnValue({
       isConnected: true,
       address: "0x1234567890123456789012345678901234567890",
@@ -112,10 +222,16 @@ describe("StakingSection", () => {
     expect(screen.queryByText(/pending compliance checks/)).not.toBeInTheDocument()
   })
 
-  it("hides compliance note when kycRequired is true but address is undefined", async () => {
+  it("hides compliance note when address is undefined even with kycAmount > 0", () => {
     mockUseAccount.mockReturnValue({ isConnected: true, address: undefined })
-    const mod = await import("@/hooks/useKycRequired")
-    vi.mocked(mod.useKycRequired).mockReturnValueOnce(true)
+    mockUseRewardProof.mockReturnValueOnce({
+      data: {
+        cumulativeAmount: "0",
+        kycAmount: "826720638286750773563",
+        merkleRoot: "0x5aea53631d726e3cb245cb1ce31834212ab6667a4726d25168a583d3b57b6cc1",
+        proof: null,
+      },
+    })
 
     renderSection()
 

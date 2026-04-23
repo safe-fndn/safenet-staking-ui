@@ -5,19 +5,27 @@ import type { Address, Hex } from "viem"
 export interface RewardProof {
   cumulativeAmount: string
   merkleRoot: Hex
-  proof: Hex[]
+  proof: Hex[] | null
+  kycAmount?: string
+  kyc?: boolean
 }
 
 function isValidProof(data: unknown): data is RewardProof {
   if (typeof data !== "object" || data === null) return false
   const obj = data as Record<string, unknown>
-  return (
-    typeof obj.cumulativeAmount === "string" &&
-    typeof obj.merkleRoot === "string" &&
-    obj.merkleRoot.startsWith("0x") &&
-    Array.isArray(obj.proof) &&
-    obj.proof.every((p) => typeof p === "string" && (p as string).startsWith("0x"))
+  if (typeof obj.cumulativeAmount !== "string") return false
+  if (typeof obj.merkleRoot !== "string" || !/^0x[0-9a-fA-F]{64}$/.test(obj.merkleRoot)) return false
+  if (
+    obj.proof !== null &&
+    !(
+      Array.isArray(obj.proof) &&
+      obj.proof.every((p) => typeof p === "string" && /^0x[0-9a-fA-F]{64}$/.test(p as string))
+    )
   )
+    return false
+  if (obj.kycAmount !== undefined && (typeof obj.kycAmount !== "string" || !/^\d+$/.test(obj.kycAmount))) return false
+  if (obj.kyc !== undefined && typeof obj.kyc !== "boolean") return false
+  return true
 }
 
 const DEFAULT_REWARDS_BASE_URL =
