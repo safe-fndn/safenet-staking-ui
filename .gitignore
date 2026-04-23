@@ -30,3 +30,5 @@ coverage
 docs/
 admin/
 todos
+playwright-report/
+test-results/
