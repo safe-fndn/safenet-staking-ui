@@ -79,34 +79,22 @@ describe("useRewardProof", () => {
       renderHook(() => useRewardProof(address))
     })
 
+    async function callQueryFn() {
+      return capturedOptions!.queryFn!()
+    }
+
     it("returns null on 404", async () => {
-      mockFetch.mockResolvedValueOnce({ ok: true, status: 404, json: async () => null })
       mockFetch.mockResolvedValueOnce({ status: 404 })
-      // Override fetch to return 404 properly
-      mockFetch.mockReset()
-      mockFetch.mockResolvedValueOnce({ ok: false, status: 404 })
 
-      // Re-render to capture fresh options with 404 handling
-      vi.clearAllMocks()
-      vi.resetModules()
-      ;({ useRewardProof } = await import("../useRewardProof"))
-      const reactQuery = await import("@tanstack/react-query")
-      useQueryMock = reactQuery.useQuery as unknown as Mock
-      useQueryMock.mockImplementation((opts: Record<string, unknown>) => {
-        capturedOptions = opts as typeof capturedOptions
-        return { data: undefined }
-      })
-      renderHook(() => useRewardProof(address))
+      const result = await callQueryFn()
 
-      mockFetch.mockResolvedValueOnce({ status: 404 })
-      const result = await capturedOptions!.queryFn!()
       expect(result).toBeNull()
     })
 
     it("throws on non-404 error responses", async () => {
       mockFetch.mockResolvedValueOnce({ ok: false, status: 500 })
 
-      await expect(capturedOptions!.queryFn!()).rejects.toThrow(
+      await expect(callQueryFn()).rejects.toThrow(
         "Failed to fetch reward proof: 500",
       )
     })
@@ -118,9 +106,7 @@ describe("useRewardProof", () => {
         json: async () => ({ cumulativeAmount: 123 }),
       })
 
-      await expect(capturedOptions!.queryFn!()).rejects.toThrow(
-        "Invalid reward proof format",
-      )
+      await expect(callQueryFn()).rejects.toThrow("Invalid reward proof format")
     })
 
     it("accepts a minimal valid proof", async () => {
@@ -135,7 +121,8 @@ describe("useRewardProof", () => {
         json: async () => proof,
       })
 
-      const result = await capturedOptions!.queryFn!()
+      const result = await callQueryFn()
+
       expect(result).toMatchObject(proof)
     })
 
@@ -152,7 +139,8 @@ describe("useRewardProof", () => {
         json: async () => proof,
       })
 
-      const result = await capturedOptions!.queryFn!()
+      const result = await callQueryFn()
+
       expect(result).toMatchObject(proof)
     })
 
@@ -170,7 +158,8 @@ describe("useRewardProof", () => {
         json: async () => proof,
       })
 
-      const result = await capturedOptions!.queryFn!()
+      const result = await callQueryFn()
+
       expect(result).toMatchObject(proof)
     })
 
@@ -186,9 +175,7 @@ describe("useRewardProof", () => {
         }),
       })
 
-      await expect(capturedOptions!.queryFn!()).rejects.toThrow(
-        "Invalid reward proof format",
-      )
+      await expect(callQueryFn()).rejects.toThrow("Invalid reward proof format")
     })
 
     it("rejects proof with non-boolean kyc", async () => {
@@ -203,9 +190,7 @@ describe("useRewardProof", () => {
         }),
       })
 
-      await expect(capturedOptions!.queryFn!()).rejects.toThrow(
-        "Invalid reward proof format",
-      )
+      await expect(callQueryFn()).rejects.toThrow("Invalid reward proof format")
     })
   })
 })
