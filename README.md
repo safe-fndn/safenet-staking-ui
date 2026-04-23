@@ -37,6 +37,7 @@ The app will be available at `http://localhost:5173`.
 | `VITE_GEOBLOCK_CACHE_DAYS` | No | Geo-block cache duration in days (defaults to 7) |
 | `VITE_VALIDATOR_INFO_URL` | No | Validator info JSON endpoint (defaults to GitHub raw URL) |
 | `VITE_REWARDS_BASE_URL` | No | Base URL for reward proof files (defaults to GitHub raw URL) |
+| `VITE_KYC_REQUIRED_URL` | No | KYC-required address list endpoint (defaults to GitHub raw URL) |
 | `VITE_DOCS_URL` | No | Documentation link in footer (defaults to Safe docs) |
 | `VITE_TERMS_URL` | No | Footer terms link (hidden if unset) |
 | `VITE_PRIVACY_URL` | No | Footer privacy link (hidden if unset) |

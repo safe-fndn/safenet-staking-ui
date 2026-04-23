@@ -4,6 +4,7 @@ import { useAccount } from "wagmi"
 import { useValidators, findValidator, type ValidatorInfo } from "@/hooks/useValidators"
 import { useUserStakesOnValidators } from "@/hooks/useStakingReads"
 import { useRewards } from "@/hooks/useRewards"
+import { useKycRequired } from "@/hooks/useKycRequired"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -73,7 +74,7 @@ function PositionRow({ position, validators }: { position: Position; validators?
 }
 
 export function StakingSection() {
-  const { isConnected } = useAccount()
+  const { isConnected, address } = useAccount()
   const { data: validators } = useValidators()
   const validatorAddresses = useMemo(
     () => (validators ?? []).map((v) => v.address),
@@ -81,6 +82,7 @@ export function StakingSection() {
   )
   const { data: stakes, isLoading } = useUserStakesOnValidators(validatorAddresses)
   const { data: rewards } = useRewards()
+  const kycRequired = useKycRequired(address)
   const [claimOpen, setClaimOpen] = useState(false)
 
   if (!isConnected) {
@@ -180,6 +182,23 @@ export function StakingSection() {
               Claim Rewards
             </Button>
           </div>
+
+          {/* Compliance note */}
+          {kycRequired && address && (
+            <p className="text-sm text-muted-foreground rounded-lg border border-border bg-muted/30 px-3 py-2">
+              Some rewards for{" "}
+              <span className="font-mono">{truncateAddress(address)}</span> are
+              pending compliance checks. Please reach out to the Safe Ecosystem
+              Foundation at{" "}
+              <a
+                href="mailto:legal@safefoundation.org"
+                className="underline hover:text-foreground transition-colors"
+              >
+                legal@safefoundation.org
+              </a>
+              .
+            </p>
+          )}
 
           {/* Positions */}
           {positions.length === 0 ? (
