@@ -20,8 +20,8 @@ export class DashboardPage {
 
   constructor(page: Page) {
     this.page = page
-    this.heading = page.getByRole("heading", { name: "SAFE Delegation & Claiming" })
-    this.subtitle = page.getByText("Manage your SAFE token delegation and rewards")
+    this.heading = page.getByRole("heading", { name: "Stake your SAFE" })
+    this.subtitle = page.getByText("Earn rewards for helping secure Safenet Beta")
     this.statsCards = page.locator("[class*='grid'] > div").filter({ has: page.locator("[class*='CardTitle']") })
     this.totalDelegatedCard = page.getByText("Total SAFE Delegated").locator("../..")
     this.yourDelegatedCard = page.getByText("Your Delegated SAFE").locator("../..")

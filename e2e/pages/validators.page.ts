@@ -14,8 +14,8 @@ export class ValidatorsPage {
 
   constructor(page: Page) {
     this.page = page
-    this.heading = page.getByRole("heading", { name: "Validators", level: 1 })
-    this.subtitle = page.getByText("Browse validators and delegate your SAFE tokens")
+    this.heading = page.getByRole("heading", { name: "Safenet Beta", level: 1 })
+    this.subtitle = page.getByText("Select a validator to stake your SAFE tokens")
     this.searchInput = page.getByPlaceholder("Search by name or address")
     this.filterAll = page.getByRole("button", { name: "All", exact: true })
     this.filterActive = page.getByRole("button", { name: "Active", exact: true })
