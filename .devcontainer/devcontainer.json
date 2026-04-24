@@ -2,7 +2,6 @@
   "name": "safenet-staking-ui",
   "image": "mcr.microsoft.com/devcontainers/javascript-node:22",
   "remoteUser": "root",
-  "runArgs": ["--env-file", "${localWorkspaceFolder}/.env"],
   "forwardPorts": [5173, 4173],
   "portsAttributes": {
     "5173": { "label": "Dev server" },
