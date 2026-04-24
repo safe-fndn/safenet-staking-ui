@@ -20,13 +20,16 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: "npm run dev -- --port 5174",
+    command: "yarn dev --port 5174",
     port: 5174,
     reuseExistingServer: !process.env.CI,
     env: {
       VITE_CHAIN_ID: "11155111",
       VITE_RPC_URL: "https://mock-rpc.test",
       VITE_STAKING_DEPLOY_BLOCK: "5000000",
+      VITE_VALIDATOR_INFO_URL: "https://mock-validators.test/validators.json",
+      VITE_TERMS_URL: "https://terms.test",
+      VITE_WALLETCONNECT_PROJECT_ID: "00000000000000000000000000000000",
     },
   },
 })
