@@ -68,7 +68,7 @@ if (!gateway) {
 // --- 1. Build ---
 if (!skipBuild) {
   console.log("\n--- Building production bundle ---");
-  run("npm run build", { stdio: "inherit" });
+  run("yarn build", { stdio: "inherit" });
 }
 
 if (!existsSync(resolve(DIST, "index.html"))) {
