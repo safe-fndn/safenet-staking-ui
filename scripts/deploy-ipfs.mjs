@@ -14,8 +14,8 @@
  */
 
 import { execSync } from "node:child_process";
-import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { resolve, relative, join } from "node:path";
+import { existsSync, globSync, readFileSync } from "node:fs";
+import { join, relative, resolve } from "node:path";
 import { PinataSDK } from "pinata";
 
 const ROOT = resolve(import.meta.dirname, "..");
@@ -33,17 +33,14 @@ function run(cmd, opts = {}) {
   return execSync(cmd, { cwd: ROOT, ...opts });
 }
 
-/** Recursively collect all files in a directory into File objects, sorted by path. */
-function collectFiles(dir, base = dir) {
+/** Collect all files in a directory into File objects with relative paths. */
+function collectFiles(dir) {
   const files = [];
-  for (const entry of readdirSync(dir, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
-    const fullPath = join(dir, entry.name);
-    if (entry.isDirectory()) {
-      files.push(...collectFiles(fullPath, base));
-    } else {
-      const relativePath = relative(base, fullPath);
-      const content = readFileSync(fullPath);
-      files.push(new File([content], relativePath));
+  for (const entry of globSync(`${dir}/**/*`, { withFileTypes: true })) {
+    if (entry.isFile()) {
+      const path = join(entry.parentPath, entry.name);
+      const content = readFileSync(path);
+      files.push(new File([content], relative(dir, path)));
     }
   }
   return files;
