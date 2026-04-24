@@ -4,7 +4,7 @@ test.describe("Undelegation Dialog", () => {
   test("opens undelegate dialog from validator card", async ({ connectedPage: page }) => {
     await page.goto("/#/validators")
 
-    await expect(page.getByRole("link", { name: "Gnosis" })).toBeVisible({ timeout: 15_000 })
+    await expect(page.getByRole("link", { name: "Validator A" })).toBeVisible({ timeout: 15_000 })
 
     // Click Unstake on a card that has a stake
     const unstakeButtons = page.getByRole("button", { name: "Unstake" })
@@ -15,7 +15,7 @@ test.describe("Undelegation Dialog", () => {
 
   test("dialog shows amount input with unstake label", async ({ connectedPage: page }) => {
     await page.goto("/#/validators")
-    await expect(page.getByRole("link", { name: "Gnosis" })).toBeVisible({ timeout: 15_000 })
+    await expect(page.getByRole("link", { name: "Validator A" })).toBeVisible({ timeout: 15_000 })
 
     const unstakeButtons = page.getByRole("button", { name: "Unstake" })
     await unstakeButtons.first().click()
@@ -25,7 +25,7 @@ test.describe("Undelegation Dialog", () => {
 
   test("shows unstaking period with claim info", async ({ connectedPage: page }) => {
     await page.goto("/#/validators")
-    await expect(page.getByRole("link", { name: "Gnosis" })).toBeVisible({ timeout: 15_000 })
+    await expect(page.getByRole("link", { name: "Validator A" })).toBeVisible({ timeout: 15_000 })
 
     const unstakeButtons = page.getByRole("button", { name: "Unstake" })
     await unstakeButtons.first().click()
@@ -36,7 +36,7 @@ test.describe("Undelegation Dialog", () => {
 
   test("initiate withdrawal button is disabled without amount", async ({ connectedPage: page }) => {
     await page.goto("/#/validators")
-    await expect(page.getByRole("link", { name: "Gnosis" })).toBeVisible({ timeout: 15_000 })
+    await expect(page.getByRole("link", { name: "Validator A" })).toBeVisible({ timeout: 15_000 })
 
     const unstakeButtons = page.getByRole("button", { name: "Unstake" })
     await unstakeButtons.first().click()
@@ -47,7 +47,7 @@ test.describe("Undelegation Dialog", () => {
 
   test("dialog can be closed", async ({ connectedPage: page }) => {
     await page.goto("/#/validators")
-    await expect(page.getByRole("link", { name: "Gnosis" })).toBeVisible({ timeout: 15_000 })
+    await expect(page.getByRole("link", { name: "Validator A" })).toBeVisible({ timeout: 15_000 })
 
     const unstakeButtons = page.getByRole("button", { name: "Unstake" })
     await unstakeButtons.first().click()

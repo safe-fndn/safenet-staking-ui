@@ -16,16 +16,16 @@ export type TestFixtures = {
 
 const MOCK_VALIDATORS = [
   {
-    address: VALIDATORS.gnosis,
+    address: VALIDATORS.validatorA,
     is_active: true,
-    label: "Gnosis",
+    label: "Validator A",
     commission: 0.05,
     participation_rate_14d: 0.999,
   },
   {
-    address: VALIDATORS.greenfield,
+    address: VALIDATORS.validatorB,
     is_active: true,
-    label: "Greenfield",
+    label: "Validator B",
     commission: 0.03,
     participation_rate_14d: 0.985,
   },

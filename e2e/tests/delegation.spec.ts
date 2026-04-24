@@ -4,8 +4,8 @@ test.describe("Delegation Dialog", () => {
   test("opens delegate dialog from validator card", async ({ connectedPage: page }) => {
     await page.goto("/#/validators")
 
-    // Wait for Gnosis card to appear
-    await expect(page.getByRole("link", { name: "Gnosis" })).toBeVisible({ timeout: 15_000 })
+    // Wait for Validator A card to appear
+    await expect(page.getByRole("link", { name: "Validator A" })).toBeVisible({ timeout: 15_000 })
 
     // Click Stake on the first validator card
     const stakeButtons = page.getByRole("button", { name: "Stake" })
@@ -17,7 +17,7 @@ test.describe("Delegation Dialog", () => {
 
   test("dialog shows amount input with balance", async ({ connectedPage: page }) => {
     await page.goto("/#/validators")
-    await expect(page.getByRole("link", { name: "Gnosis" })).toBeVisible({ timeout: 15_000 })
+    await expect(page.getByRole("link", { name: "Validator A" })).toBeVisible({ timeout: 15_000 })
 
     const stakeButtons = page.getByRole("button", { name: "Stake" })
     await stakeButtons.first().click()
@@ -30,7 +30,7 @@ test.describe("Delegation Dialog", () => {
 
   test("dialog shows percentage buttons", async ({ connectedPage: page }) => {
     await page.goto("/#/validators")
-    await expect(page.getByRole("link", { name: "Gnosis" })).toBeVisible({ timeout: 15_000 })
+    await expect(page.getByRole("link", { name: "Validator A" })).toBeVisible({ timeout: 15_000 })
 
     const stakeButtons = page.getByRole("button", { name: "Stake" })
     await stakeButtons.first().click()
@@ -43,7 +43,7 @@ test.describe("Delegation Dialog", () => {
 
   test("percentage buttons fill amount input", async ({ connectedPage: page }) => {
     await page.goto("/#/validators")
-    await expect(page.getByRole("link", { name: "Gnosis" })).toBeVisible({ timeout: 15_000 })
+    await expect(page.getByRole("link", { name: "Validator A" })).toBeVisible({ timeout: 15_000 })
 
     const stakeButtons = page.getByRole("button", { name: "Stake" })
     await stakeButtons.first().click()
@@ -59,7 +59,7 @@ test.describe("Delegation Dialog", () => {
 
   test("delegate button is disabled without amount", async ({ connectedPage: page }) => {
     await page.goto("/#/validators")
-    await expect(page.getByRole("link", { name: "Gnosis" })).toBeVisible({ timeout: 15_000 })
+    await expect(page.getByRole("link", { name: "Validator A" })).toBeVisible({ timeout: 15_000 })
 
     const stakeButtons = page.getByRole("button", { name: "Stake" })
     await stakeButtons.first().click()
@@ -71,7 +71,7 @@ test.describe("Delegation Dialog", () => {
 
   test("shows unstaking period info", async ({ connectedPage: page }) => {
     await page.goto("/#/validators")
-    await expect(page.getByRole("link", { name: "Gnosis" })).toBeVisible({ timeout: 15_000 })
+    await expect(page.getByRole("link", { name: "Validator A" })).toBeVisible({ timeout: 15_000 })
 
     const stakeButtons = page.getByRole("button", { name: "Stake" })
     await stakeButtons.first().click()
@@ -82,7 +82,7 @@ test.describe("Delegation Dialog", () => {
 
   test("dialog can be closed", async ({ connectedPage: page }) => {
     await page.goto("/#/validators")
-    await expect(page.getByRole("link", { name: "Gnosis" })).toBeVisible({ timeout: 15_000 })
+    await expect(page.getByRole("link", { name: "Validator A" })).toBeVisible({ timeout: 15_000 })
 
     const stakeButtons = page.getByRole("button", { name: "Stake" })
     await stakeButtons.first().click()
