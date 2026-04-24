@@ -33,10 +33,10 @@ function run(cmd, opts = {}) {
   return execSync(cmd, { cwd: ROOT, ...opts });
 }
 
-/** Recursively collect all files in a directory into File objects. */
+/** Recursively collect all files in a directory into File objects, sorted by path. */
 function collectFiles(dir, base = dir) {
   const files = [];
-  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+  for (const entry of readdirSync(dir, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
     const fullPath = join(dir, entry.name);
     if (entry.isDirectory()) {
       files.push(...collectFiles(fullPath, base));
