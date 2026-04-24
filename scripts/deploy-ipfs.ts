@@ -1,4 +1,5 @@
-#!/usr/bin/env node
+#!/usr/bin/env tsx
+/// <reference types="node" />
 
 /**
  * Deploy the built dist/ directory to IPFS via Pinata.
@@ -8,12 +9,12 @@
  *   PINATA_GATEWAY      — Your dedicated gateway domain (e.g. "my-gateway.mypinata.cloud")
  *
  * Usage:
- *   node scripts/deploy-ipfs.mjs              # build + upload, name: "safenet-staking-ui"
- *   node scripts/deploy-ipfs.mjs --skip-build # upload only (dist/ must exist)
- *   node scripts/deploy-ipfs.mjs --folder     # upload with timestamped name, e.g. "safenet-staking-ui-2026-03-18T14:30:00.000Z"
+ *   tsx scripts/deploy-ipfs.ts              # build + upload, name: "safenet-staking-ui"
+ *   tsx scripts/deploy-ipfs.ts --skip-build # upload only (dist/ must exist)
+ *   tsx scripts/deploy-ipfs.ts --folder     # upload with timestamped name, e.g. "safenet-staking-ui-2026-03-18T14:30:00.000Z"
  */
 
-import { execSync } from "node:child_process";
+import { execSync, type ExecSyncOptions } from "node:child_process";
 import { existsSync, globSync, readFileSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 import { PinataSDK } from "pinata";
@@ -28,14 +29,14 @@ const uploadName = useFolder
   ? `safenet-staking-ui-${new Date().toISOString()}`
   : "safenet-staking-ui";
 
-function run(cmd, opts = {}) {
+function run(cmd: string, opts: ExecSyncOptions = {}): Buffer {
   console.log(`\n> ${cmd}`);
-  return execSync(cmd, { cwd: ROOT, ...opts });
+  return execSync(cmd, { cwd: ROOT, ...opts }) as Buffer;
 }
 
 /** Collect all files in a directory into File objects with relative paths. */
-function collectFiles(dir) {
-  const files = [];
+function collectFiles(dir: string): File[] {
+  const files: File[] = [];
   for (const entry of globSync(`${dir}/**/*`, { withFileTypes: true })) {
     if (entry.isFile()) {
       const path = join(entry.parentPath, entry.name);
@@ -69,7 +70,7 @@ if (!skipBuild) {
 }
 
 if (!existsSync(resolve(DIST, "index.html"))) {
-  console.error("Error: dist/index.html not found. Run `npm run build` first.");
+  console.error("Error: dist/index.html not found. Run `yarn build` first.");
   process.exit(1);
 }
 
