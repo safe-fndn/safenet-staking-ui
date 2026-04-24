@@ -26,6 +26,6 @@ export class WithdrawalsPage {
   }
 
   async goto() {
-    await this.page.goto("/withdrawals")
+    await this.page.goto("/#/withdrawals")
   }
 }
