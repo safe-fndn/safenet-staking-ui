@@ -27,7 +27,7 @@ export function getValidatorUpdatedLogs(): object[] {
       address: "0x" + STAKING_CONTRACT.replace("0x", ""),
       topics: [
         TOPICS.ValidatorUpdated,
-        addrTopic(VALIDATORS.gnosis),
+        addrTopic(VALIDATORS.validatorA),
       ],
       data: "0x" + toUint256(1n), // isRegistered = true
       blockNumber: "0x4c4b40", // 5000000
@@ -41,7 +41,7 @@ export function getValidatorUpdatedLogs(): object[] {
       address: "0x" + STAKING_CONTRACT.replace("0x", ""),
       topics: [
         TOPICS.ValidatorUpdated,
-        addrTopic(VALIDATORS.greenfield),
+        addrTopic(VALIDATORS.validatorB),
       ],
       data: "0x" + toUint256(1n), // isRegistered = true
       blockNumber: "0x4c4b41",
@@ -64,9 +64,9 @@ export function getStakeIncreasedLogs(): object[] {
       topics: [
         TOPICS.StakeIncreased,
         addrTopic(TEST_USER),
-        addrTopic(VALIDATORS.gnosis),
+        addrTopic(VALIDATORS.validatorA),
       ],
-      data: "0x" + toUint256(AMOUNTS.userStakeGnosis),
+      data: "0x" + toUint256(AMOUNTS.userStakeValidatorA),
       blockNumber: "0x5000001",
       blockHash: "0x" + "f1".repeat(32),
       transactionHash: "0x" + "a1".repeat(32),
@@ -79,9 +79,9 @@ export function getStakeIncreasedLogs(): object[] {
       topics: [
         TOPICS.StakeIncreased,
         addrTopic(TEST_USER),
-        addrTopic(VALIDATORS.greenfield),
+        addrTopic(VALIDATORS.validatorB),
       ],
-      data: "0x" + toUint256(AMOUNTS.userStakeGreenfield),
+      data: "0x" + toUint256(AMOUNTS.userStakeValidatorB),
       blockNumber: "0x5000002",
       blockHash: "0x" + "f2".repeat(32),
       transactionHash: "0x" + "a2".repeat(32),
@@ -102,7 +102,7 @@ export function getWithdrawalInitiatedLogs(): object[] {
       topics: [
         TOPICS.WithdrawalInitiated,
         addrTopic(TEST_USER),
-        addrTopic(VALIDATORS.gnosis),
+        addrTopic(VALIDATORS.validatorA),
         "0x" + toUint256(1n), // withdrawalId
       ],
       data: "0x" + toUint256(AMOUNTS.pendingWithdrawalAmount),

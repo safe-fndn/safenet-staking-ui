@@ -15,8 +15,8 @@ test.describe("Validators Page", () => {
     await validators.goto()
 
     // Wait for validators to load — look for known validator names
-    await expect(page.getByRole("link", { name: "Gnosis" })).toBeVisible({ timeout: 15_000 })
-    await expect(page.getByRole("link", { name: "Greenfield" })).toBeVisible()
+    await expect(page.getByRole("link", { name: "Validator A" })).toBeVisible({ timeout: 15_000 })
+    await expect(page.getByRole("link", { name: "Validator B" })).toBeVisible()
   })
 
   test("validator cards show stake/unstake buttons when connected", async ({ connectedPage: page }) => {
@@ -24,7 +24,7 @@ test.describe("Validators Page", () => {
     await validators.goto()
 
     // Wait for validator cards to render
-    await expect(page.getByRole("link", { name: "Gnosis" })).toBeVisible({ timeout: 15_000 })
+    await expect(page.getByRole("link", { name: "Validator A" })).toBeVisible({ timeout: 15_000 })
 
     // Should see Stake buttons
     const stakeButtons = page.getByRole("button", { name: "Stake" })
@@ -39,9 +39,9 @@ test.describe("Validators Page", () => {
     const validators = new ValidatorsPage(page)
     await validators.goto()
 
-    await expect(page.getByRole("link", { name: "Gnosis" })).toBeVisible({ timeout: 15_000 })
+    await expect(page.getByRole("link", { name: "Validator A" })).toBeVisible({ timeout: 15_000 })
 
-    await page.getByRole("link", { name: "Gnosis" }).click()
+    await page.getByRole("link", { name: "Validator A" }).click()
     await expect(page).toHaveURL(/\/validators\/0x/)
   })
 })
