@@ -16,11 +16,12 @@
 
 import { execSync, type ExecSyncOptions } from "node:child_process";
 import { existsSync, globSync, readFileSync } from "node:fs";
-import { join, relative, resolve } from "node:path";
+import { join, matchesGlob, relative, resolve } from "node:path";
 import { PinataSDK } from "pinata";
 
 const ROOT = resolve(import.meta.dirname, "..");
 const DIST = resolve(ROOT, "dist");
+const IGNORE_FILE_GLOBS = ["**/.DS_Store"];
 
 const skipBuild = process.argv.includes("--skip-build");
 const useFolder = process.argv.includes("--folder");
@@ -34,14 +35,22 @@ function run(cmd: string, opts: ExecSyncOptions = {}): Buffer {
   return execSync(cmd, { cwd: ROOT, ...opts }) as Buffer;
 }
 
+function isIgnoredFile(path: string): boolean {
+  return IGNORE_FILE_GLOBS.some((pattern) => matchesGlob(path, pattern));
+}
+
 /** Collect all files in a directory into File objects with relative paths. */
 function collectFiles(dir: string): File[] {
   const files: File[] = [];
   for (const entry of globSync(`${dir}/**/*`, { withFileTypes: true })) {
     if (entry.isFile()) {
       const path = join(entry.parentPath, entry.name);
+      const relativePath = relative(dir, path);
+      if (isIgnoredFile(relativePath)) {
+        continue;
+      }
       const content = readFileSync(path);
-      files.push(new File([content], relative(dir, path)));
+      files.push(new File([content], relativePath));
     }
   }
   return files;
