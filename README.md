@@ -42,7 +42,7 @@ The app will be available at `http://localhost:5173`.
 | `VITE_TERMS_URL` | No | Footer terms link (hidden if unset) |
 | `VITE_PRIVACY_URL` | No | Footer privacy link (hidden if unset) |
 | `VITE_IMPRINT_URL` | No | Footer imprint link (hidden if unset) |
-| `VITE_APP_URL` | No | Canonical app URL for `og:image` absolute URLs (required for IPFS social previews, no trailing slash) |
+| `VITE_APP_URL` | No | Canonical app URL for social preview meta tags (`og:image`, `twitter:image`); absolute URLs are required for social crawlers (no trailing slash) |
 | `PINATA_JWT` | No | Pinata API JWT for IPFS deployment |
 | `PINATA_GATEWAY` | No | Pinata gateway domain for IPFS deployment |
 
@@ -175,7 +175,7 @@ yarn build
 yarn deploy:ipfs
 ```
 
-Requires `PINATA_JWT` and `PINATA_GATEWAY` environment variables. The build uses hash-based routing (`HashRouter`) for compatibility with IPFS gateways. Set `VITE_APP_URL` to the canonical URL (e.g. a DNSLink domain) so that `og:image` and `twitter:image` meta tags resolve correctly for social sharing.
+Requires `PINATA_JWT` and `PINATA_GATEWAY` environment variables. The build uses hash-based routing (`HashRouter`) for compatibility with IPFS gateways. Set `VITE_APP_URL` to the canonical URL so that `og:image` and `twitter:image` meta tags resolve correctly for social crawlers.
 
 ### Safe App
 
