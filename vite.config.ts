@@ -12,7 +12,15 @@ const safeAppHeaders = {
 
 export default defineConfig({
   base: './',
-  plugins: [react(), tailwindcss()],
+  plugins: [
+    react(),
+    tailwindcss(),
+    {
+      name: 'inject-app-url',
+      transformIndexHtml: (html) =>
+        html.replace(/%VITE_APP_URL%/g, process.env.VITE_APP_URL ?? ''),
+    },
+  ],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),

@@ -52,6 +52,7 @@ jobs:
           VITE_PRIVACY_URL: ${{ vars.VITE_PRIVACY_URL }}
           VITE_IMPRINT_URL: ${{ vars.VITE_IMPRINT_URL }}
           VITE_MERKLE_DROP_ADDRESS: ${{ vars.VITE_MERKLE_DROP_ADDRESS }}
+          VITE_APP_URL: ${{ vars.VITE_APP_URL }}
         run: yarn build
 
       - name: Compute build checksum

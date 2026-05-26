@@ -152,6 +152,7 @@ Wagmi config (`src/config/wagmi.ts`) uses `safe()` (auto-detects Safe Wallet ifr
 | `VITE_TERMS_URL` | No | Footer terms link (hidden if unset) |
 | `VITE_PRIVACY_URL` | No | Footer privacy link (hidden if unset) |
 | `VITE_IMPRINT_URL` | No | Footer imprint link (hidden if unset) |
+| `VITE_APP_URL` | No | Canonical app URL for social preview meta tags (`og:image`, `twitter:image`); absolute URLs are required for social crawlers |
 
 ## Adding a New Chain
 
