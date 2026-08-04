@@ -22,7 +22,7 @@ export class WithdrawalsPage {
     this.fifoInfoButton = page.getByLabel("Withdrawal queue info")
     this.withdrawalCards = page.locator("[class*='Card']").filter({ has: page.getByText("SAFE") })
     this.claimButton = page.getByRole("button", { name: "Claim" })
-    this.readyToClaim = page.getByText("Ready to claim")
+    this.readyToClaim = page.getByText("Ready to withdraw")
   }
 
   async goto() {
