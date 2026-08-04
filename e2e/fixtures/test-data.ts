@@ -1,5 +1,5 @@
 /** Contract addresses on Sepolia */
-export const STAKING_CONTRACT = "0x6E4D214A7FA04be157b1Aae498b395bd21Da0aF5".toLowerCase()
+export const STAKING_CONTRACT = "0x40745eec3fD6E4C005de1dec0031b2EA9f9D7c42".toLowerCase()
 export const TOKEN_CONTRACT = "0xef98bcc90b1373b2ae0d23ec318d3ee70ea61af4".toLowerCase()
 
 /** Test user address */
