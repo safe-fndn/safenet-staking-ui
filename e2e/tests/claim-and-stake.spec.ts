@@ -1,0 +1,77 @@
+import { test, expect } from "../fixtures/base.fixture"
+
+test.describe("Claim + Stake", () => {
+  test("preselects the validator with the largest active stake for a connected EOA", async ({ connectedPage: page }) => {
+    await page.goto("/")
+
+    await expect(page.getByText("Your Rewards")).toBeVisible({ timeout: 15_000 })
+    // Wait for the positions table to finish loading before opening the dialog,
+    // so the largest-active-stake preselection has resolved.
+    await expect(page.getByRole("link", { name: "Gnosis" })).toBeVisible({ timeout: 15_000 })
+    await page.getByRole("button", { name: "Claim + Stake" }).click()
+
+    const dialog = page.getByRole("dialog")
+    await expect(dialog.getByRole("heading", { name: "Claim + Stake" })).toBeVisible()
+
+    // TEST_USER has 300 SAFE on Gnosis and 200 SAFE on Greenfield — Gnosis is preselected.
+    await expect(dialog.getByLabel("Validator")).toHaveValue(/^0x/i)
+    const selectedLabel = await dialog.getByLabel("Validator").locator("option:checked").textContent()
+    expect(selectedLabel).toBe("Gnosis")
+
+    await expect(dialog.getByRole("button", { name: "Claim Rewards" })).toBeEnabled()
+  })
+
+  test("requires an explicit validator selection when there is no active stake", async ({ noActiveStakePage: page }) => {
+    await page.goto("/")
+
+    await expect(page.getByText("Your Rewards")).toBeVisible({ timeout: 15_000 })
+    // Wait for the empty-positions state so the dialog opens only once stake data has resolved.
+    await expect(page.getByText(/You have no active stakes/)).toBeVisible({ timeout: 15_000 })
+    await page.getByRole("button", { name: "Claim + Stake" }).click()
+
+    const dialog = page.getByRole("dialog")
+    await expect(dialog.getByLabel("Validator")).toHaveValue("")
+    await expect(dialog.getByRole("button", { name: "Claim Rewards" })).toBeDisabled()
+
+    await dialog.getByLabel("Validator").selectOption({ label: "Gnosis" })
+    await expect(dialog.getByRole("button", { name: "Claim Rewards" })).toBeEnabled()
+  })
+
+  test("guides the user through claim then stake sequentially when batching is unavailable", async ({ connectedPage: page }) => {
+    await page.goto("/")
+
+    await expect(page.getByText("Your Rewards")).toBeVisible({ timeout: 15_000 })
+    // Wait for the positions table to finish loading before opening the dialog,
+    // so the largest-active-stake preselection has resolved.
+    await expect(page.getByRole("link", { name: "Gnosis" })).toBeVisible({ timeout: 15_000 })
+    await page.getByRole("button", { name: "Claim + Stake" }).click()
+
+    const dialog = page.getByRole("dialog")
+    await expect(dialog.getByText(/Step 1 of/)).toBeVisible()
+
+    await dialog.getByRole("button", { name: "Claim Rewards" }).click()
+
+    // Claim confirms (mock provider always succeeds), sequential flow advances to Stake.
+    await expect(dialog.getByRole("button", { name: "Stake" })).toBeVisible({ timeout: 10_000 })
+    await dialog.getByRole("button", { name: "Stake" }).click()
+
+    await expect(page.getByRole("dialog")).not.toBeVisible({ timeout: 10_000 })
+  })
+
+  test("submits claim + stake as a single atomic batch when the wallet supports it", async ({ batchCapablePage: page }) => {
+    await page.goto("/")
+
+    await expect(page.getByText("Your Rewards")).toBeVisible({ timeout: 15_000 })
+    // Wait for the positions table to finish loading before opening the dialog,
+    // so the largest-active-stake preselection has resolved.
+    await expect(page.getByRole("link", { name: "Gnosis" })).toBeVisible({ timeout: 15_000 })
+    await page.getByRole("button", { name: "Claim + Stake" }).click()
+
+    const dialog = page.getByRole("dialog")
+    await expect(dialog.getByText("One transaction (batched)")).toBeVisible()
+
+    await dialog.getByRole("button", { name: "Claim + Stake" }).click()
+
+    await expect(page.getByRole("dialog")).not.toBeVisible({ timeout: 10_000 })
+  })
+})

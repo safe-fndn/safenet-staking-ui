@@ -6,6 +6,8 @@
 interface MockProviderConfig {
   chainIdHex: string
   accounts: string[]
+  /** Advertise EIP-5792 atomic batch support via wallet_getCapabilities. */
+  supportsAtomicBatch?: boolean
 }
 
 export function createEthereumProviderScript(config: MockProviderConfig): string {
@@ -75,6 +77,30 @@ export function createEthereumProviderScript(config: MockProviderConfig): string
               return [{ parentCapability: 'eth_accounts' }];
             case 'wallet_requestPermissions':
               return [{ parentCapability: 'eth_accounts' }];
+            case 'wallet_getCapabilities':
+              if (!config.supportsAtomicBatch) {
+                throw new Error('MockProvider: wallet_getCapabilities not supported');
+              }
+              return { [config.chainIdHex]: { atomicBatch: { supported: true } } };
+            case 'wallet_sendCalls':
+              return '${`0x${"b".repeat(64)}`}';
+            case 'wallet_getCallsStatus':
+              return {
+                version: '2.0.0',
+                id: params[0],
+                chainId: config.chainIdHex,
+                status: 200,
+                receipts: [
+                  {
+                    transactionHash: '${`0x${"a".repeat(64)}`}',
+                    blockNumber: '0x6000000',
+                    blockHash: '0x' + 'bb'.repeat(32),
+                    gasUsed: '0x30d40',
+                    status: '0x1',
+                    logs: [],
+                  },
+                ],
+              };
             default:
               // Fall through to the RPC handler for contract calls
               throw new Error('MockProvider: unhandled method ' + method);

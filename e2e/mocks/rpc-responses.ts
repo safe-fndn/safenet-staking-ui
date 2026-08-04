@@ -5,7 +5,15 @@
  * Encoding: abi.encode for each return type, padded to 32 bytes.
  */
 
-import { AMOUNTS, STAKING_CONTRACT, TOKEN_CONTRACT, VALIDATORS, TEST_USER } from "../fixtures/test-data"
+import {
+  AMOUNTS,
+  STAKING_CONTRACT,
+  TOKEN_CONTRACT,
+  MERKLE_DROP_CONTRACT,
+  VALIDATORS,
+  TEST_USER,
+  MOCK_MERKLE_ROOT,
+} from "../fixtures/test-data"
 
 /** Pad a bigint to a 32-byte hex string (no 0x prefix) */
 function toUint256(value: bigint): string {
@@ -45,6 +53,9 @@ export const SELECTORS = {
   name: "0x06fdde03",
   symbol: "0x95d89b41",
   decimals: "0x313ce567",
+  // Merkle drop contract reads
+  merkleRoot: "0x2eb4a7ab",
+  cumulativeClaimed: "0xa9919576",
 } as const
 
 /**
@@ -194,6 +205,16 @@ export function buildCallResponses(userAddress?: string): Map<string, (data: str
   // Token: decimals() → uint8
   responses.set(key(token, SELECTORS.decimals), () =>
     "0x" + toUint256(18n)
+  )
+
+  // MerkleDrop: merkleRoot() → bytes32
+  responses.set(key(MERKLE_DROP_CONTRACT, SELECTORS.merkleRoot), () =>
+    MOCK_MERKLE_ROOT
+  )
+
+  // MerkleDrop: cumulativeClaimed(address) → uint256 (nothing claimed yet)
+  responses.set(key(MERKLE_DROP_CONTRACT, SELECTORS.cumulativeClaimed), () =>
+    "0x" + toUint256(0n)
   )
 
   return responses

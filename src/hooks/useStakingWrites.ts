@@ -1,8 +1,9 @@
 import { useEffect } from "react"
 import { useWriteContract, useWaitForTransactionReceipt, useSendCalls, useCallsStatus, useCapabilities } from "wagmi"
-import { encodeFunctionData, type Address } from "viem"
+import { encodeFunctionData, type Address, type Hex } from "viem"
 import { stakingAbi } from "@/abi/stakingAbi"
 import { erc20Abi } from "@/abi/erc20Abi"
+import { merkleDropAbi } from "@/abi/merkleDropAbi"
 import { getContractAddresses } from "@/config/contracts"
 import { activeChain } from "@/config/chains"
 import { queryClient } from "@/config/queryClient"
@@ -155,6 +156,109 @@ export function useBatchStake() {
 
   return {
     batchApproveAndStake,
+    supportsBatching,
+    isSigningTx: isPending,
+    isConfirmingTx: isConfirming,
+    isSuccess,
+    isReverted,
+    error,
+    reset,
+    txHash,
+  }
+}
+
+/** Contract function names to invalidate after claiming rewards. */
+const REWARD_FN_NAMES = ["cumulativeClaimed", "balanceOf"]
+const REWARD_EXTRA_KEYS = [["rewardProof"]]
+
+export function useBatchClaimAndStake() {
+  const { merkleDrop } = addresses
+  const { data: capabilities, isError: capabilitiesError } = useCapabilities({
+    query: { retry: false },
+  })
+  const chainId = activeChain.id
+
+  const supportsBatching =
+    !capabilitiesError &&
+    capabilities?.[chainId]?.atomicBatch?.supported === true
+
+  const {
+    mutate: sendCalls,
+    data: callsResult,
+    isPending,
+    error,
+    reset,
+  } = useSendCalls()
+
+  const batchId = callsResult?.id
+
+  const { data: callsStatus } = useCallsStatus({
+    id: batchId ?? "",
+    query: {
+      enabled: !!batchId,
+      refetchInterval: (data) =>
+        data.state.data?.status === "success" || data.state.data?.status === "failure"
+          ? false
+          : 2000,
+    },
+  })
+
+  const isConfirming = !!batchId && callsStatus?.status !== "success" && callsStatus?.status !== "failure"
+  const isSuccess = callsStatus?.status === "success"
+  const isReverted = callsStatus?.status === "failure"
+  const txHash = callsStatus?.receipts?.[0]?.transactionHash
+
+  useInvalidateOnSuccess(isSuccess, [...REWARD_FN_NAMES, ...STAKING_FN_NAMES], [
+    ...REWARD_EXTRA_KEYS,
+    ...STAKING_EXTRA_KEYS,
+  ])
+
+  function batchClaimAndStake(
+    account: Address,
+    cumulativeAmount: bigint,
+    expectedMerkleRoot: Hex,
+    merkleProof: Hex[],
+    validator: Address,
+    amount: bigint,
+    needsApproval: boolean,
+  ) {
+    if (!merkleDrop) return
+    sendCalls({
+      calls: [
+        {
+          to: merkleDrop,
+          data: encodeFunctionData({
+            abi: merkleDropAbi,
+            functionName: "claim",
+            args: [account, cumulativeAmount, expectedMerkleRoot, merkleProof],
+          }),
+        },
+        ...(needsApproval
+          ? [
+              {
+                to: addresses.token,
+                data: encodeFunctionData({
+                  abi: erc20Abi,
+                  functionName: "approve",
+                  args: [addresses.staking, amount],
+                }),
+              },
+            ]
+          : []),
+        {
+          to: addresses.staking,
+          data: encodeFunctionData({
+            abi: stakingAbi,
+            functionName: "stake",
+            args: [validator, amount],
+          }),
+        },
+      ],
+    })
+  }
+
+  return {
+    batchClaimAndStake,
     supportsBatching,
     isSigningTx: isPending,
     isConfirmingTx: isConfirming,

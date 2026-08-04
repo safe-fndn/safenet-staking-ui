@@ -5,17 +5,23 @@ import { activeChain } from "@/config/chains"
 import { useInvalidateOnSuccess } from "./useStakingWrites"
 import { getAddress } from "viem"
 import type { Address, Hex } from "viem"
+import { isSafeApp } from "@/lib/safe"
 
 const { merkleDrop } = getContractAddresses(activeChain.id)
 
 /** Contract function names to invalidate after claiming rewards. */
-const REWARD_FN_NAMES = ["cumulativeClaimed", "balanceOf"]
-const REWARD_EXTRA_KEYS = [["rewardProof"]]
+export const REWARD_FN_NAMES = ["cumulativeClaimed", "balanceOf"]
+export const REWARD_EXTRA_KEYS = [["rewardProof"]]
 
 export function useClaimRewards() {
-  const { writeContract, data: txHash, isPending, reset, error: writeError } = useWriteContract()
+  const { writeContract, data: txHash, isPending, isSuccess: isSubmitted, reset, error: writeError } = useWriteContract()
   const { isLoading: isConfirming, isSuccess, error: receiptError } = useWaitForTransactionReceipt({ hash: txHash })
   const error = writeError ?? receiptError
+
+  // When running as a Safe App, writeContract resolves with a Safe tx hash (not an
+  // on-chain hash). useWaitForTransactionReceipt never resolves, so detect the
+  // "queued in Safe" state via useWriteContract's own isSuccess.
+  const isSafeQueued = isSafeApp && isSubmitted && !isSuccess
 
   useInvalidateOnSuccess(isSuccess, REWARD_FN_NAMES, REWARD_EXTRA_KEYS)
 
@@ -40,6 +46,7 @@ export function useClaimRewards() {
     isSigningTx: isPending,
     isConfirmingTx: isConfirming,
     isSuccess,
+    isSafeQueued,
     error,
     reset,
     txHash,

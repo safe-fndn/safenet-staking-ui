@@ -11,9 +11,8 @@ import { useAccount } from "wagmi"
 import { useRewardProof } from "@/hooks/useRewardProof"
 import { useRewards } from "@/hooks/useRewards"
 import { useClaimRewards } from "@/hooks/useClaimRewards"
-import { useToast } from "@/hooks/useToast"
+import { useTxToast } from "@/hooks/useTxToast"
 import { formatTokenAmount } from "@/lib/format"
-import { formatContractError } from "@/lib/errorFormat"
 
 interface ClaimRewardsDialogProps {
   open: boolean
@@ -29,35 +28,29 @@ export function ClaimRewardsDialog({ open, onOpenChange }: ClaimRewardsDialogPro
     isSigningTx,
     isConfirmingTx,
     isSuccess,
+    isSafeQueued,
     error,
     reset,
     txHash,
   } = useClaimRewards()
-  const { toast } = useToast()
   const claimedAmountRef = useRef(0n)
 
-  useEffect(() => {
-    if (isSuccess) {
-      toast({
-        variant: "success",
-        title: "Rewards claimed",
-        description: `Claimed ${formatTokenAmount(claimedAmountRef.current)} SAFE`,
-        txHash,
-      })
-      reset()
-      onOpenChange(false)
-    }
-  }, [isSuccess, reset, onOpenChange, toast, txHash])
-
-  useEffect(() => {
-    if (error) {
-      toast({
-        variant: "error",
-        title: "Claim failed",
-        description: formatContractError(error),
-      })
-    }
-  }, [error, toast])
+  useTxToast(
+    {
+      successTitle: "Rewards claimed",
+      successDescription: `Claimed ${formatTokenAmount(claimedAmountRef.current)} SAFE`,
+      errorTitle: "Claim failed",
+      safeQueuedDescription: "Your claim has been sent to Safe Wallet for signing.",
+    },
+    {
+      isSuccess,
+      error,
+      isSafeQueued,
+      txHash,
+      reset,
+      onSuccess: () => onOpenChange(false),
+    },
+  )
 
   useEffect(() => {
     if (!open) {
