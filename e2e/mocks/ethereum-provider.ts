@@ -6,6 +6,8 @@
 interface MockProviderConfig {
   chainIdHex: string
   accounts: string[]
+  /** Advertise EIP-5792 atomicBatch support (wallet_getCapabilities/sendCalls/getCallsStatus). */
+  supportsBatching?: boolean
 }
 
 export function createEthereumProviderScript(config: MockProviderConfig): string {
@@ -63,6 +65,17 @@ export function createEthereumProviderScript(config: MockProviderConfig): string
             case 'wallet_switchEthereumChain':
               return null;
             case 'eth_sendTransaction':
+              // Let a test simulate the user rejecting the wallet prompt.
+              if (window.__shouldRejectTx && await window.__shouldRejectTx()) {
+                const rejected = new Error('User rejected the request.');
+                rejected.code = 4001;
+                throw rejected;
+              }
+              // Report the submitted call back to the Node-side mock chain state
+              // (see mock-chain-state.ts) so subsequent reads reflect the "transaction".
+              if (window.__mockTx && params[0] && params[0].data) {
+                await window.__mockTx(params[0].data);
+              }
               // Return a deterministic mock tx hash
               return '${`0x${"a".repeat(64)}`}';
             case 'personal_sign':
@@ -75,6 +88,34 @@ export function createEthereumProviderScript(config: MockProviderConfig): string
               return [{ parentCapability: 'eth_accounts' }];
             case 'wallet_requestPermissions':
               return [{ parentCapability: 'eth_accounts' }];
+            case 'wallet_getCapabilities':
+              // EIP-5792. Only advertised for tests that opt in (see batchingPage fixture) —
+              // most existing tests rely on this being unsupported (throwing below) so the
+              // app falls back to the sequential approve-then-stake flow.
+              if (!config.supportsBatching) throw new Error('MockProvider: unhandled method wallet_getCapabilities');
+              return { [config.chainIdHex]: { atomicBatch: { supported: true } } };
+            case 'wallet_sendCalls': {
+              const calls = (params[0] && params[0].calls) || [];
+              for (const call of calls) {
+                if (window.__mockTx && call.data) await window.__mockTx(call.data);
+              }
+              return '${`0x${"5".repeat(64)}`}';
+            }
+            case 'wallet_getCallsStatus':
+              return {
+                version: '2.0.0',
+                id: params[0],
+                chainId: config.chainIdHex,
+                status: 200,
+                receipts: [{
+                  logs: [],
+                  status: '0x1',
+                  blockHash: '0x' + 'bb'.repeat(32),
+                  blockNumber: '0x6000000',
+                  gasUsed: '0x30d40',
+                  transactionHash: '${`0x${"5".repeat(64)}`}',
+                }],
+              };
             default:
               // Fall through to the RPC handler for contract calls
               throw new Error('MockProvider: unhandled method ' + method);
