@@ -7,8 +7,8 @@ A web application for delegating SAFE tokens to validators on Ethereum. Built as
 - **Stake & Unstake** SAFE tokens to validators with a multi-step approval flow
 - **Batch transactions** for Safe wallets — approve + stake in a single multisig proposal via [EIP-5792](https://eips.ethereum.org/EIPS/eip-5792)
 - **Withdrawal queue** with FIFO ordering, cooldown progress bars, and claim actions
-- **Dashboard** with staking stats, portfolio breakdown, rewards calculator, and transaction history
-- **Validator discovery** with search, filter (active/inactive), and sort controls
+- **Dashboard** with staking stats, rewards calculator, and stake distribution chart
+- **Validator discovery** with delegate/undelegate actions per validator
 - **Deep-linking** — open the stake dialog for a specific validator via `?delegate=0x...`
 - **Dark mode** with system preference detection and manual toggle
 - **Geo-blocking** and sanctions compliance checks
@@ -80,12 +80,11 @@ See [`.env.example`](.env.example) for a template.
 src/
 ├── abi/            # Contract ABIs (parseAbi with human-readable signatures)
 ├── components/
-│   ├── dashboard/  # Stats, rewards, portfolio, staking section
+│   ├── dashboard/  # Stats, rewards, staking section
 │   ├── layout/     # Header, footer, shared layout
-│   ├── onboarding/ # First-time visitor banner
 │   ├── staking/    # DelegateDialog, UndelegateDialog, AmountInput
 │   ├── ui/         # Radix + CVA primitives (button, card, dialog, etc.)
-│   ├── validators/ # ValidatorCard, ValidatorList, ValidatorControls
+│   ├── validators/ # ValidatorCard, ValidatorList
 │   ├── wallet/     # ConnectButton
 │   └── withdrawals/# WithdrawalQueue, WithdrawalCard, CountdownTimer
 ├── config/         # Chain, contract addresses, wagmi config
@@ -102,12 +101,11 @@ admin/              # Admin panel (validator proposals, contract management)
 
 | Path | Page | Description |
 |------|------|-------------|
-| `/` | `DashboardPage` | Stats, portfolio, rewards, transaction history |
-| `/validators` | `ValidatorsPage` | Validator discovery with search/filter/sort |
+| `/` | `DashboardPage` | Stats, rewards, staking section, stake distribution chart |
+| `/validators` | `ValidatorsPage` | Validator discovery and delegate/undelegate actions |
 | `/validators/:address` | `ValidatorDetailPage` | Individual validator info and actions |
 | `/withdrawals` | `WithdrawalsPage` | Pending withdrawals queue and claims |
-| `/terms` | `TermsOfUsePage` | Terms of Use |
-| `/faq` | `FaqPage` | Frequently Asked Questions |
+| `*` | `NotFoundPage` | 404 catch-all |
 
 ### Wallet Support
 
