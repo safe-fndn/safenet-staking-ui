@@ -63,6 +63,9 @@ See [`.env.example`](.env.example) for a template.
 | `yarn deploy:ipfs` | Deploy build to IPFS via Pinata |
 | `yarn generate:proofs` | Generate Merkle proofs for reward distribution |
 
+See [`MANUAL_TESTING.md`](./MANUAL_TESTING.md) for the pre-release manual QA checklist
+(covers scenarios not automated by the e2e suite, e.g. WalletConnect and Safe App flows).
+
 ## Tech Stack
 
 - **React 19** with TypeScript

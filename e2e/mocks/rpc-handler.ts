@@ -7,6 +7,7 @@ import type { Route } from "@playwright/test"
 import { CHAIN_ID_HEX, BLOCK_NUMBER, GAS, MOCK_TX_HASH, STAKING_CONTRACT, TOKEN_CONTRACT } from "../fixtures/test-data"
 import { buildCallResponses } from "./rpc-responses"
 import { matchGetLogs } from "./event-logs"
+import type { MockChainState } from "./mock-chain-state"
 
 /** Multicall3 contract address (same on all chains) */
 const MULTICALL3 = "0xca11bde05977b3631167028862be2a173976ca11"
@@ -125,8 +126,8 @@ function handleMulticall3(data: string, callResponses: Map<string, (data: string
   return "0x" + encoded
 }
 
-export function createRpcHandler(userAddress?: string) {
-  const callResponses = buildCallResponses(userAddress)
+export function createRpcHandler(userAddress: string, state: MockChainState) {
+  const callResponses = buildCallResponses(userAddress, state)
 
   function handleSingleRequest(req: JsonRpcRequest): JsonRpcResponse {
     const base = { jsonrpc: "2.0", id: req.id }
