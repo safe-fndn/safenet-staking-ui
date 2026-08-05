@@ -17,6 +17,8 @@ test.describe("Navigation", () => {
     const layout = new LayoutPage(page)
     await layout.goto("/")
 
+    // Wait for the nav to fully render before checking active state
+    await expect(layout.navDashboard).toBeVisible()
     const active = await layout.getActiveNavItem()
     expect(active).toBe("Dashboard")
   })
@@ -26,7 +28,7 @@ test.describe("Navigation", () => {
     await layout.goto("/")
 
     await layout.navValidators.click()
-    await expect(page).toHaveURL("/validators")
+    await expect(page).toHaveURL("/#/validators")
 
     const active = await layout.getActiveNavItem()
     expect(active).toBe("Validators")
@@ -37,7 +39,7 @@ test.describe("Navigation", () => {
     await layout.goto("/")
 
     await layout.navWithdrawals.click()
-    await expect(page).toHaveURL("/withdrawals")
+    await expect(page).toHaveURL("/#/withdrawals")
 
     const active = await layout.getActiveNavItem()
     expect(active).toBe("Withdrawals")
@@ -45,10 +47,10 @@ test.describe("Navigation", () => {
 
   test("logo navigates back to dashboard", async ({ disconnectedPage: page }) => {
     const layout = new LayoutPage(page)
-    await layout.goto("/validators")
+    await layout.goto("/#/validators")
 
     await layout.logo.click()
-    await expect(page).toHaveURL("/")
+    await expect(page).toHaveURL("/#/")
   })
 
   test("footer links are present", async ({ disconnectedPage: page }) => {

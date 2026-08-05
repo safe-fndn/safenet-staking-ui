@@ -41,7 +41,7 @@ test.describe("Wallet Connection", () => {
   test("shows SAFE balance when connected", async ({ connectedPage: page }) => {
     await page.goto("/")
 
-    // Should show "1,000 SAFE" or similar formatted balance
-    await expect(page.getByText(/[\d,.]+ SAFE/).first()).toBeVisible({ timeout: 10_000 })
+    // Balance is shown as a number next to the SAFE token icon (no "SAFE" text suffix)
+    await expect(page.getByText("1,000")).toBeVisible({ timeout: 10_000 })
   })
 })

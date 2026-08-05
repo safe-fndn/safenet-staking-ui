@@ -85,19 +85,19 @@ export function buildCallResponses(userAddress?: string): Map<string, (data: str
   // Staking: isValidator(address) → bool
   responses.set(key(staking, SELECTORS.isValidator), (data: string) => {
     const addrParam = "0x" + data.slice(10, 74).replace(/^0+/, "")
-    const isVal = addrParam.toLowerCase() === VALIDATORS.gnosis.toLowerCase() ||
-                  addrParam.toLowerCase() === VALIDATORS.greenfield.toLowerCase()
+    const isVal = addrParam.toLowerCase() === VALIDATORS.validatorA.toLowerCase() ||
+                  addrParam.toLowerCase() === VALIDATORS.validatorB.toLowerCase()
     return "0x" + toBool(isVal)
   })
 
   // Staking: totalValidatorStakes(address) → uint256
   responses.set(key(staking, SELECTORS.totalValidatorStakes), (data: string) => {
     const addrParam = "0x" + data.slice(10, 74).replace(/^0+/, "").toLowerCase()
-    if (addrParam === VALIDATORS.gnosis.toLowerCase()) {
-      return "0x" + toUint256(AMOUNTS.gnosisTotalStake)
+    if (addrParam === VALIDATORS.validatorA.toLowerCase()) {
+      return "0x" + toUint256(AMOUNTS.validatorATotalStake)
     }
-    if (addrParam === VALIDATORS.greenfield.toLowerCase()) {
-      return "0x" + toUint256(AMOUNTS.greenfieldTotalStake)
+    if (addrParam === VALIDATORS.validatorB.toLowerCase()) {
+      return "0x" + toUint256(AMOUNTS.validatorBTotalStake)
     }
     return "0x" + toUint256(0n)
   })
@@ -107,11 +107,11 @@ export function buildCallResponses(userAddress?: string): Map<string, (data: str
     const stakerParam = "0x" + data.slice(10, 74).replace(/^0+/, "").toLowerCase()
     const validatorParam = "0x" + data.slice(74, 138).replace(/^0+/, "").toLowerCase()
     if (stakerParam === user) {
-      if (validatorParam === VALIDATORS.gnosis.toLowerCase()) {
-        return "0x" + toUint256(AMOUNTS.userStakeGnosis)
+      if (validatorParam === VALIDATORS.validatorA.toLowerCase()) {
+        return "0x" + toUint256(AMOUNTS.userStakeValidatorA)
       }
-      if (validatorParam === VALIDATORS.greenfield.toLowerCase()) {
-        return "0x" + toUint256(AMOUNTS.userStakeGreenfield)
+      if (validatorParam === VALIDATORS.validatorB.toLowerCase()) {
+        return "0x" + toUint256(AMOUNTS.userStakeValidatorB)
       }
     }
     return "0x" + toUint256(0n)
