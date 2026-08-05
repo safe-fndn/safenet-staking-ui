@@ -37,8 +37,8 @@ All wagmi hooks, React Query, Radix tooltip context, and toast context are avail
 ### Routing (src/App.tsx)
 
 Five routes under a shared `Layout` (header + footer + `<Outlet />`), wrapped in `ErrorBoundary`:
-- `/` → `DashboardPage` (stats, onboarding, claimable banner, quick actions, rewards, staking section, stake distribution chart)
-- `/validators` → `ValidatorsPage` (search/filter/sort controls, validator cards with delegate/undelegate; supports `?delegate=0x...` deep-link to auto-open delegate dialog)
+- `/` → `DashboardPage` (stats, claimable banner, quick actions, rewards, staking section, stake distribution chart)
+- `/validators` → `ValidatorsPage` (validator cards with delegate/undelegate; supports `?delegate=0x...` deep-link to auto-open delegate dialog)
 - `/validators/:address` → `ValidatorDetailPage` (full validator info, delegate/undelegate buttons)
 - `/withdrawals` → `WithdrawalsPage` (pending withdrawal queue with FIFO tooltip, cooldown progress bars, claim)
 - `*` → `NotFoundPage` (404 catch-all)
@@ -105,15 +105,13 @@ Key UI components:
 - `StatsOverview` — Grid of stat cards (total delegated, user delegation, active validators, unstaking count, pending withdrawal total)
 - `ClaimableBanner` — Dismissible banner when a withdrawal is ready to claim (uses `useNextClaimable`)
 - `QuickActions` — Delegate/Undelegate/Claim navigation buttons (visible when connected)
-- `OnboardingBanner` — First-time visitor card (3 steps), dismissible via localStorage key `onboarding_dismissed`
 - `ClaimRewardsDialog` — Dialog for claiming Merkle drop rewards (uses `TxButton`)
 - `StakingSection` — Combined staking overview and calculator
 - `StakeDistribution` — Recharts donut chart showing delegation distribution (only renders with 2+ validators)
 
 ### Validator Components
 
-- `ValidatorControls` — Search input, Active/Inactive/All filter buttons, sort dropdown (Total Stake/Commission/Uptime)
-- `ValidatorList` — Grid of ValidatorCards with controls integration. Accepts optional `autoOpenDelegate` prop for deep-linking. Batches `useReadContracts` for user stakes and passes data as props to cards.
+- `ValidatorList` — Grid of ValidatorCards. Accepts optional `autoOpenDelegate` prop for deep-linking. Batches `useReadContracts` for user stakes and passes data as props to cards.
 - `ValidatorCard` — Per-validator card with metadata, stakes, delegate/undelegate buttons, copy address, and link to detail page. Receives `userStake`/`loadingUserStake` props; dialogs render conditionally only when open.
 
 ### Staking Components
