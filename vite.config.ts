@@ -5,7 +5,7 @@ import tailwindcss from '@tailwindcss/vite'
 
 const safeAppHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, OPTIONS",
+  "Access-Control-Allow-Methods": "GET",
   "Access-Control-Allow-Headers": "X-Requested-With, content-type, Authorization",
   // Chrome's Private Network Access check: without this, a public origin
   // (e.g. https://app.safe.global) fetching a loopback address like
