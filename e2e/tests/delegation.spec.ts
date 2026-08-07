@@ -121,7 +121,7 @@ test.describe("Delegation Dialog", () => {
     await expect(dialogStake).toBeEnabled({ timeout: 10_000 })
     await dialogStake.click()
 
-    await expect(page.getByText("Staking successful")).toBeVisible({ timeout: 10_000 })
+    await expect(page.getByText("Delegation successful")).toBeVisible({ timeout: 10_000 })
     await expect(page.getByRole("heading", { name: "Stake SAFE" })).not.toBeVisible()
 
     // Validator A's stake was 300 SAFE; +10 staked → 310
@@ -150,7 +150,7 @@ test.describe("Delegation Dialog", () => {
     await expect(dialogStake).toBeEnabled({ timeout: 10_000 })
     await dialogStake.click()
 
-    await expect(page.getByText("Staking successful")).toBeVisible({ timeout: 10_000 })
+    await expect(page.getByText("Delegation successful")).toBeVisible({ timeout: 10_000 })
     await expect(page.getByRole("heading", { name: "Stake SAFE" })).not.toBeVisible()
 
     // Validator A's stake was 300 SAFE; +15 staked → 315
@@ -170,7 +170,7 @@ test.describe("Delegation Dialog", () => {
     const dialogStake = page.locator("[role='dialog']").getByRole("button", { name: "Stake" })
     await dialogStake.click()
 
-    await expect(page.getByText("Staking failed")).toBeVisible({ timeout: 10_000 })
+    await expect(page.getByText("Delegation failed")).toBeVisible({ timeout: 10_000 })
     await expect(page.getByText("Transaction rejected")).toBeVisible()
     // The dialog is left open so the user can retry, not silently closed on failure
     await expect(page.getByRole("heading", { name: "Stake SAFE" })).toBeVisible()
