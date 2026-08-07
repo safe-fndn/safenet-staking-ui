@@ -309,7 +309,7 @@ describe("DelegateDialog", () => {
     expect(mockToast).toHaveBeenCalledWith(
       expect.objectContaining({
         variant: "success",
-        title: "Staking successful",
+        title: "Delegation successful",
       })
     )
   })

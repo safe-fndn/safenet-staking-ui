@@ -84,9 +84,9 @@ export function DelegateDialog({ validator, open, onOpenChange }: DelegateDialog
   // Stake transaction toasts
   useTxToast(
     {
-      successTitle: "Staking successful",
+      successTitle: "Delegation successful",
       successDescription: `Staked ${amount} SAFE to ${truncateAddress(validator)}`,
-      errorTitle: "Staking failed",
+      errorTitle: "Delegation failed",
       safeQueuedDescription: "Your delegation has been sent to Safe Wallet for signing.",
     },
     {
