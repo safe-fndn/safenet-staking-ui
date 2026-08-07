@@ -1,4 +1,5 @@
 import { test, expect } from "../fixtures/base.fixture"
+import { AMOUNTS } from "../fixtures/test-data"
 
 test.describe("Delegation Dialog", () => {
   test("opens delegate dialog from validator card", async ({ connectedPage: page }) => {
@@ -113,6 +114,8 @@ test.describe("Delegation Dialog", () => {
     await approveButton.click()
 
     await expect(page.getByText("Approval confirmed")).toBeVisible({ timeout: 10_000 })
+    // Confirms the actual approve() call was decoded correctly, not just that a toast appeared
+    expect(mockChainState.allowance).toBe(10n * 10n ** 18n)
 
     const dialogStake = page.locator("[role='dialog']").getByRole("button", { name: "Stake" })
     await expect(dialogStake).toBeEnabled({ timeout: 10_000 })
@@ -140,12 +143,15 @@ test.describe("Delegation Dialog", () => {
     await approveButton.click()
 
     await expect(page.getByText("Approval confirmed")).toBeVisible({ timeout: 10_000 })
+    // Confirms the actual approve() call was decoded correctly, not just that a toast appeared
+    expect(mockChainState.allowance).toBe(AMOUNTS.unlimitedAllowance)
 
     const dialogStake = page.locator("[role='dialog']").getByRole("button", { name: "Stake" })
     await expect(dialogStake).toBeEnabled({ timeout: 10_000 })
     await dialogStake.click()
 
     await expect(page.getByText("Staking successful")).toBeVisible({ timeout: 10_000 })
+    await expect(page.getByRole("heading", { name: "Stake SAFE" })).not.toBeVisible()
 
     // Validator A's stake was 300 SAFE; +15 staked → 315
     await expect(page.getByText("315", { exact: true })).toBeVisible({ timeout: 10_000 })

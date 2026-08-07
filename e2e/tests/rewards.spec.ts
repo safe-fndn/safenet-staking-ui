@@ -24,7 +24,9 @@ test.describe("Rewards", () => {
 
     await page.goto("/")
 
-    await expect(rewardsRow(page)).toBeVisible({ timeout: 10_000 })
+    const row = rewardsRow(page)
+    await expect(row).toBeVisible({ timeout: 10_000 })
+    await expect(row.getByText("0", { exact: true })).toBeVisible()
     await expect(page.getByRole("button", { name: "Claim Rewards" })).toBeDisabled()
   })
 
