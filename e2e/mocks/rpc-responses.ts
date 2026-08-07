@@ -5,7 +5,16 @@
  * Encoding: abi.encode for each return type, padded to 32 bytes.
  */
 
-import { AMOUNTS, STAKING_CONTRACT, TOKEN_CONTRACT, VALIDATORS, TEST_USER } from "../fixtures/test-data"
+import { AMOUNTS, STAKING_CONTRACT, TOKEN_CONTRACT, MERKLE_DROP_CONTRACT, TEST_MERKLE_ROOT, VALIDATORS } from "../fixtures/test-data"
+import type { MockChainState } from "./mock-chain-state"
+
+export interface RewardProof {
+  cumulativeAmount: string
+  merkleRoot: string
+  proof: string[] | null
+  kycAmount?: string
+  kyc?: boolean
+}
 
 /** Pad a bigint to a 32-byte hex string (no 0x prefix) */
 function toUint256(value: bigint): string {
@@ -45,17 +54,24 @@ export const SELECTORS = {
   name: "0x06fdde03",
   symbol: "0x95d89b41",
   decimals: "0x313ce567",
+  // MerkleDrop contract reads
+  merkleRoot: "0x2eb4a7ab",
+  cumulativeClaimed: "0xa9919576",
 } as const
 
 /**
  * Build a map of (contractAddress + selector) → response for eth_call.
  * This handles the multicall batching by matching on the data prefix.
+ * Reads that a transaction can change (balance, allowance, stakes, pending
+ * withdrawals, claimed rewards) are served live off `state` so tests can
+ * observe the effect of a submitted transaction (see mock-chain-state.ts).
  */
-export function buildCallResponses(userAddress?: string): Map<string, (data: string) => string> {
+export function buildCallResponses(userAddress: string, state: MockChainState): Map<string, (data: string) => string> {
   const responses = new Map<string, (data: string) => string>()
-  const user = (userAddress || TEST_USER).toLowerCase()
+  const user = userAddress.toLowerCase()
   const staking = STAKING_CONTRACT
   const token = TOKEN_CONTRACT
+  const merkleDrop = MERKLE_DROP_CONTRACT
 
   // Helper: create a response key from contract + selector
   function key(contract: string, selector: string): string {
@@ -107,12 +123,7 @@ export function buildCallResponses(userAddress?: string): Map<string, (data: str
     const stakerParam = "0x" + data.slice(10, 74).replace(/^0+/, "").toLowerCase()
     const validatorParam = "0x" + data.slice(74, 138).replace(/^0+/, "").toLowerCase()
     if (stakerParam === user) {
-      if (validatorParam === VALIDATORS.validatorA.toLowerCase()) {
-        return "0x" + toUint256(AMOUNTS.userStakeValidatorA)
-      }
-      if (validatorParam === VALIDATORS.validatorB.toLowerCase()) {
-        return "0x" + toUint256(AMOUNTS.userStakeValidatorB)
-      }
+      return "0x" + toUint256(state.stakes.get(validatorParam) ?? 0n)
     }
     return "0x" + toUint256(0n)
   })
@@ -121,7 +132,9 @@ export function buildCallResponses(userAddress?: string): Map<string, (data: str
   responses.set(key(staking, SELECTORS.totalStakerStakes), (data: string) => {
     const stakerParam = "0x" + data.slice(10, 74).replace(/^0+/, "").toLowerCase()
     if (stakerParam === user) {
-      return "0x" + toUint256(AMOUNTS.userTotalStake)
+      let total = 0n
+      for (const amount of state.stakes.values()) total += amount
+      return "0x" + toUint256(total)
     }
     return "0x" + toUint256(0n)
   })
@@ -134,26 +147,24 @@ export function buildCallResponses(userAddress?: string): Map<string, (data: str
   // Staking: getPendingWithdrawals(address) → (amount, claimableAt)[]
   responses.set(key(staking, SELECTORS.getPendingWithdrawals), (data: string) => {
     const stakerParam = "0x" + data.slice(10, 74).replace(/^0+/, "").toLowerCase()
-    if (stakerParam === user) {
-      // Return one pending withdrawal: 50 SAFE, claimable at timestamp in the past (ready to claim)
-      const claimableAt = BigInt(Math.floor(Date.now() / 1000) - 3600) // 1 hour ago
-      // ABI encoding for dynamic array of tuples:
-      // offset to array data (32), array length (1), amount, claimableAt
-      return "0x" +
-        toUint256(32n) + // offset
-        toUint256(1n) + // length
-        toUint256(AMOUNTS.pendingWithdrawalAmount) +
-        toUint256(claimableAt)
+    if (stakerParam !== user) return "0x" + toUint256(32n) + toUint256(0n) // empty array
+
+    // ABI encoding for dynamic array of tuples:
+    // offset to array data (32), array length, then each (amount, claimableAt) pair
+    const withdrawals = state.pendingWithdrawals
+    let encoded = toUint256(32n) + toUint256(BigInt(withdrawals.length))
+    for (const w of withdrawals) {
+      encoded += toUint256(w.amount) + toUint256(w.claimableAt)
     }
-    return "0x" + toUint256(32n) + toUint256(0n) // empty array
+    return "0x" + encoded
   })
 
   // Staking: getNextClaimableWithdrawal(address) → (uint256 amount, uint256 claimableAt)
   responses.set(key(staking, SELECTORS.getNextClaimableWithdrawal), (data: string) => {
     const stakerParam = "0x" + data.slice(10, 74).replace(/^0+/, "").toLowerCase()
-    if (stakerParam === user) {
-      const claimableAt = BigInt(Math.floor(Date.now() / 1000) - 3600)
-      return "0x" + toUint256(AMOUNTS.pendingWithdrawalAmount) + toUint256(claimableAt)
+    const next = state.pendingWithdrawals[0]
+    if (stakerParam === user && next) {
+      return "0x" + toUint256(next.amount) + toUint256(next.claimableAt)
     }
     return "0x" + toUint256(0n) + toUint256(0n)
   })
@@ -162,7 +173,7 @@ export function buildCallResponses(userAddress?: string): Map<string, (data: str
   responses.set(key(token, SELECTORS.balanceOf), (data: string) => {
     const ownerParam = "0x" + data.slice(10, 74).replace(/^0+/, "").toLowerCase()
     if (ownerParam === user) {
-      return "0x" + toUint256(AMOUNTS.userBalance)
+      return "0x" + toUint256(state.balance)
     }
     return "0x" + toUint256(0n)
   })
@@ -171,7 +182,21 @@ export function buildCallResponses(userAddress?: string): Map<string, (data: str
   responses.set(key(token, SELECTORS.allowance), (data: string) => {
     const ownerParam = "0x" + data.slice(10, 74).replace(/^0+/, "").toLowerCase()
     if (ownerParam === user) {
-      return "0x" + toUint256(AMOUNTS.unlimitedAllowance)
+      return "0x" + toUint256(state.allowance)
+    }
+    return "0x" + toUint256(0n)
+  })
+
+  // MerkleDrop: merkleRoot() → bytes32
+  responses.set(key(merkleDrop, SELECTORS.merkleRoot), () =>
+    "0x" + TEST_MERKLE_ROOT.replace("0x", "")
+  )
+
+  // MerkleDrop: cumulativeClaimed(address) → uint256
+  responses.set(key(merkleDrop, SELECTORS.cumulativeClaimed), (data: string) => {
+    const ownerParam = "0x" + data.slice(10, 74).replace(/^0+/, "").toLowerCase()
+    if (ownerParam === user) {
+      return "0x" + toUint256(state.merkleDropClaimed)
     }
     return "0x" + toUint256(0n)
   })

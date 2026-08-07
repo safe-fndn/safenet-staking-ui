@@ -30,6 +30,8 @@ export default defineConfig({
       VITE_VALIDATOR_INFO_URL: "https://mock-validators.test/validators.json",
       VITE_TERMS_URL: "https://terms.test",
       VITE_WALLETCONNECT_PROJECT_ID: "00000000000000000000000000000000",
+      VITE_MERKLE_DROP_ADDRESS: "0x9999999999999999999999999999999999999999",
+      VITE_REWARDS_BASE_URL: "https://mock-rewards.test",
     },
   },
 })
