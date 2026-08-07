@@ -1,8 +1,26 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
 import { renderHook, act } from "@testing-library/react"
-import { useStake, useInitiateWithdrawal, useClaimWithdrawal, useInvalidateOnSuccess } from "../useStakingWrites"
+import {
+  useStake,
+  useInitiateWithdrawal,
+  useClaimWithdrawal,
+  useInvalidateOnSuccess,
+  useBatchClaimAndStake,
+} from "../useStakingWrites"
 import { TEST_ACCOUNTS, MOCK_TX_HASH } from "@/__tests__/test-data"
 import { mockWriteContractReturn, mockWaitForReceiptReturn } from "@/__tests__/mock-wagmi"
+
+const { MERKLE_DROP } = vi.hoisted(() => ({
+  MERKLE_DROP: "0x0000000000000000000000000000000000000003",
+}))
+
+vi.mock("@/config/contracts", () => ({
+  getContractAddresses: () => ({
+    staking: "0x0000000000000000000000000000000000000001",
+    token: "0x0000000000000000000000000000000000000002",
+    merkleDrop: MERKLE_DROP,
+  }),
+}))
 
 // Mock wagmi
 const mockWriteContract = vi.fn()
@@ -425,5 +443,114 @@ describe("useInvalidateOnSuccess", () => {
     expect(mockInvalidateQueries).toHaveBeenCalledWith(
       { queryKey: ["validators"] }
     )
+  })
+})
+
+describe("useBatchClaimAndStake", () => {
+  const proofArgs = {
+    account: TEST_ACCOUNTS.user,
+    cumulativeAmount: 100n * 10n ** 18n,
+    expectedMerkleRoot: ("0x" + "1".repeat(64)) as `0x${string}`,
+    merkleProof: [("0x" + "2".repeat(64)) as `0x${string}`],
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    wagmi.useCapabilities.mockReturnValue({ data: undefined, isError: false } as ReturnType<typeof wagmi.useCapabilities>)
+    wagmi.useSendCalls.mockReturnValue({
+      mutate: vi.fn(),
+      data: undefined,
+      isPending: false,
+      error: null,
+      reset: vi.fn(),
+    } as unknown as ReturnType<typeof wagmi.useSendCalls>)
+    wagmi.useCallsStatus.mockReturnValue({ data: undefined } as ReturnType<typeof wagmi.useCallsStatus>)
+  })
+
+  it("reports supportsBatching false when capabilities call errors", () => {
+    wagmi.useCapabilities.mockReturnValue({ data: undefined, isError: true } as ReturnType<typeof wagmi.useCapabilities>)
+
+    const { result } = renderHook(() => useBatchClaimAndStake())
+    expect(result.current.supportsBatching).toBe(false)
+  })
+
+  it("sends claim + stake (2 calls) when approval is not needed", () => {
+    const mockSendCalls = vi.fn()
+    wagmi.useSendCalls.mockReturnValue({
+      mutate: mockSendCalls,
+      data: undefined,
+      isPending: false,
+      error: null,
+      reset: vi.fn(),
+    } as unknown as ReturnType<typeof wagmi.useSendCalls>)
+
+    const { result } = renderHook(() => useBatchClaimAndStake())
+
+    act(() => {
+      result.current.batchClaimAndStake(
+        proofArgs.account,
+        proofArgs.cumulativeAmount,
+        proofArgs.expectedMerkleRoot,
+        proofArgs.merkleProof,
+        TEST_ACCOUNTS.validator1,
+        proofArgs.cumulativeAmount,
+        false,
+      )
+    })
+
+    expect(mockSendCalls).toHaveBeenCalledTimes(1)
+    const { calls } = mockSendCalls.mock.calls[0][0]
+    expect(calls).toHaveLength(2)
+    expect(calls[0].to.toLowerCase()).toBe(MERKLE_DROP.toLowerCase())
+    expect(calls[1].to.toLowerCase()).toBe("0x0000000000000000000000000000000000000001")
+  })
+
+  it("sends claim + approve + stake (3 calls) when approval is needed", () => {
+    const mockSendCalls = vi.fn()
+    wagmi.useSendCalls.mockReturnValue({
+      mutate: mockSendCalls,
+      data: undefined,
+      isPending: false,
+      error: null,
+      reset: vi.fn(),
+    } as unknown as ReturnType<typeof wagmi.useSendCalls>)
+
+    const { result } = renderHook(() => useBatchClaimAndStake())
+
+    act(() => {
+      result.current.batchClaimAndStake(
+        proofArgs.account,
+        proofArgs.cumulativeAmount,
+        proofArgs.expectedMerkleRoot,
+        proofArgs.merkleProof,
+        TEST_ACCOUNTS.validator1,
+        proofArgs.cumulativeAmount,
+        true,
+      )
+    })
+
+    expect(mockSendCalls).toHaveBeenCalledTimes(1)
+    const { calls } = mockSendCalls.mock.calls[0][0]
+    expect(calls).toHaveLength(3)
+    expect(calls[0].to.toLowerCase()).toBe(MERKLE_DROP.toLowerCase())
+    expect(calls[1].to.toLowerCase()).toBe("0x0000000000000000000000000000000000000002")
+    expect(calls[2].to.toLowerCase()).toBe("0x0000000000000000000000000000000000000001")
+  })
+
+  it("reflects success from callsStatus", () => {
+    wagmi.useSendCalls.mockReturnValue({
+      mutate: vi.fn(),
+      data: { id: "batch-1" },
+      isPending: false,
+      error: null,
+      reset: vi.fn(),
+    } as unknown as ReturnType<typeof wagmi.useSendCalls>)
+    wagmi.useCallsStatus.mockReturnValue({
+      data: { status: "success", receipts: [{ transactionHash: MOCK_TX_HASH }] },
+    } as unknown as ReturnType<typeof wagmi.useCallsStatus>)
+
+    const { result } = renderHook(() => useBatchClaimAndStake())
+    expect(result.current.isSuccess).toBe(true)
+    expect(result.current.txHash).toBe(MOCK_TX_HASH)
   })
 })

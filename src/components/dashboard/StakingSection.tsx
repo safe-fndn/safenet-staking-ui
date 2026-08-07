@@ -12,6 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
 import { UndelegateDialog } from "@/components/staking/UndelegateDialog"
 import { ClaimRewardsDialog } from "./ClaimRewardsDialog"
+import { ClaimAndStakeDialog } from "./ClaimAndStakeDialog"
 import { truncateAddress, formatTokenAmount } from "@/lib/format"
 import Info from "lucide-react/dist/esm/icons/info"
 import type { Address } from "viem"
@@ -84,6 +85,7 @@ export function StakingSection() {
   const { data: rewards } = useRewards()
   const { data: proof } = useRewardProof(address)
   const [claimOpen, setClaimOpen] = useState(false)
+  const [claimAndStakeOpen, setClaimAndStakeOpen] = useState(false)
 
   if (!isConnected) {
     return null
@@ -121,6 +123,13 @@ export function StakingSection() {
       }
     }
   }
+
+  // Preselect the validator receiving the user's largest current active stake.
+  // No preselection (selection required) if the user has no active stake.
+  const largestActiveStakeValidator = positions
+    .filter((p) => p.isActive)
+    .reduce<Position | null>((largest, p) => (!largest || p.amount > largest.amount ? p : largest), null)
+    ?.validator
 
   return (
     <>
@@ -173,14 +182,24 @@ export function StakingSection() {
                 </p>
               )}
             </div>
-            <Button
-              size="sm"
-              variant="gradient"
-              disabled={!rewards.canClaim}
-              onClick={() => setClaimOpen(true)}
-            >
-              Claim Rewards
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={!rewards.canClaim}
+                onClick={() => setClaimOpen(true)}
+              >
+                Claim Rewards
+              </Button>
+              <Button
+                size="sm"
+                variant="gradient"
+                disabled={!rewards.canClaim}
+                onClick={() => setClaimAndStakeOpen(true)}
+              >
+                Claim + Stake
+              </Button>
+            </div>
           </div>
 
           {/* Compliance note */}
@@ -233,6 +252,11 @@ export function StakingSection() {
       </Card>
 
       <ClaimRewardsDialog open={claimOpen} onOpenChange={setClaimOpen} />
+      <ClaimAndStakeDialog
+        open={claimAndStakeOpen}
+        onOpenChange={setClaimAndStakeOpen}
+        defaultValidator={largestActiveStakeValidator}
+      />
     </>
   )
 }

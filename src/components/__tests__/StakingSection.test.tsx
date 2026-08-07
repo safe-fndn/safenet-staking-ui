@@ -49,6 +49,10 @@ vi.mock("@/components/dashboard/ClaimRewardsDialog", () => ({
   ClaimRewardsDialog: () => null,
 }))
 
+vi.mock("@/components/dashboard/ClaimAndStakeDialog", () => ({
+  ClaimAndStakeDialog: () => null,
+}))
+
 vi.mock("@/hooks/useRewardProof", () => ({
   useRewardProof: mockUseRewardProof,
 }))
