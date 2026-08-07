@@ -27,11 +27,11 @@ export default defineConfig({
       VITE_CHAIN_ID: "11155111",
       VITE_RPC_URL: "https://mock-rpc.test",
       VITE_STAKING_DEPLOY_BLOCK: "5000000",
-      VITE_MERKLE_DROP_ADDRESS: "0x3333333333333333333333333333333333333333",
-      VITE_REWARDS_BASE_URL: "https://mock-rewards.test",
       VITE_VALIDATOR_INFO_URL: "https://mock-validators.test/validators.json",
       VITE_TERMS_URL: "https://terms.test",
       VITE_WALLETCONNECT_PROJECT_ID: "00000000000000000000000000000000",
+      VITE_MERKLE_DROP_ADDRESS: "0x9999999999999999999999999999999999999999",
+      VITE_REWARDS_BASE_URL: "https://mock-rewards.test",
     },
   },
 })
