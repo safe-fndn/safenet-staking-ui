@@ -62,6 +62,7 @@ See [`.env.example`](.env.example) for a template.
 | `yarn test:e2e` | Run Playwright end-to-end tests |
 | `yarn deploy:ipfs` | Deploy build to IPFS via Pinata |
 | `yarn generate:proofs` | Generate Merkle proofs for reward distribution |
+| `npm run swarm:hash -- ./dist` | Compute the Swarm (Beeport) website reference offline |
 
 See [`MANUAL_TESTING.md`](./MANUAL_TESTING.md) for the pre-release manual QA checklist
 (covers scenarios not automated by the e2e suite, e.g. WalletConnect and Safe App flows).
@@ -177,6 +178,30 @@ yarn deploy:ipfs
 ```
 
 Requires `PINATA_JWT` and `PINATA_GATEWAY` environment variables. The build uses hash-based routing (`HashRouter`) for compatibility with IPFS gateways. Set `VITE_APP_URL` to the canonical URL so that `og:image` and `twitter:image` meta tags resolve correctly for social crawlers.
+
+### Swarm (Beeport)
+
+Compute the Swarm website reference of `dist/` offline. No wallet, credentials, network access or upload is needed:
+
+```bash
+yarn build
+npm run swarm:hash -- ./dist                 # prints the 64-char hex root reference
+npm run swarm:hash -- ./dist --order apfs    # verify a Beeport folder upload made on macOS
+```
+
+The command rebuilds the website manifest exactly as Bee v2.8.1 does for a Beeport folder upload, and was validated against a real Beeport upload. It reproduces these settings:
+
+| Setting | Value |
+|---------|-------|
+| Upload type | Unencrypted website collection (tar, `Swarm-Collection: true`, no `Swarm-Encrypt`) |
+| Erasure coding | **Medium (1)** by default (`--redundancy 0-4`). Beeport's "None (Default)" sends no level header, and Bee ≥ 2.8.1 then applies Medium. Choosing Medium/Strong/Insane/Paranoid in Beeport corresponds to 1/2/3/4 |
+| Index document | `index.html` (`--index`) |
+| Error document | `error.html` (`--error`, `--no-error`). Beeport always sends it, even when the file doesn't exist |
+| Content types | Go 1.26 built-in mime table, as used by the official Bee image (e.g. `.woff2` → none) |
+| Files | Every regular file in the folder, including dotfiles |
+| File order | `sorted` (default): byte-wise paths, the same on every OS. `--order apfs`: the order Chrome lists a folder on macOS, to match manual Beeport uploads |
+
+Bee's manifest depends on the order files are uploaded. A Beeport folder upload from another OS or browser, or of a pre-built tar/zip, can therefore get a different but equally valid reference for identical content. Use `--verbose` to list each file's content type and reference.
 
 ### Safe App
 

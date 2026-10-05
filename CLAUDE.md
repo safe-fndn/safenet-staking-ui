@@ -15,6 +15,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Coverage:** `yarn test:coverage`
 - **E2E tests:** `yarn test:e2e` (Playwright)
 - **Generate Merkle proofs:** `yarn generate:proofs` (reads `scripts/merkle-config.json`, writes to `public/rewards/`)
+- **Swarm website hash:** `npm run swarm:hash -- ./dist` (offline; prints the Beeport/Bee website reference)
 
 ## Pre-push Checklist
 
@@ -190,6 +191,19 @@ Off-chain tooling for generating Merkle proofs compatible with the MerkleDrop co
   }
 }
 ```
+
+## Swarm Website Hash
+
+`scripts/swarm-hash.ts` reproduces offline the root reference Bee v2.8.1 returns for a Beeport website folder upload. Defaults: unencrypted, erasure coding Medium (1), `index.html`/`error.html`, byte-sorted file order (`--order apfs` matches Beeport folder uploads from macOS Chrome). See the header comment and README for details.
+
+- `scripts/swarm/file-hash.ts` — Port of Bee's hashtrie with erasure coding. Uses `@ethersphere/core-sdk` (pinned) for BMT chunk hashing and Reed-Solomon parity.
+- `scripts/swarm/mantaray.ts` — Bee-compatible manifest trie and serialisation. core-sdk's `MantarayNode` is not byte-compatible with Bee: random obfuscation keys, metadata JSON and padding, and path-splitting rules all differ.
+- `scripts/swarm/content-type.ts` — Go 1.26 built-in mime table.
+- `scripts/swarm/website.ts` — The website manifest (`hashWebsite`): files, content types, index/error documents.
+- `scripts/swarm/collect.ts` — File collection and insertion order (`sorted`/`apfs`).
+- `scripts/__tests__/swarm-*.test.ts` — Per-module tests: Bee `dirs_test.go` vectors, serialisation quirks, determinism and change sensitivity, CLI.
+
+The manifest root depends on file insertion order. Don't change ordering, content types or serialisation without re-validating against a real Beeport upload.
 
 ## Admin Panel
 
