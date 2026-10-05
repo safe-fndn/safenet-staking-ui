@@ -4,9 +4,10 @@ import { ChunkSplitter, calculateChunkAddress } from "@ethersphere/core-sdk/chun
 import { hashBytes, type RedundancyLevel, type SwarmChunk } from "../swarm/file-hash"
 import { hex, pseudoRandom, text } from "./swarm-test-utils"
 
+/** Content-addressed chunks of `data`; root replicas (SOCs) are covered in swarm-replicas.test.ts. */
 async function chunksOf(data: Uint8Array, level: RedundancyLevel) {
   const chunks: SwarmChunk[] = []
-  const reference = hex(await hashBytes(data, level, (c) => chunks.push(c)))
+  const reference = hex(await hashBytes(data, level, (c) => c.type === "cac" && chunks.push(c)))
   return { reference, chunks }
 }
 

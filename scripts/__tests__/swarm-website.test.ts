@@ -134,7 +134,7 @@ describe("hashWebsite", () => {
     const { reference, entries } = await hashWebsite(
       files,
       { redundancyLevel: 1, indexDocument: "index.html", errorDocument: "" },
-      (c) => chunks.push(c),
+      (c) => c.type === "cac" && chunks.push(c),
     )
     for (const c of chunks) expect(calculateChunkAddress(c.data).toHex()).toBe(hex(c.address))
     const addresses = chunks.map((c) => hex(c.address))

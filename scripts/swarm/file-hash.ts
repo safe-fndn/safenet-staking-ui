@@ -10,7 +10,7 @@
  * @ethersphere/core-sdk; only the tree bookkeeping lives here, because
  * core-sdk's ChunkSplitter structures erasure-coded trees differently.
  */
-import { ChunkBuilder, Uint8ArrayReader } from "@ethersphere/core-sdk/chunk"
+import { ChunkBuilder, Uint8ArrayReader, makeReplicas } from "@ethersphere/core-sdk/chunk"
 import {
   encodeRedundancyLevel,
   getMaxShards,
@@ -20,13 +20,21 @@ import {
 
 export type RedundancyLevel = 0 | 1 | 2 | 3 | 4
 
-/** A chunk as uploaded to Bee's `POST /chunks`: its address and wire bytes (span || payload). */
+/**
+ * A chunk as uploaded to Bee's `POST /chunks`: its address and wire bytes.
+ * Content-addressed chunks ("cac") are `span || payload`; root replicas are
+ * single-owner chunks ("soc"): `identifier || signature || span || payload`.
+ */
 export interface SwarmChunk {
   address: Uint8Array
   data: Uint8Array
+  type: "cac" | "soc"
 }
 
-/** Receives every chunk produced while hashing (data, intermediate and parity chunks). */
+/**
+ * Receives every chunk produced while hashing: data, intermediate and parity
+ * chunks, and — for erasure-coded uploads — the dispersed replicas of the root.
+ */
 export type ChunkSink = (chunk: SwarmChunk) => void
 
 const CHUNK_SIZE = 4096
@@ -38,6 +46,8 @@ interface TrieRef {
   span: bigint
   ref: Uint8Array
   parity: boolean
+  /** The chunk behind a non-parity reference, so the root chunk can be replicated. */
+  chunk?: ChunkBuilder
 }
 
 function makeChunk(span: bigint, payload: Uint8Array): ChunkBuilder {
@@ -70,8 +80,8 @@ class HashTrie {
 
   async writeData(chunk: ChunkBuilder, payloadLength: number): Promise<void> {
     const ref = chunk.hash().toUint8Array()
-    this.onChunk({ address: ref, data: wireBytes(chunk, payloadLength) })
-    await this.writeToLevel(1, { span: chunk.span, ref, parity: false })
+    this.onChunk({ address: ref, data: wireBytes(chunk, payloadLength), type: "cac" })
+    await this.writeToLevel(1, { span: chunk.span, ref, parity: false, chunk })
     await this.rsWrite(0, chunk)
   }
 
@@ -94,7 +104,7 @@ class HashTrie {
     for (const { chunk } of parities) {
       // Parity chunks always carry a full payload; their "span" is the first 8 bytes of the parity shard.
       const ref = chunk.hash().toUint8Array()
-      this.onChunk({ address: ref, data: wireBytes(chunk, CHUNK_SIZE) })
+      this.onChunk({ address: ref, data: wireBytes(chunk, CHUNK_SIZE), type: "cac" })
       await this.writeToLevel(chunkLevel + 1, { span: chunk.span, ref, parity: true })
     }
   }
@@ -113,9 +123,9 @@ class HashTrie {
     entries.forEach((e, i) => payload.set(e.ref, i * 32))
     const chunk = makeChunk(span, payload)
     const ref = chunk.hash().toUint8Array()
-    this.onChunk({ address: ref, data: wireBytes(chunk, payload.length) })
+    this.onChunk({ address: ref, data: wireBytes(chunk, payload.length), type: "cac" })
 
-    await this.writeToLevel(level + 1, { span, ref, parity: false })
+    await this.writeToLevel(level + 1, { span, ref, parity: false, chunk })
     await this.rsWrite(level, chunk)
   }
 
@@ -140,7 +150,16 @@ class HashTrie {
       await this.wrapLevel(i)
     }
     if (this.levels[MAX_LEVEL].length !== 1) throw new Error("inconsistent hash trie")
-    return this.levels[MAX_LEVEL][0].ref
+    const root = this.levels[MAX_LEVEL][0]
+    // Like Bee's replicas putter: erasure-coded uploads also store dispersed
+    // single-owner-chunk replicas of the root (2/4/8/16 for levels 1–4),
+    // signed with the well-known replicas key, so the root stays retrievable.
+    if (this.level !== 0) {
+      for (const r of makeReplicas(root.chunk!, this.level)) {
+        this.onChunk({ address: r.address.toUint8Array(), data: r.data, type: "soc" })
+      }
+    }
+    return root.ref
   }
 }
 
