@@ -32,3 +32,5 @@ admin/
 todos
 playwright-report/
 test-results/
+# Swarm releases: stamped-chunk bundles (local only)
+swarm-release/
