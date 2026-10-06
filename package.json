@@ -19,6 +19,7 @@
     "prepare": "husky",
     "generate:proofs": "tsx scripts/generate-merkle-tree.ts",
     "swarm:hash": "tsx scripts/swarm-hash.ts",
+    "deploy:swarm": "tsx scripts/deploy-swarm.ts",
     "swarm:status": "tsx scripts/swarm-status.ts"
   },
   "dependencies": {
