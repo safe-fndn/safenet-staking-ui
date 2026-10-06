@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react"
+import { useState, useEffect, useCallback } from "react"
 import {
   Dialog,
   DialogContent,
@@ -33,12 +33,17 @@ export function ClaimRewardsDialog({ open, onOpenChange }: ClaimRewardsDialogPro
     reset,
     txHash,
   } = useClaimRewards()
-  const claimedAmountRef = useRef(0n)
+  // claimable drops to 0 once the claim lands, so the toast uses the amount captured on click.
+  const [claimedAmount, setClaimedAmount] = useState(0n)
+
+  const close = useCallback(() => {
+    onOpenChange(false)
+  }, [onOpenChange])
 
   useTxToast(
     {
       successTitle: "Rewards claimed",
-      successDescription: `Claimed ${formatTokenAmount(claimedAmountRef.current)} SAFE`,
+      successDescription: `Claimed ${formatTokenAmount(claimedAmount)} SAFE`,
       errorTitle: "Claim failed",
       safeQueuedDescription: "Your claim has been sent to Safe Wallet for signing.",
     },
@@ -48,7 +53,7 @@ export function ClaimRewardsDialog({ open, onOpenChange }: ClaimRewardsDialogPro
       isSafeQueued,
       txHash,
       reset,
-      onSuccess: () => onOpenChange(false),
+      onSuccess: close,
     },
   )
 
@@ -60,7 +65,7 @@ export function ClaimRewardsDialog({ open, onOpenChange }: ClaimRewardsDialogPro
 
   function handleClaim() {
     if (!address || !proof || !proof.proof) return
-    claimedAmountRef.current = rewards.claimable
+    setClaimedAmount(rewards.claimable)
     claimRewards(
       address,
       BigInt(proof.cumulativeAmount),
@@ -92,7 +97,7 @@ export function ClaimRewardsDialog({ open, onOpenChange }: ClaimRewardsDialogPro
             isSigningTx={isSigningTx}
             isConfirmingTx={isConfirmingTx}
             onClick={handleClaim}
-            disabled={!rewards.canClaim}
+            disabled={!rewards.canClaim || !address || !proof?.proof}
           >
             Claim Rewards
           </TxButton>

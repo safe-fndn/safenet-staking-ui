@@ -2,16 +2,12 @@ import { useWriteContract, useWaitForTransactionReceipt } from "wagmi"
 import { merkleDropAbi } from "@/abi/merkleDropAbi"
 import { getContractAddresses } from "@/config/contracts"
 import { activeChain } from "@/config/chains"
-import { useInvalidateOnSuccess } from "./useStakingWrites"
+import { useInvalidateOnSuccess, REWARD_FN_NAMES, REWARD_EXTRA_KEYS } from "./useStakingWrites"
 import { getAddress } from "viem"
 import type { Address, Hex } from "viem"
 import { isSafeApp } from "@/lib/safe"
 
 const { merkleDrop } = getContractAddresses(activeChain.id)
-
-/** Contract function names to invalidate after claiming rewards. */
-export const REWARD_FN_NAMES = ["cumulativeClaimed", "balanceOf"]
-export const REWARD_EXTRA_KEYS = [["rewardProof"]]
 
 export function useClaimRewards() {
   const { writeContract, data: txHash, isPending, isSuccess: isSubmitted, reset, error: writeError } = useWriteContract()

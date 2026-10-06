@@ -105,22 +105,24 @@ export function mockWaitForReceiptReturn(
   overrides: {
     isLoading?: boolean
     isSuccess?: boolean
+    error?: Error | null
   } = {},
 ): UseWaitForTransactionReceiptReturnType {
   const isLoading = overrides.isLoading ?? false
   const isSuccess = overrides.isSuccess ?? false
+  const error = overrides.error ?? null
 
   return {
     data: undefined,
     refetch: vi.fn(),
-    error: null,
+    error,
     dataUpdatedAt: 0,
     errorUpdatedAt: 0,
     errorUpdateCount: 0,
     failureCount: 0,
     failureReason: null,
     fetchStatus: isLoading ? "fetching" : "idle",
-    isError: false,
+    isError: error !== null,
     isFetched: isSuccess,
     isFetchedAfterMount: isSuccess,
     isFetching: isLoading,
@@ -128,14 +130,14 @@ export function mockWaitForReceiptReturn(
     isLoadingError: false,
     isInitialLoading: false,
     isPaused: false,
-    isPending: !isSuccess && !isLoading,
+    isPending: !isSuccess && !isLoading && error === null,
     isPlaceholderData: false,
     isRefetchError: false,
     isRefetching: false,
     isStale: false,
     isSuccess,
     isEnabled: true,
-    status: isSuccess ? "success" : "pending",
+    status: isSuccess ? "success" : error ? "error" : "pending",
     promise: Promise.resolve() as unknown as UseWaitForTransactionReceiptReturnType["promise"],
     queryKey: ["waitForTransactionReceipt"],
   } as UseWaitForTransactionReceiptReturnType

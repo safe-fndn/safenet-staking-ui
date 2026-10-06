@@ -1,17 +1,25 @@
+import type { ComponentProps } from "react"
 import { describe, it, expect, vi, beforeEach } from "vitest"
 import { render, screen } from "@testing-library/react"
+import userEvent from "@testing-library/user-event"
 import { MemoryRouter } from "react-router-dom"
 import { TooltipProvider } from "@radix-ui/react-tooltip"
 import { StakingSection } from "../dashboard/StakingSection"
-import { MOCK_VALIDATORS } from "@/__tests__/test-data"
+import type { ClaimAndStakeDialog } from "../dashboard/ClaimAndStakeDialog"
+import { MOCK_VALIDATORS, TEST_ACCOUNTS } from "@/__tests__/test-data"
 import type { RewardProof } from "@/hooks/useRewardProof"
+import { useValidators, type ValidatorInfo } from "@/hooks/useValidators"
+import { useUserStakesOnValidators } from "@/hooks/useStakingReads"
+import { useRewards } from "@/hooks/useRewards"
 
 const mockUseAccount = vi.fn()
 // vi.hoisted ensures this is initialized before the vi.mock() calls below,
 // which are hoisted to the top of the file by Vitest at compile time.
 // The narrow return type avoids casting partial objects in each test.
-const { mockUseRewardProof } = vi.hoisted(() => ({
+const { mockUseRewardProof, mockClaimAndStakeDialog } = vi.hoisted(() => ({
   mockUseRewardProof: vi.fn((): { data: RewardProof | null } => ({ data: null })),
+  // Captures the props StakingSection passes, so tests can check the preselection and open state.
+  mockClaimAndStakeDialog: vi.fn<(props: ComponentProps<typeof ClaimAndStakeDialog>) => null>(() => null),
 }))
 
 vi.mock("wagmi", () => ({
@@ -50,7 +58,7 @@ vi.mock("@/components/dashboard/ClaimRewardsDialog", () => ({
 }))
 
 vi.mock("@/components/dashboard/ClaimAndStakeDialog", () => ({
-  ClaimAndStakeDialog: () => null,
+  ClaimAndStakeDialog: mockClaimAndStakeDialog,
 }))
 
 vi.mock("@/hooks/useRewardProof", () => ({
@@ -67,9 +75,26 @@ function renderSection() {
   )
 }
 
+/** Mock validators with the user's stake on each, in the same order. */
+function mockPositions(validators: ValidatorInfo[], stakes: bigint[]) {
+  vi.mocked(useValidators).mockReturnValue({ data: validators } as ReturnType<typeof useValidators>)
+  vi.mocked(useUserStakesOnValidators).mockReturnValue({
+    data: stakes.map((result) => ({ status: "success", result })),
+    isLoading: false,
+  } as ReturnType<typeof useUserStakesOnValidators>)
+}
+
+function lastClaimAndStakeProps() {
+  return mockClaimAndStakeDialog.mock.lastCall?.[0]
+}
+
 describe("StakingSection", () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    // Restore the factory implementations that some tests override.
+    vi.mocked(useValidators).mockReset()
+    vi.mocked(useUserStakesOnValidators).mockReset()
+    vi.mocked(useRewards).mockReset()
   })
 
   it("returns null when not connected", () => {
@@ -254,5 +279,57 @@ describe("StakingSection", () => {
     renderSection()
 
     expect(screen.getByText(/You have no active stakes/)).toBeInTheDocument()
+  })
+
+  describe("Claim + Stake", () => {
+    const active = MOCK_VALIDATORS.map((v) => ({ ...v }))
+
+    beforeEach(() => {
+      mockUseAccount.mockReturnValue({ isConnected: true, address: TEST_ACCOUNTS.user })
+    })
+
+    it("preselects the validator with the larger of two active stakes", () => {
+      mockPositions(active, [100n * 10n ** 18n, 300n * 10n ** 18n])
+
+      renderSection()
+
+      expect(lastClaimAndStakeProps()?.defaultValidator).toBe(TEST_ACCOUNTS.validator2)
+    })
+
+    it("ignores a larger stake on an inactive validator", () => {
+      mockPositions([active[0], { ...active[1], isActive: false }], [100n * 10n ** 18n, 300n * 10n ** 18n])
+
+      renderSection()
+
+      expect(lastClaimAndStakeProps()?.defaultValidator).toBe(TEST_ACCOUNTS.validator1)
+    })
+
+    it("preselects nothing when no active validator has a stake", () => {
+      mockPositions([active[0], { ...active[1], isActive: false }], [0n, 300n * 10n ** 18n])
+
+      renderSection()
+
+      expect(lastClaimAndStakeProps()?.defaultValidator).toBeUndefined()
+    })
+
+    it("disables the Claim + Stake button when rewards cannot be claimed", () => {
+      vi.mocked(useRewards).mockReturnValue({
+        data: { claimable: 0n, totalClaimed: 0n, canClaim: false, rootStale: false },
+      } as ReturnType<typeof useRewards>)
+
+      renderSection()
+
+      expect(screen.getByRole("button", { name: "Claim + Stake" })).toBeDisabled()
+    })
+
+    it("opens the dialog when Claim + Stake is clicked", async () => {
+      const user = userEvent.setup()
+      renderSection()
+
+      expect(lastClaimAndStakeProps()?.open).toBe(false)
+      await user.click(screen.getByRole("button", { name: "Claim + Stake" }))
+
+      expect(lastClaimAndStakeProps()?.open).toBe(true)
+    })
   })
 })
