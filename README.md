@@ -63,6 +63,8 @@ See [`.env.example`](.env.example) for a template.
 | `yarn deploy:ipfs` | Deploy build to IPFS via Pinata |
 | `yarn generate:proofs` | Generate Merkle proofs for reward distribution |
 | `npm run swarm:hash -- ./dist` | Compute the Swarm website reference offline |
+| `yarn deploy:swarm ./dist --ttl-days <n>` | Publish a release to Swarm (see [`SWARM_RELEASE.md`](./SWARM_RELEASE.md)) |
+| `yarn swarm:status` | Remaining storage time of recorded Swarm releases |
 
 See [`MANUAL_TESTING.md`](./MANUAL_TESTING.md) for the pre-release manual QA checklist
 (covers scenarios not automated by the e2e suite, e.g. WalletConnect and Safe App flows).
@@ -181,14 +183,29 @@ Requires `PINATA_JWT` and `PINATA_GATEWAY` environment variables. The build uses
 
 ### Swarm
 
-Compute the Swarm website reference of `dist/` offline. No wallet, credentials, network access or upload is needed:
+```bash
+yarn build
+yarn deploy:swarm ./dist --ttl-days 365 --dry-run   # reference, batch depth and cost
+yarn deploy:swarm ./dist --ttl-days 365             # release
+```
+
+`deploy:swarm` uploads without a Bee node or any long-lived key:
+- A person buys a fresh **immutable** postage batch from their own wallet on Gnosis Chain, with a one-off stamping key as owner. The script prints the exact transactions.
+- The script stamps every chunk with that key, discards the key, and pushes the stamped chunks to public gateways.
+- It verifies retrieval (every file and the page itself) and writes a release record to `releases/swarm/`. A failed push or check can be resumed with `--push-bundle` without the key.
+
+Pointing ENS at a release is done separately. Anyone can extend a release's lifetime with `topUp`; `yarn swarm:status` warns 7 days before a release expires. Step-by-step instructions, including the manual batch purchase and top-ups, are in [`SWARM_RELEASE.md`](./SWARM_RELEASE.md).
+
+#### Offline reference (`swarm:hash`)
+
+Compute the Swarm website reference of `dist/` offline, e.g. to check a release record. No wallet, credentials, network access or upload is needed:
 
 ```bash
 yarn build
 npm run swarm:hash -- ./dist                 # prints the 64-char hex root reference
 ```
 
-It chunks the files and builds the website manifest with `@ethersphere/core-sdk` (pinned):
+It chunks the files and builds the website manifest with `@ethersphere/core-sdk` (pinned), exactly as `deploy:swarm` uploads them:
 
 | Setting | Value |
 |---------|-------|
