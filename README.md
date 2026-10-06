@@ -62,6 +62,7 @@ See [`.env.example`](.env.example) for a template.
 | `yarn test:e2e` | Run Playwright end-to-end tests |
 | `yarn deploy:ipfs` | Deploy build to IPFS via Pinata |
 | `yarn generate:proofs` | Generate Merkle proofs for reward distribution |
+| `npm run swarm:hash -- ./dist` | Compute the Swarm website reference offline |
 
 See [`MANUAL_TESTING.md`](./MANUAL_TESTING.md) for the pre-release manual QA checklist
 (covers scenarios not automated by the e2e suite, e.g. WalletConnect and Safe App flows).
@@ -177,6 +178,28 @@ yarn deploy:ipfs
 ```
 
 Requires `PINATA_JWT` and `PINATA_GATEWAY` environment variables. The build uses hash-based routing (`HashRouter`) for compatibility with IPFS gateways. Set `VITE_APP_URL` to the canonical URL so that `og:image` and `twitter:image` meta tags resolve correctly for social crawlers.
+
+### Swarm
+
+Compute the Swarm website reference of `dist/` offline. No wallet, credentials, network access or upload is needed:
+
+```bash
+yarn build
+npm run swarm:hash -- ./dist                 # prints the 64-char hex root reference
+```
+
+It chunks the files and builds the website manifest with `@ethersphere/core-sdk` (pinned):
+
+| Setting | Value |
+|---------|-------|
+| Collection | Unencrypted website manifest, no erasure coding |
+| Index document | `index.html` (`--index`) |
+| Error document | none (`--error <file>` to set one) |
+| Content types | Fixed table of web types (`scripts/swarm/content-type.ts`), `application/octet-stream` otherwise |
+| Files | Every regular file in the folder, including dotfiles |
+| File order | Byte-wise sorted paths, the same on every OS |
+
+The same files and settings always give the same reference. Other upload tools (Bee's `/bzz` tar upload, Beeport, bee-js) build manifests differently, so they get a different but equally valid reference for identical content. Use `--verbose` to list each file's content type and reference.
 
 ### Safe App
 
