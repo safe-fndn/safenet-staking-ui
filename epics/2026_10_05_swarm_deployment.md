@@ -32,7 +32,7 @@ Steps (separate PRs, details in [Implementation Phases](#implementation-phases))
 
 ### Context: validated end to end (2026-10-02 – 2026-10-05)
 
-- `swarm:hash` reproduces a real Beeport upload byte for byte, including Medium erasure coding, Go mime types, Bee's mantaray serialisation and macOS/APFS file order.
+- `swarm:hash` reproduces a real Beeport upload byte for byte, including Medium erasure coding, Go mime types, Bee's mantaray serialisation and the upload's file order (validated with the then-supported `--order apfs`, since removed).
 - Public gateways `https://beeport.xyz` (Bee 2.8.1) and `https://api.gateway.ethswarm.org` accept chunks with a client-signed `Swarm-Postage-Stamp` header (`POST /chunks` → 201). They reject a stamp for the right batch signed by the wrong key (400 `stamp signature is invalid`), so they validate rather than re-stamp. Chunks pushed via one gateway were retrievable via the other.
 - A test batch was bought from a 7702/ERC-4337 smart-account wallet via a bundler with an ephemeral `_owner`; `topUp` from a non-owner account succeeded on the deployed PostageStamp contract (`0x45a1502382541Cd610CC9068e88727426b696293`).
 
@@ -45,7 +45,7 @@ Steps (separate PRs, details in [Implementation Phases](#implementation-phases))
 - **Single source of truth for chunks.** `deploy:swarm` uses the exact chunk stream produced by the `swarm:hash` code, so the uploaded reference always equals the offline hash anyone can recompute.
 - **No feeds, no ENS tooling.** Every release gets a new reference; the ENS owner sets the `contenthash` manually (e.g. `bzz://<reference>` in the ENS app). The tooling only prints the reference.
 - **Erasure coding Medium (1).** Uploading ourselves makes a true level 0 possible, but Medium costs only ~7.5 % extra chunks (9 parity per 119 data chunks; files ≤ 4 KB unaffected), adds root-chunk replicas, and lets lost chunks of large files be reconstructed. It also keeps one default across `swarm:hash`, Beeport and `deploy:swarm`. `--redundancy` stays configurable.
-- **Byte-sorted file order by default.** The insertion order is ours to choose; `sorted` gives the same reference on every OS. `--order apfs` remains for verifying manual Beeport uploads from macOS. The default switches in Phase 1, before it is merged.
+- **Byte-sorted file order, always.** The insertion order is ours to choose; byte-sorted paths give the same reference on every OS. `--order apfs` (reproducing manual Beeport uploads from macOS) was removed: `deploy:swarm` uploads its own chunks, so it is not needed.
 - **Explicit TTL per release.** `--ttl-days` is required (no default), so every release states its spending; the tool converts it to a per-chunk balance at the current price plus a safety margin and prints the cost before any purchase.
 - **Local builds and local bundles.** Releases may be cut from a local build. The stamped-chunk bundle is kept locally only (gitignored); losing it means a re-push needs a new batch.
 
