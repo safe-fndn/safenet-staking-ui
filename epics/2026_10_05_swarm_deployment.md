@@ -15,8 +15,8 @@ Publish the production build (`dist/`) to Swarm without operating a Bee node and
 
 Steps (separate PRs, details in [Implementation Phases](#implementation-phases)):
 
-1. Offline Swarm website hash (`swarm:hash`), stacked PRs 1/5–5/5, incl. chunk emission (folded in, no separate refactor PR).
-2. Root chunk replicas (Bee's dispersed replicas for erasure-coded uploads).
+1. Offline Swarm website hash (`swarm:hash`) on core-sdk's chunker and manifest builder, plus file collection and CLI.
+2. ~~Root chunk replicas~~ (dropped with erasure coding, 2026-10-06).
 3. Stamping, batch depth planning and stamped-chunk bundle (offline).
 4. Gnosis Chain batch module (pricing, purchase parameters, batch discovery and validation).
 5. Gateway push and retrieval verification.
@@ -44,7 +44,7 @@ Steps (separate PRs, details in [Implementation Phases](#implementation-phases))
 - **The human wallet buys the batch; the ephemeral key does not.** The buyer has no rights after purchase (only `_owner` is stored), so this keeps the key unfunded, keeps the tooling free of transaction handling, and keeps spending an explicit human approval.
 - **Single source of truth for chunks.** `deploy:swarm` uses the exact chunk stream produced by the `swarm:hash` code, so the uploaded reference always equals the offline hash anyone can recompute.
 - **No feeds, no ENS tooling.** Every release gets a new reference; the ENS owner sets the `contenthash` manually (e.g. `bzz://<reference>` in the ENS app). The tooling only prints the reference.
-- **Erasure coding Medium (1).** Uploading ourselves makes a true level 0 possible, but Medium costs only ~7.5 % extra chunks (9 parity per 119 data chunks; files ≤ 4 KB unaffected), adds root-chunk replicas, and lets lost chunks of large files be reconstructed. It also keeps one default across `swarm:hash`, Beeport and `deploy:swarm`. `--redundancy` stays configurable.
+- **No erasure coding; core-sdk hashing (revised 2026-10-06).** Originally Medium erasure coding with a Bee-byte-compatible port of Bee's hashtrie and mantaray (~550 lines). Replaced by core-sdk's `ChunkSplitter` and `MantarayNode` (zeroed obfuscation keys for determinism). Trade-offs accepted: no parity chunks or root replicas (a lost chunk needs a re-push), and references no longer match Bee's own `/bzz` upload of the same files, so `swarm:hash` is reproducible but not a second implementation.
 - **Byte-sorted file order, always.** The insertion order is ours to choose; byte-sorted paths give the same reference on every OS. `--order apfs` (reproducing manual Beeport uploads from macOS) was removed: `deploy:swarm` uploads its own chunks, so it is not needed.
 - **Explicit TTL per release.** `--ttl-days` is required (no default), so every release states its spending; the tool converts it to a per-chunk balance at the current price plus a safety margin and prints the cost before any purchase.
 - **Local builds and local bundles.** Releases may be cut from a local build. The stamped-chunk bundle is kept locally only (gitignored); losing it means a re-push needs a new batch.
@@ -107,8 +107,7 @@ Waiting for BatchCreated with owner 0x…  (Ctrl-C aborts; nothing has been spen
 
 ### Modules (`scripts/swarm/`)
 
-- `file-hash.ts`, `mantaray.ts` (refactor): accept an `onChunk(chunk)` sink; data, intermediate, parity and manifest-node chunks are emitted in a deterministic order. `hashWebsite` returns `{ reference, entries, chunks }` when asked.
-- `replicas.ts`: dispersed replicas of root chunks as Bee 2.8.1 `replicas.NewPutter` does for redundancy levels > 0 (via core-sdk `makeReplicas`); validated by fetching the replica addresses of an existing Beeport upload from a gateway.
+- `website.ts`: `hashWebsite(files, options, onChunk)` chunks every file and the manifest with core-sdk and emits every chunk for stamping.
 - `stamping.ts`:
   - `planDepth(addresses)`: bucket = top 16 bits of the address, slots per bucket = `2^(depth-16)`, returns the minimal depth ≥ 18 with all buckets fitting (immutable: a single full bucket fills the batch).
   - `stampAll(chunks, key, batchId, depth)`: core-sdk `Stamper`, **each unique address stamped exactly once**.
@@ -152,7 +151,6 @@ Must contain the concrete, tested instructions:
 ### Tests
 
 - Refactor: emitted chunks reproduce the same references; golden `dist` reference unchanged; chunk count / uniqueness.
-- Replicas: addresses match Bee for a known root (vector taken from the existing upload).
 - Stamping: `planDepth` on crafted address sets; each address stamped once; stamps verify (signature recovers the owner); bundle round-trip.
 - Batch: quote math, calldata vectors (including the validated test-batch calldata), `BatchCreated` matching with a relayed sender, rejection of mutable / wrong-owner batches (mocked viem client).
 - Gateway: retry on `invalid batch id`, no re-stamping on retry, verification via a different gateway (mocked `fetch`).
@@ -165,8 +163,8 @@ One linear stack; each PR is based on the previous branch. Phases 4–6 are inde
 
 | # | Branch | Contents | Status |
 |---|---|---|---|
-| 1 | `swarm-hash/1-file-hash` … `swarm-hash/5-cli` | `swarm:hash` in 5 PRs (file hashing, mantaray, website manifest, file collection, CLI). Chunk emission folded into PRs 1–3 instead of a separate refactor PR. | PRs open |
-| 2 | `swarm-deploy/1-replicas` | Root replicas as single-owner chunks (`SwarmChunk.type`) | implemented |
+| 1 | `swarm-hash/3-website` … `swarm-hash/5-cli` | `swarm:hash` on core-sdk (website hashing, file collection, CLI). `1-file-hash`, `2-mantaray` dropped 2026-10-06. | PRs open |
+| 2 | ~~`swarm-deploy/1-replicas`~~ | dropped with erasure coding | closed |
 | 3 | `swarm-deploy/2-stamping` | `planDepth`, `stampChunks`, bundle encode/decode | implemented |
 | 4 | `swarm-deploy/3-batch` | Pricing/quote, `approve`/`createBatch` calls, `findBatch` by owner, `validateBatch`, `remainingTtl` | implemented |
 | 5 | `swarm-deploy/4-gateway` | `pushChunks`, `verifyChunks`, `verifyWebsite` | implemented |
@@ -183,7 +181,7 @@ One linear stack; each PR is based on the previous branch. Phases 4–6 are inde
 
 ## Findings During Implementation
 
-- **Every chunk validated against a real Beeport upload.** For the uploaded build, all 1041 content chunks (data, intermediate, Reed-Solomon parity, manifest nodes) and all 222 root replicas emitted by our code exist on Swarm byte for byte. core-sdk's `makeReplicas` matches Bee, and Bee replicates the root of every file and every manifest node.
+- **(Historical, Bee-compatible implementation) Every chunk validated against a real Beeport upload.** For the uploaded build, all 1041 content chunks (data, intermediate, Reed-Solomon parity, manifest nodes) and all 222 root replicas emitted by our code exist on Swarm byte for byte. core-sdk's `makeReplicas` matches Bee, and Bee replicates the root of every file and every manifest node.
 - **Batch depth 17 is often enough.** Exact bucket planning shows the current build (1263 chunks) fits depth 17 (fullest bucket 2/2), half the cost of depth 18. `planDepth` picks the minimum per release. A 365-day release costs about 12.4 xBZZ at today's price.
 - **Gateways.** `api.gateway.ethswarm.org` refuses to serve this app's reference (302 → `bzz.link/forbidden`) but accepted pre-stamped uploads. Verification uses `download.gateway.ethswarm.org` and `bzz.limo`, which both serve the full release. Push goes to `beeport.xyz` first.
 - **Top-up rule.** A top-up must leave at least the 24 h minimum balance; tiny top-ups on an almost-empty batch revert.
