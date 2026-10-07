@@ -13,26 +13,26 @@ Publish the production build (`dist/`) to Swarm without operating a Bee node and
 3. There is no feed / mutable pointer. Pointing ENS at a release (`contenthash`) is done manually by the ENS owner and is out of scope for the tooling.
 4. Anyone can extend a release's lifetime with `topUp(batchId)`; `swarm:status` warns before expiry.
 
-Steps (separate PRs, details in [Implementation Phases](#implementation-phases)):
+Steps (8 stacked PRs, details in [Implementation Phases](#implementation-phases)):
 
-1. Offline Swarm website hash (`swarm:hash`) on core-sdk's chunker and manifest builder, plus file collection and CLI.
-2. ~~Root chunk replicas~~ (dropped with erasure coding, 2026-10-06).
+1. Offline website hashing on core-sdk's chunker and manifest builder.
+2. `swarm:hash` CLI with deterministic file collection.
 3. Stamping, batch depth planning and stamped-chunk bundle (offline).
 4. Gnosis Chain batch module (pricing, purchase parameters, batch discovery and validation).
-5. Gateway push and retrieval verification.
-6. Release records.
+5. Gateway push and file verification.
+6. Release records and `swarm:status` expiry check.
 7. `deploy:swarm` CLI.
-8. `swarm:status` expiry check.
-9. Release runbook (`SWARM_RELEASE.md`) with the manual funding / batch creation instructions.
-10. Remove this specification.
+8. Release runbook (`SWARM_RELEASE.md`), README and CLAUDE.md.
+9. Remove this specification.
 
 ---
 
 ## Architecture Decision
 
-### Context: validated end to end (2026-10-02 – 2026-10-05)
+### Context: validated end to end (2026-10-02 – 2026-10-07)
 
-- `swarm:hash` reproduces a real Beeport upload byte for byte, including Medium erasure coding, Go mime types, Bee's mantaray serialisation and the upload's file order (validated with the then-supported `--order apfs`, since removed).
+- The first implementation reproduced a real Beeport upload byte for byte (Medium erasure coding, Go mime types, Bee's mantaray serialisation, macOS file order). It was replaced by core-sdk hashing on 2026-10-06 (see Decisions).
+- 2026-10-07 acceptance release of the core-sdk implementation: see [Findings](#findings-during-implementation).
 - Public gateways `https://beeport.xyz` (Bee 2.8.1) and `https://api.gateway.ethswarm.org` accept chunks with a client-signed `Swarm-Postage-Stamp` header (`POST /chunks` → 201). They reject a stamp for the right batch signed by the wrong key (400 `stamp signature is invalid`), so they validate rather than re-stamp. Chunks pushed via one gateway were retrievable via the other.
 - A test batch was bought from a 7702/ERC-4337 smart-account wallet via a bundler with an ephemeral `_owner`; `topUp` from a non-owner account succeeded on the deployed PostageStamp contract (`0x45a1502382541Cd610CC9068e88727426b696293`).
 
@@ -46,6 +46,10 @@ Steps (separate PRs, details in [Implementation Phases](#implementation-phases))
 - **No feeds, no ENS tooling.** Every release gets a new reference; the ENS owner sets the `contenthash` manually (e.g. `bzz://<reference>` in the ENS app). The tooling only prints the reference.
 - **No erasure coding; core-sdk hashing (revised 2026-10-06).** Originally Medium erasure coding with a Bee-byte-compatible port of Bee's hashtrie and mantaray (~550 lines). Replaced by core-sdk's `ChunkSplitter` and `MantarayNode` (zeroed obfuscation keys for determinism). Trade-offs accepted: no parity chunks or root replicas (a lost chunk needs a re-push), and references no longer match Bee's own `/bzz` upload of the same files, so `swarm:hash` is reproducible but not a second implementation.
 - **Byte-sorted file order, always.** The insertion order is ours to choose; byte-sorted paths give the same reference on every OS. `--order apfs` (reproducing manual Beeport uploads from macOS) was removed: `deploy:swarm` uploads its own chunks, so it is not needed.
+- **No error document by default.** Beeport always set `error.html`; the build has none. `--error <file>` sets one.
+- **Verification by file, not by chunk (2026-10-06).** Fetching every file through `/bzz/<reference>/` from gateways other than the push gateway and comparing sha256 retrieves every manifest and data chunk; a separate per-chunk pass was dropped.
+- **Release record = receipt.** git commit, sha256 of every file, settings, tooling versions, batch, gateways, retrieval URLs and the ENS contenthash value. Written even if the final expiry lookup fails, so `swarm:status` always sees the batch.
+- **Out of scope:** CI workflow (batches are bought by a person), Safe App changes (root-relative icon paths, path-hosted deployments).
 - **Explicit TTL per release.** `--ttl-days` is required (no default), so every release states its spending; the tool converts it to a per-chunk balance at the current price plus a safety margin and prints the cost before any purchase.
 - **Local builds and local bundles.** Releases may be cut from a local build. The stamped-chunk bundle is kept locally only (gitignored); losing it means a re-push needs a new batch.
 
@@ -69,8 +73,8 @@ Release operator (has a Gnosis Chain wallet with xBZZ + xDAI):
    - computes chunks, the reference and the required batch depth (bucket fill);
    - generates the ephemeral key (memory only);
    - prints the exact `approve` and `createBatch` parameters (and calldata) for the human wallet, plus the expected cost and TTL;
-   - waits until a matching `BatchCreated` event appears on-chain (or the operator pastes the tx hash).
-   - Release builds may be local (`yarn build` with production env); the record stores the git commit and a `dist/` checksum.
+   - waits until a matching `BatchCreated` event appears on-chain.
+   - Release builds may be local (`yarn build` with production env); the record stores the git commit and the sha256 of every file.
 3. Operator sends `approve` (xBZZ) and `createBatch` (PostageStamp) from their wallet, following `SWARM_RELEASE.md`.
 4. `deploy:swarm` continues automatically: validates the batch, stamps, pushes, verifies retrieval, discards the key, writes the stamped-chunk bundle (local) and the release record, and prints the reference.
 5. Operator opens a PR with the release record. Updating ENS happens separately and manually.
@@ -79,15 +83,17 @@ Release operator (has a Gnosis Chain wallet with xBZZ + xDAI):
 ### CLI output (sketch, illustrative numbers)
 
 ```
-Swarm release  <reference>   (43 files, 1263 chunks, Medium erasure coding)
-Batch          depth 18 (max bucket fill 3/4), TTL 365 days
-Cost           23.47 xBZZ  (+ gas)          price 142236 / chunk / block
+Swarm release  <reference>
+  43 files, 914 chunks, sorted order
+Batch          immutable, depth 17 (fullest bucket 2/2)
+TTL            ≈ 383 days at today's price (365 requested + 5% margin for price changes)
+Cost           ≈ 12.4 xBZZ + gas  (price 147162 per chunk per block)
 
 Step 1 — xBZZ 0xdBF3…68da → approve
   spender  0x45a1502382541Cd610CC9068e88727426b696293
   amount   234700000000000000
 Step 2 — PostageStamp 0x45a1…6293 → createBatch
-  _owner                   0x…(ephemeral)      _depth        18
+  _owner                   0x…(ephemeral)      _depth        17
   _initialBalancePerChunk  895…                 _bucketDepth  16
   _nonce                   0x…                  _immutable    true
   calldata 0x5239af71…
@@ -102,35 +108,39 @@ Waiting for BatchCreated with owner 0x…  (Ctrl-C aborts; nothing has been spen
 
 | Script | Purpose |
 |---|---|
+| `swarm:hash` | Offline reference of a build folder (`scripts/swarm-hash.ts`) |
 | `deploy:swarm` | Prepare → wait for batch → stamp → push → verify → record (`scripts/deploy-swarm.ts`) |
 | `swarm:status` | Remaining TTL / expiry for every recorded release (`scripts/swarm-status.ts`) |
 
 ### Modules (`scripts/swarm/`)
 
-- `website.ts`: `hashWebsite(files, options, onChunk)` chunks every file and the manifest with core-sdk and emits every chunk for stamping.
+- `website.ts`: `hashWebsite(files, options, onChunk)` chunks every file (core-sdk `ChunkSplitter`) and builds the manifest (core-sdk `MantarayNode`, zeroed obfuscation keys), emitting every chunk for stamping. `content-type.ts`: fixed table of web content types.
+- `collect.ts`: every regular file (dotfiles included, symlinks refused, nothing filtered) in byte-sorted path order.
 - `stamping.ts`:
-  - `planDepth(addresses)`: bucket = top 16 bits of the address, slots per bucket = `2^(depth-16)`, returns the minimal depth ≥ 18 with all buckets fitting (immutable: a single full bucket fills the batch).
-  - `stampAll(chunks, key, batchId, depth)`: core-sdk `Stamper`, **each unique address stamped exactly once**.
-  - Bundle format: `swarm-release/<reference>/bundle.bin` (gitignored, local only), records `address(32) | stamp(113) | length(u16) | data`, plus `manifest.json` (reference, batch id, chunk count, sha256 of bundle). Re-pushing needs no key.
+  - `planDepth(chunks)`: bucket = top 16 bits of the address, slots per bucket = `2^(depth-16)`, returns the minimal depth ≥ 17 with all buckets fitting (immutable: a single full bucket fills the batch).
+  - `stampChunks(chunks, key, batchId, depth)`: core-sdk `Stamper`, **each unique address stamped exactly once**.
+  - Bundle: `swarm-release/<reference>/bundle.bin` (gitignored, local only), records `address(32) | stamp(113) | length(u16) | data`, plus `release.json` (the pending record). Re-pushing needs no key.
 - `batch.ts` (viem, Gnosis):
   - constants: PostageStamp `0x45a1502382541Cd610CC9068e88727426b696293`, xBZZ `0xdBF3Ea6F5beE45c02255B2c26a16F300502F68da` (16 decimals), chain 100;
-  - `quote(depth, ttlDays)`: `perChunk = max(minimumInitialBalancePerChunk, lastPrice × blocks) × safety margin`, total = `perChunk << depth`;
-  - `purchaseParams(owner, perChunk, depth, nonce)` → named params + calldata for `approve` and `createBatch(owner, perChunk, depth, 16, nonce, true)`;
-  - `waitForBatch(owner)`: polls `BatchCreated` logs from the block at prepare time and matches `owner` (not indexed → filter client-side); accepts relayed (ERC-4337) transactions, so the buyer is not taken from `tx.from`;
+  - `quote(pricing, depth, ttlDays)`: `perChunk = max(minimumInitialBalancePerChunk, lastPrice × blocks) × safety margin`, total = `perChunk << depth`;
+  - `purchaseCalls(owner, quote, nonce)` → named params + calldata for `approve` and `createBatch(owner, perChunk, depth, 16, nonce, true)`;
+  - `findBatch(client, owner, fromBlock)`: scans `BatchCreated` logs and matches `owner` (not indexed → filter client-side); works for relayed (ERC-4337) purchases;
   - `validateBatch`: owner, depth, bucket depth 16, `immutableFlag == true`;
-  - `remainingBalance`, expiry estimate (`remaining / lastPrice × 5 s`).
-- `gateway.ts`: `POST /chunks` with `Swarm-Postage-Stamp`; limited concurrency; retry on `invalid batch id` until the batch is usable (bounded, ~20 min) and on 429/5xx; never re-stamps. Verification: `GET /chunks/<address>` for every chunk and `GET /bzz/<reference>/<path>` for every file via a **different** gateway than the one pushed to; byte comparison.
+  - `remainingTtl`, `isBatchGone` (PostageStamp `BatchDoesNotExist`).
+- `gateway.ts`: `pushChunks` (`POST /chunks` with `Swarm-Postage-Stamp`; limited concurrency; waits up to 20 min for a new batch; retries 429/5xx; never re-stamps); `verifyWebsite` (`GET /bzz/<reference>/<path>` for every file via a **different** gateway, sha256 comparison, retries); `verifyPage` (loads the page and its assets, warnings only); `subdomainUrl` (core-sdk `Reference.toCid("manifest")`).
+- `release.ts`, `expiry.ts`: release records, `completeRelease`, top-up calls for `swarm:status`.
 
 ### Release record
 
-`releases/swarm/<yyyy-mm-dd>-<shortref>.json` (committed): reference, git commit, dist sha256 checksum list hash, file order, erasure level, batch id, depth, per-chunk balance, purchase tx hash, buyer, pushed-via gateway(s), estimated expiry at upload time, bundle sha256. `swarm:status` reads these.
+`releases/swarm/<yyyy-mm-dd>-<shortref>.json` (committed): reference, created-at, git commit (+ dirty flag), sha256 of every file, settings (order, index/error document), chunk count, tooling versions (node, core-sdk, viem), batch (id, depth, per-chunk balance, owner, purchase tx, block, estimated expiry or null), push/verify gateways, retrieval URLs (subdomain + `/bzz/<ref>/` per verify gateway), ENS contenthash value, bundle sha256. `swarm:status` reads these.
 
 ### Environment variables (scripts only, all optional)
 
 | Variable | Default | Purpose |
 |---|---|---|
 | `SWARM_GNOSIS_RPC_URL` | `https://rpc.gnosischain.com` | Gnosis Chain reads (pricing, events, balances) |
-| `SWARM_GATEWAYS` | `https://beeport.xyz,https://api.gateway.ethswarm.org` | Push / verify gateways (first = push) |
+| `SWARM_PUSH_GATEWAYS` | `https://beeport.xyz,https://api.gateway.ethswarm.org` | Push gateways, tried in order |
+| `SWARM_VERIFY_GATEWAYS` | `https://download.gateway.ethswarm.org,https://bzz.limo` | Retrieval verification |
 
 No private keys or credentials in env; the ephemeral key never leaves process memory.
 
@@ -150,39 +160,41 @@ Must contain the concrete, tested instructions:
 
 ### Tests
 
-- Refactor: emitted chunks reproduce the same references; golden `dist` reference unchanged; chunk count / uniqueness.
+- Website hashing: pinned reference (catches core-sdk changes), determinism, metadata sensitivity, manifest read back from the emitted chunks; file collection determinism and change sensitivity (incl. `app..js`).
 - Stamping: `planDepth` on crafted address sets; each address stamped once; stamps verify (signature recovers the owner); bundle round-trip.
-- Batch: quote math, calldata vectors (including the validated test-batch calldata), `BatchCreated` matching with a relayed sender, rejection of mutable / wrong-owner batches (mocked viem client).
-- Gateway: retry on `invalid batch id`, no re-stamping on retry, verification via a different gateway (mocked `fetch`).
+- Batch: quote math, calldata vectors (including the validated test-batch calldata), `BatchCreated` matching with a relayed sender, rejection of mutable / wrong-owner batches, gone vs failed lookups (mocked viem client).
+- Gateway: retry on `invalid batch id`, no re-stamping on retry, file verification with retries, subdomain CID vector (mocked `fetch`).
+- Records/status: receipt round-trip, record written when the expiry lookup fails, EXPIRED only when confirmed, UNKNOWN exits 1.
 
 ---
 
 ## Implementation Phases
 
-One linear stack; each PR is based on the previous branch. Phases 4–6 are independent modules and can be reviewed in parallel.
+One linear stack of 8 PRs (~190–350 changed lines each, code + tests), each based on the previous branch. Restructured 2026-10-06/07: core-sdk hashing replaced `swarm-hash/1-file-hash`, `2-mantaray` and `swarm-deploy/1-replicas`; `4-collect` merged into `5-cli`, `7-status` into `5-release-record`. All earlier PRs were closed; the stack is reopened from scratch.
 
 | # | Branch | Contents | Status |
 |---|---|---|---|
-| 1 | `swarm-hash/3-website` … `swarm-hash/5-cli` | `swarm:hash` on core-sdk (website hashing, file collection, CLI). `1-file-hash`, `2-mantaray` dropped 2026-10-06. | PRs open |
-| 2 | ~~`swarm-deploy/1-replicas`~~ | dropped with erasure coding | closed |
+| 1 | `swarm-hash/3-website` | `hashWebsite` on core-sdk, content types | implemented |
+| 2 | `swarm-hash/5-cli` | `collectWebsiteFiles`, `swarm:hash` CLI | implemented |
 | 3 | `swarm-deploy/2-stamping` | `planDepth`, `stampChunks`, bundle encode/decode | implemented |
 | 4 | `swarm-deploy/3-batch` | Pricing/quote, `approve`/`createBatch` calls, `findBatch` by owner, `validateBatch`, `remainingTtl` | implemented |
-| 5 | `swarm-deploy/4-gateway` | `pushChunks`, `verifyChunks`, `verifyWebsite` | implemented |
-| 6 | `swarm-deploy/5-release-record` | Release records (`releases/swarm/*.json`) | implemented |
-| 7 | `swarm-deploy/6-deploy-cli` | `deploy:swarm` (incl. `--dry-run`, `--push-bundle`), `.gitignore` for `swarm-release/` | implemented; acceptance release pending |
-| 8 | `swarm-deploy/7-status` | `swarm:status`, top-up calls | implemented |
-| 9 | `swarm-deploy/8-docs` | `SWARM_RELEASE.md`, README, CLAUDE.md | implemented |
-| — | separate tiny docs PR from `main` | remove stale `admin/` sections from CLAUDE.md | pending |
-| 10 | — | Remove this specification | after the acceptance release |
+| 5 | `swarm-deploy/4-gateway` | `pushChunks`, `verifyWebsite`, `verifyPage`, `subdomainUrl` | implemented |
+| 6 | `swarm-deploy/5-release-record` | Release records, `swarm:status`, top-up calls | implemented |
+| 7 | `swarm-deploy/6-deploy-cli` | `deploy:swarm` (incl. `--dry-run`, `--push-bundle`), `completeRelease`, `.gitignore` for `swarm-release/` | implemented; acceptance release done |
+| 8 | `swarm-deploy/8-docs` | `SWARM_RELEASE.md`, README, CLAUDE.md | implemented |
+| — | separate docs PR from `main` | remove stale `admin/` sections from CLAUDE.md | merged (#108) |
+| 9 | — | Remove this specification | after merge |
 
-**Acceptance:** one real release of a production build with `yarn deploy:swarm` (operator buys the batch), reference equal to `swarm:hash`, all chunks and files retrievable through both verify gateways, release record committed.
+**Acceptance:** one real release of a production build with `yarn deploy:swarm` (operator buys the batch), reference equal to `swarm:hash`, all files retrievable through both verify gateways, release record written. Done 2026-10-07 (see Findings).
 
 ---
 
 ## Findings During Implementation
 
+- **Acceptance release (2026-10-07), core-sdk implementation.** Reference `63aac9a2…fcb614`, 43 files, 914 chunks, immutable batch depth 17 (2-day test TTL). Pushed via `beeport.xyz`; every file verified via `download.gateway.ethswarm.org` and `bzz.limo`; app loads at the subdomain URL. A fresh `yarn build` + `swarm:hash` reproduced the same reference.
+- **No erasure coding saves ~28 % of chunks.** 914 instead of 1263 for the same build; still depth 17.
 - **(Historical, Bee-compatible implementation) Every chunk validated against a real Beeport upload.** For the uploaded build, all 1041 content chunks (data, intermediate, Reed-Solomon parity, manifest nodes) and all 222 root replicas emitted by our code exist on Swarm byte for byte. core-sdk's `makeReplicas` matches Bee, and Bee replicates the root of every file and every manifest node.
-- **Batch depth 17 is often enough.** Exact bucket planning shows the current build (1263 chunks) fits depth 17 (fullest bucket 2/2), half the cost of depth 18. `planDepth` picks the minimum per release. A 365-day release costs about 12.4 xBZZ at today's price.
+- **Batch depth 17 is often enough.** Exact bucket planning shows the build (1263 chunks with erasure coding, 914 without) fits depth 17 (fullest bucket 2/2), half the cost of depth 18. `planDepth` picks the minimum per release. A 365-day release costs about 12.4 xBZZ at today's price.
 - **Gateways.** `api.gateway.ethswarm.org` refuses to serve this app's reference (302 → `bzz.link/forbidden`) but accepted pre-stamped uploads. Verification uses `download.gateway.ethswarm.org` and `bzz.limo`, which both serve the full release. Push goes to `beeport.xyz` first.
 - **Top-up rule.** A top-up must leave at least the 24 h minimum balance; tiny top-ups on an almost-empty batch revert.
 
@@ -190,9 +202,10 @@ One linear stack; each PR is based on the previous branch. Phases 4–6 are inde
 
 ## Open Questions and Assumptions
 
-Resolved (2026-10-05): erasure coding Medium; default order `sorted`; TTL via required `--ttl-days`; no ENS tooling (ENS is updated manually); local builds allowed; bundles kept locally; `swarm:status` warns when a release has < 7 days left.
+Resolved (2026-10-05): default order `sorted`; TTL via required `--ttl-days`; no ENS tooling (ENS is updated manually); local builds allowed; bundles kept locally; `swarm:status` warns when a release has < 7 days left.
+Resolved (2026-10-06): no erasure coding, core-sdk hashing; no CI workflow; Safe App changes out of scope.
+Resolved (2026-10-07): public gateways accept a full release in one session (acceptance release).
 
-- **Assumption:** public gateways accept a full release (~800 chunks) in one session; pushing to both gateways with fallback is sufficient. Confirmed or refuted by the Phase 7 acceptance release.
 - **Assumption:** the release operator performs top-ups when `swarm:status` warns.
-- **Assumption:** Bee 2.8.1 behaviour (mantaray format, Go 1.26 mime table, erasure coding) holds for the gateways in use; `swarm:hash` tests pin it.
-- **Assumption:** depth 17 is unusable (2 slots per bucket); depth 18 (~6 MB effective at Medium) fits the current ~3 MB bundle, and `planDepth` enforces the minimum.
+- **Assumption:** core-sdk's chunking and manifest format stays stable at the pinned version; the pinned reference in `swarm-website.test.ts` fails on any change, and the record's tooling versions say which version made a release.
+- **Limitation:** `swarm:hash` shares its code with `deploy:swarm`, so it is reproducible but not a second implementation. Independent checks are file-level: fetch every file through any gateway and compare with the record's `fileChecksums`.
