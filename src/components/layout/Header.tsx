@@ -29,7 +29,7 @@ export function Header() {
         <div className="flex items-center gap-8">
           <Link to="/" className="flex flex-col items-start" onClick={closeMobileMenu}>
             <img src={safenetLogo} alt="Safenet" className="h-[22px] dark:invert" />
-            <span className="self-end font-mono text-[10.89px] leading-[95%] text-foreground">BETA</span>
+            <span className="self-end font-mono text-[10.89px] leading-[95%] text-foreground">AEGIS</span>
           </Link>
           <nav className="hidden md:flex items-stretch h-16 gap-1 -mb-px">
             {navItems.map((item) => (
