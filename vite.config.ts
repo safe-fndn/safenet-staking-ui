@@ -1,5 +1,6 @@
+import { readFileSync } from "fs"
 import path from "path"
-import { defineConfig, type ViteDevServer, type PreviewServer } from 'vite'
+import { defineConfig, loadEnv, normalizePath, type Plugin, type ViteDevServer, type PreviewServer } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 
@@ -36,11 +37,59 @@ function respondToPreflight(server: ViteDevServer | PreviewServer) {
   })
 }
 
+// Legal links: VITE_<KEY>_URL is either a full URL or #anchor (linked as-is) or a
+// path to an HTML fragment file, which is inlined at build time and served at the
+// matching route (e.g. #/terms). The content is trusted deployer input (like the
+// env vars themselves), so it is not sanitized.
+function legalPages(): Plugin {
+  const legalFiles: string[] = []
+
+  const loadLegalPage = (env: Record<string, string>, key: string) => {
+    const value = env[`VITE_${key}_URL`]
+    if (!value) return { url: "", html: "" }
+    if (value.startsWith("#") || URL.canParse(value)) return { url: value, html: "" }
+    const file = path.resolve(process.cwd(), value)
+    // Normalized so it matches the watcher's paths on Windows
+    legalFiles.push(normalizePath(file))
+    try {
+      return { url: "", html: readFileSync(file, "utf8") }
+    } catch (error) {
+      throw new Error(`VITE_${key}_URL is neither a full URL nor a readable file: ${file} (${(error as Error).message})`)
+    }
+  }
+
+  return {
+    name: 'legal-pages',
+    config: (_, { mode }) => {
+      const env = loadEnv(mode, process.cwd())
+      legalFiles.length = 0
+      const define: Record<string, string> = {}
+      for (const key of ["TERMS", "PRIVACY", "IMPRINT"]) {
+        const { url, html } = loadLegalPage(env, key)
+        define[`__${key}_URL__`] = JSON.stringify(url)
+        // Inlined legal page HTML — empty unless VITE_<KEY>_URL is a file path
+        define[`__${key}_HTML__`] = JSON.stringify(html)
+      }
+      return { define }
+    },
+    // Legal page content is inlined via `define`, so restart the dev server when a file changes.
+    configureServer: (server) => {
+      server.watcher.add(legalFiles)
+      server.watcher.on('change', (file) => {
+        if (legalFiles.includes(normalizePath(file))) {
+          void server.restart()
+        }
+      })
+    },
+  }
+}
+
 export default defineConfig({
   base: './',
   plugins: [
     react(),
     tailwindcss(),
+    legalPages(),
     {
       name: 'inject-app-url',
       transformIndexHtml: (html) =>

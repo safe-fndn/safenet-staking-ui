@@ -11,6 +11,7 @@ import { useSanctionsCheck } from "@/hooks/useSanctionsCheck"
 import { useGeoblockCheck } from "@/hooks/useGeoblockCheck"
 import { useWalletSanctionsCheck } from "@/hooks/useWalletSanctionsCheck"
 import { useToast } from "@/hooks/useToast"
+import { LEGAL_PAGES } from "@/lib/legal"
 import Loader2 from "lucide-react/dist/esm/icons/loader-2"
 
 const pageImports = {
@@ -22,6 +23,8 @@ const pageImports = {
     .then(m => ({ default: m.ValidatorDetailPage })),
   Withdrawals: () => import("@/pages/WithdrawalsPage")
     .then(m => ({ default: m.WithdrawalsPage })),
+  Legal: () => import("@/pages/LegalPage")
+    .then(m => ({ default: m.LegalPage })),
   NotFound: () => import("@/pages/NotFoundPage")
     .then(m => ({ default: m.NotFoundPage })),
 }
@@ -30,6 +33,7 @@ const DashboardPage = lazy(pageImports.Dashboard)
 const ValidatorsPage = lazy(pageImports.Validators)
 const ValidatorDetailPage = lazy(pageImports.ValidatorDetail)
 const WithdrawalsPage = lazy(pageImports.Withdrawals)
+const LegalPage = lazy(pageImports.Legal)
 const NotFoundPage = lazy(pageImports.NotFound)
 
 /** Preload all route chunks so IPFS-hosted builds are warm. */
@@ -117,6 +121,10 @@ function App() {
             <Route path="/validators" element={<ErrorBoundary><ValidatorsPage /></ErrorBoundary>} />
             <Route path="/validators/:address" element={<ErrorBoundary><ValidatorDetailPage /></ErrorBoundary>} />
             <Route path="/withdrawals" element={<ErrorBoundary><WithdrawalsPage /></ErrorBoundary>} />
+            {/* Unbundled legal pages get no route, so they fall through to the 404 */}
+            {LEGAL_PAGES.filter(p => p.bundled).map(p => (
+              <Route key={p.key} path={p.path} element={<ErrorBoundary><LegalPage page={p.key} /></ErrorBoundary>} />
+            ))}
             <Route path="*" element={<NotFoundPage />} />
           </Route>
         </Routes>

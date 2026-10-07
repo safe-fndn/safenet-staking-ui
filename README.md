@@ -39,9 +39,9 @@ The app will be available at `http://localhost:5173`.
 | `VITE_REWARDS_BASE_URL` | No | Base URL for reward proof files (defaults to GitHub raw URL) |
 | `VITE_KYC_REQUIRED_URL` | No | KYC-required address list endpoint (defaults to GitHub raw URL) |
 | `VITE_DOCS_URL` | No | Documentation link in footer (defaults to Safe docs) |
-| `VITE_TERMS_URL` | No | Footer terms link (hidden if unset) |
-| `VITE_PRIVACY_URL` | No | Footer privacy link (hidden if unset) |
-| `VITE_IMPRINT_URL` | No | Footer imprint link (hidden if unset) |
+| `VITE_TERMS_URL` | No | Footer terms link: full URL or `#anchor`, or a path to a local HTML fragment (e.g. `legal/terms.html`, gitignored, local builds only) inlined at build time and shown at `#/terms` (hidden if unset; unreadable file fails the build) |
+| `VITE_PRIVACY_URL` | No | Footer privacy link: full URL or `#anchor`, or a path to a local HTML fragment (e.g. `legal/privacy.html`, gitignored, local builds only) inlined at build time and shown at `#/privacy` (hidden if unset; unreadable file fails the build) |
+| `VITE_IMPRINT_URL` | No | Footer imprint link: full URL or `#anchor`, or a path to a local HTML fragment (e.g. `legal/imprint.html`, gitignored, local builds only) inlined at build time and shown at `#/imprint` (hidden if unset; unreadable file fails the build) |
 | `VITE_APP_URL` | No | Canonical app URL for social preview meta tags (`og:image`, `twitter:image`); absolute URLs are required for social crawlers (no trailing slash) |
 | `PINATA_JWT` | No | Pinata API JWT for IPFS deployment |
 | `PINATA_GATEWAY` | No | Pinata gateway domain for IPFS deployment |
