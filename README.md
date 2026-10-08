@@ -195,7 +195,7 @@ It chunks the files and builds the website manifest with `@ethersphere/core-sdk`
 | Collection | Unencrypted website manifest, no erasure coding |
 | Index document | `index.html` (`--index`) |
 | Error document | none (`--error <file>` to set one) |
-| Content types | Fixed table of web types (`scripts/swarm/content-type.ts`), `application/octet-stream` otherwise |
+| Content types | Fixed table of the types this build uses, plus `txt` (`scripts/swarm/content-type.ts`); any other extension is an error until it is added there |
 | Files | Every regular file in the folder, including dotfiles |
 | File order | Byte-wise sorted paths, the same on every OS |
 

@@ -199,7 +199,7 @@ Off-chain tooling for generating Merkle proofs compatible with the MerkleDrop co
 `scripts/swarm-hash.ts` computes the Swarm website reference offline. Unencrypted, no erasure coding, `index.html` as index document, no error document, byte-sorted file order. See the header comment and README for details.
 
 - `scripts/swarm/website.ts` — `hashWebsite`: chunks files and builds the manifest with `@ethersphere/core-sdk` (pinned) `ChunkSplitter` and `MantarayNode`, with zeroed obfuscation keys so the reference is deterministic.
-- `scripts/swarm/content-type.ts` — Content types per file extension.
+- `scripts/swarm/content-type.ts` — Content types for the extensions the build produces (plus `txt`); any other extension throws, so a new file type is added deliberately.
 - `scripts/swarm/collect.ts` — File collection in byte-sorted insertion order.
 - `scripts/__tests__/swarm-*.test.ts` — Per-module tests: a pinned reference, manifest read-back, determinism and change sensitivity, CLI.
 
