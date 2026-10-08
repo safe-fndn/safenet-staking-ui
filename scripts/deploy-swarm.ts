@@ -165,18 +165,21 @@ async function release(): Promise<void> {
     `TTL            ≈ ${q.ttlDays.toFixed(1)} days at today's price (${ttlDays} requested + 5% margin for price changes)`,
     `Cost           ${formatUnits(q.total, XBZZ_DECIMALS)} xBZZ + gas  (price ${pricing.price} per chunk per block)`,
   )
-  if (values["dry-run"]) return
-
   // Everything the release record needs that can fail is read now, before anything is spent:
   // after the purchase, the stamping key exists only in this process.
+  // The commit is read where the build lives, not where this script runs, so a build of
+  // another version (e.g. a tag checked out in a separate worktree) records that version.
   let git: { commit: string; dirty: boolean }
   try {
-    const run = (args: string[]) => execFileSync("git", args, { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim()
+    const run = (args: string[]) => execFileSync("git", ["-C", dir, ...args], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim()
     git = { commit: run(["rev-parse", "HEAD"]), dirty: run(["status", "--porcelain"]) !== "" }
   } catch {
-    fail("run deploy:swarm from a git checkout; the release record stores the commit")
+    fail(`${dir} must be inside a git checkout; the release record stores the commit it was built from`)
   }
   const tooling = toolingVersions()
+  log(`Built from     ${git.commit}${git.dirty ? " (uncommitted changes)" : ""}`)
+
+  if (values["dry-run"]) return
 
   // 3. Ephemeral stamping key (memory only) and the purchase for the operator.
   let key: Hex | undefined = generatePrivateKey()
