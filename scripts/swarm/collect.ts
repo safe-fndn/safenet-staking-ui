@@ -11,7 +11,8 @@ const byteCompare = (a: string, b: string) => Buffer.compare(Buffer.from(a), Buf
 /**
  * Collects every regular file below `root` (dotfiles included) in byte-wise
  * path order, independent of any filesystem. Nothing is skipped: every file is
- * part of the hash. Symlinks are refused.
+ * part of the hash. Anything else (symlinks, FIFOs, sockets, devices) is
+ * refused.
  */
 export function collectWebsiteFiles(root: string): WebsiteFile[] {
   const files: WebsiteFile[] = []
@@ -22,9 +23,9 @@ export function collectWebsiteFiles(root: string): WebsiteFile[] {
     for (const name of readdirSync(dir)) {
       const rel = prefix + name
       const stat = lstatSync(join(dir, name))
-      if (stat.isSymbolicLink()) throw new Error(`symlinks are not supported: ${rel}`)
       if (stat.isDirectory()) pending.push(`${rel}/`)
       else if (stat.isFile()) files.push({ path: rel, data: readFileSync(join(dir, name)) })
+      else throw new Error(`only regular files and directories are supported: ${rel}`)
     }
   }
   return files.sort((a, b) => byteCompare(a.path, b.path))

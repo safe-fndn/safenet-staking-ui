@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, it, expect, beforeEach, afterEach } from "vitest"
 import { execFileSync } from "node:child_process"
-import { mkdirSync, mkdtempSync, renameSync, rmSync, writeFileSync } from "node:fs"
+import { mkdirSync, mkdtempSync, renameSync, rmSync, symlinkSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { dirname, join } from "node:path"
 import { collectWebsiteFiles } from "../swarm/collect"
@@ -46,6 +46,15 @@ describe("collectWebsiteFiles", () => {
     const before = await hashDir()
     write("assets/app..js", "b")
     expect(await hashDir()).not.toBe(before)
+  })
+
+  it("refuses anything but regular files and directories, e.g. symlinks and FIFOs", () => {
+    symlinkSync("index.html", join(dir, "link.html"))
+    expect(() => collectWebsiteFiles(dir)).toThrow("only regular files and directories are supported: link.html")
+    rmSync(join(dir, "link.html"))
+
+    execFileSync("mkfifo", [join(dir, "assets/pipe")])
+    expect(() => collectWebsiteFiles(dir)).toThrow("only regular files and directories are supported: assets/pipe")
   })
 
   it("is deterministic across runs and absolute locations", async () => {
