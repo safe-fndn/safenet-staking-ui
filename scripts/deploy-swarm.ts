@@ -31,11 +31,11 @@ import { generatePrivateKey, privateKeyToAccount } from "viem/accounts"
 import {
   XBZZ_DECIMALS,
   createGnosisClient,
-  findBatch,
   purchaseCalls,
   quote,
   readPricing,
   remainingTtl,
+  waitForBatch,
   type Call,
 } from "./swarm/batch"
 import { collectWebsiteFiles } from "./swarm/collect"
@@ -50,7 +50,6 @@ function fail(message: string): never {
   process.exit(1)
 }
 const list = (env: string | undefined, fallback: string[]) => (env ? env.split(",").map((s) => s.trim()).filter(Boolean) : fallback)
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
 
 const { values, positionals } = parseArgs({
   allowPositionals: true,
@@ -168,6 +167,17 @@ async function release(): Promise<void> {
   )
   if (values["dry-run"]) return
 
+  // Everything the release record needs that can fail is read now, before anything is spent:
+  // after the purchase, the stamping key exists only in this process.
+  let git: { commit: string; dirty: boolean }
+  try {
+    const run = (args: string[]) => execFileSync("git", args, { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim()
+    git = { commit: run(["rev-parse", "HEAD"]), dirty: run(["status", "--porcelain"]) !== "" }
+  } catch {
+    fail("run deploy:swarm from a git checkout; the release record stores the commit")
+  }
+  const tooling = toolingVersions()
+
   // 3. Ephemeral stamping key (memory only) and the purchase for the operator.
   let key: Hex | undefined = generatePrivateKey()
   const owner = privateKeyToAccount(key).address
@@ -180,19 +190,21 @@ async function release(): Promise<void> {
 
   // 4. Wait for the purchase.
   const deadline = Date.now() + Number(values["wait-minutes"]) * 60_000
-  // Anyone can create a batch for our owner; findBatch skips those that can't hold the release.
-  const expected = { owner, depth, minTotal: q.total }
-  const skipped = new Set<string>()
-  const onSkip = (b: { batchId: string }, problems: string[]) => {
-    if (skipped.has(b.batchId)) return
-    skipped.add(b.batchId)
-    log(`Ignoring batch ${b.batchId} for our key: ${problems.join(", ")} (not the purchase printed above)`)
-  }
-  let batch = await findBatch(client, expected, startBlock, onSkip)
-  while (!batch) {
-    if (Date.now() > deadline) fail("no matching batch purchased in time; rerun to start over with a new key")
-    await sleep(10_000)
-    batch = await findBatch(client, expected, startBlock, onSkip)
+  // Anyone can create a batch for our owner; those that can't hold the release are skipped.
+  // RPC errors only log: the wait continues until the deadline.
+  let lastError = ""
+  const batch = await waitForBatch(client, { owner, depth, minTotal: q.total }, startBlock, {
+    deadline,
+    onSkip: (b, problems) => log(`Ignoring batch ${b.batchId} for our key: ${problems.join(", ")} (not the purchase printed above)`),
+    onError: (e) => {
+      const message = (e as Error).message.split("\n")[0]
+      if (message !== lastError) log(`Batch lookup failed, retrying: ${message}`)
+      lastError = message
+    },
+  })
+  if (!batch) {
+    const hint = lastError ? ` (last lookup error: ${lastError}; consider another SWARM_GNOSIS_RPC_URL)` : ""
+    fail(`no matching batch found in time${hint}; rerun to start over with a new key`)
   }
   log(`Batch ${batch.batchId} found in tx ${batch.transactionHash}`)
 
@@ -203,16 +215,15 @@ async function release(): Promise<void> {
   const releaseDir = join("swarm-release", reference)
   mkdirSync(releaseDir, { recursive: true })
   writeFileSync(join(releaseDir, "bundle.bin"), bundle)
-  const git = (args: string[]) => execFileSync("git", args, { encoding: "utf8" }).trim()
   const pending: PendingRelease = {
     draft: {
       reference,
       createdAt: new Date().toISOString(),
-      git: { commit: git(["rev-parse", "HEAD"]), dirty: git(["status", "--porcelain"]) !== "" },
+      git,
       fileChecksums: fileChecksums(files),
       settings,
       chunks: stamped.length,
-      tooling: toolingVersions(),
+      tooling,
       batch: {
         id: batch.batchId,
         depth,
