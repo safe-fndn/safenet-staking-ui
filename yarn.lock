@@ -505,6 +505,14 @@
     "@eslint/core" "^0.17.0"
     levn "^0.4.1"
 
+"@ethersphere/core-sdk@0.2.1":
+  version "0.2.1"
+  resolved "https://registry.yarnpkg.com/@ethersphere/core-sdk/-/core-sdk-0.2.1.tgz#8a24c4ad0715872b4328ace58f54f87079921c6f"
+  integrity sha512-ccOWlJgmOYhWQrbAighu6rbZRkR7c43eDxy3byyBsmHtmRpy2pbBY5vZEO2V1pNdtJ7wY2B+IhKKX2r5DU1SNg==
+  dependencies:
+    "@noble/curves" "^1.9.7"
+    "@noble/hashes" "^1.8.0"
+
 "@exodus/bytes@^1.11.0", "@exodus/bytes@^1.6.0":
   version "1.14.1"
   resolved "https://registry.npmjs.org/@exodus/bytes/-/bytes-1.14.1.tgz"
@@ -659,7 +667,7 @@
   dependencies:
     "@noble/hashes" "1.8.0"
 
-"@noble/curves@1.9.7", "@noble/curves@^1.4.2", "@noble/curves@^1.6.0", "@noble/curves@~1.9.0":
+"@noble/curves@1.9.7", "@noble/curves@^1.4.2", "@noble/curves@^1.6.0", "@noble/curves@^1.9.7", "@noble/curves@~1.9.0":
   version "1.9.7"
   resolved "https://registry.npmjs.org/@noble/curves/-/curves-1.9.7.tgz"
   integrity sha512-gbKGcRUYIjA3/zCCNaWDciTMFI0dCkvou3TL8Zmy5Nc7sJ47a0jtOeZoTaMxkuqRo9cRhjOdZJXegxYE5FN/xw==

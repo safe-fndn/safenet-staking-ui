@@ -34,3 +34,5 @@ playwright-report/
 test-results/
 # Local legal page fragments (see VITE_TERMS_URL etc.)
 /legal/
+# Swarm releases: stamped-chunk bundles (local only)
+swarm-release/
