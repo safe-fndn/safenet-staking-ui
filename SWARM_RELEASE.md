@@ -30,6 +30,14 @@ yarn build          # with the production environment variables
 
 Local builds are fine. The release record stores the git commit and the sha256 of every file in `dist/`.
 
+**Releasing another version** (e.g. a tag): build it in a separate worktree and point the scripts from your current checkout at that build. The record stores the commit of the checkout the build folder lives in, so it names the released version, not your current branch.
+
+```bash
+git worktree add ../staking-ui-beta beta
+(cd ../staking-ui-beta && yarn install && yarn build)
+yarn deploy:swarm ../staking-ui-beta/dist --ttl-days 365 --dry-run
+```
+
 ## 2. Preview cost and reference
 
 ```bash
@@ -41,6 +49,7 @@ It prints:
 - the chunk count
 - the batch depth: the smallest immutable batch that fits, usually 17
 - the TTL and the xBZZ cost at today's price
+- the git commit the release record will store, flagged if that checkout has uncommitted changes
 
 It sends nothing and generates no key. `--ttl-days` is required, so every release states how long its storage is paid for. A 5% margin is added to cover price changes before the purchase is mined.
 
