@@ -29,7 +29,7 @@ function isValidProof(data: unknown): data is RewardProof {
 }
 
 const DEFAULT_REWARDS_BASE_URL =
-  "https://raw.githubusercontent.com/safe-fndn/safenet-beta-data/refs/heads/main/assets/rewards"
+  "https://raw.githubusercontent.com/safe-fndn/safenet-data/refs/heads/main/assets/rewards"
 
 function radixProofPath(addr: string): string {
   const hex = addr.slice(2, 10).toLowerCase()

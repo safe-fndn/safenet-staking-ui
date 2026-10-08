@@ -177,7 +177,7 @@ Off-chain tooling for generating Merkle proofs compatible with the MerkleDrop co
 3. Output files:
    - `public/rewards/proofs/{lowercase_address}.json` — per-address proof file (`{ cumulativeAmount, merkleRoot, proof }`)
    - `public/rewards/latest.json` — root, tokenTotal, epoch, updatedAt
-4. Set the Merkle root on-chain via the admin panel (see below)
+4. Set the Merkle root on-chain on the MerkleDrop contract (`VITE_MERKLE_DROP_ADDRESS`)
 5. The frontend `useRewardProof` hook fetches proofs from `public/rewards/proofs/`
 
 ### Config Format
@@ -192,25 +192,7 @@ Off-chain tooling for generating Merkle proofs compatible with the MerkleDrop co
 }
 ```
 
-## Admin Panel
-
-The `admin/` directory contains a separate Vite app for contract administration (proposing validators, recovering tokens, executing timelocked operations, and setting Merkle roots). It has its own `package.json` and runs independently.
-
-### Admin Sections
-
-- **Withdraw Delay** — Propose and execute withdraw delay changes (timelocked)
-- **Validator Management** — Propose and execute validator registration/deregistration (timelocked)
-- **Token Operations** — Mint test tokens, recover tokens from staking contract
-- **Merkle Drop** — Set Merkle root on the MerkleDrop contract (only shown when `VITE_MERKLE_DROP_ADDRESS` is set)
-- **Event Log** — View contract events
-
-### Admin Contract Config
-
-Admin contract addresses are in `admin/src/config/contracts.ts`. The `merkleDrop` field is optional and read from `VITE_MERKLE_DROP_ADDRESS`.
-
 ## Known Pre-existing Lint Errors
 
 The following lint errors exist in the codebase and are not from recent changes:
-- `admin/src/components/ProposeValidators.tsx` and `admin/src/components/RecoverTokens.tsx` — `react-hooks/set-state-in-effect` (setState in useEffect)
-- `admin/src/components/ui/badge.tsx`, `admin/src/components/ui/button.tsx`, `admin/src/hooks/useToast.tsx` — `react-refresh/only-export-components`
 - `src/components/ui/badge.tsx`, `src/components/ui/button.tsx`, `src/hooks/useToast.tsx` — `react-refresh/only-export-components`

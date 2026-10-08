@@ -8,7 +8,7 @@ export class ValidatorsPage {
 
   constructor(page: Page) {
     this.page = page
-    this.heading = page.getByRole("heading", { name: "Safenet Beta", level: 1 })
+    this.heading = page.getByRole("heading", { name: "Safenet Aegis", level: 1 })
     this.subtitle = page.getByText("Select a validator to stake your SAFE tokens")
     this.validatorCards = page.locator("[class*='grid'] > div").filter({ has: page.getByText("Total SAFE Staked") })
   }
