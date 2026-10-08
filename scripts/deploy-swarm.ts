@@ -36,7 +36,6 @@ import {
   quote,
   readPricing,
   remainingTtl,
-  validateBatch,
   type Call,
 } from "./swarm/batch"
 import { collectWebsiteFiles } from "./swarm/collect"
@@ -181,13 +180,20 @@ async function release(): Promise<void> {
 
   // 4. Wait for the purchase.
   const deadline = Date.now() + Number(values["wait-minutes"]) * 60_000
-  let batch = await findBatch(client, owner, startBlock)
-  while (!batch) {
-    if (Date.now() > deadline) fail("no batch purchased in time; rerun to start over with a new key")
-    await sleep(10_000)
-    batch = await findBatch(client, owner, startBlock)
+  // Anyone can create a batch for our owner; findBatch skips those that can't hold the release.
+  const expected = { owner, depth, minTotal: q.total }
+  const skipped = new Set<string>()
+  const onSkip = (b: { batchId: string }, problems: string[]) => {
+    if (skipped.has(b.batchId)) return
+    skipped.add(b.batchId)
+    log(`Ignoring batch ${b.batchId} for our key: ${problems.join(", ")} (not the purchase printed above)`)
   }
-  validateBatch(batch, { owner, depth })
+  let batch = await findBatch(client, expected, startBlock, onSkip)
+  while (!batch) {
+    if (Date.now() > deadline) fail("no matching batch purchased in time; rerun to start over with a new key")
+    await sleep(10_000)
+    batch = await findBatch(client, expected, startBlock, onSkip)
+  }
   log(`Batch ${batch.batchId} found in tx ${batch.transactionHash}`)
 
   // 5. Stamp once, drop the key, save stamped chunks and release metadata before pushing.
