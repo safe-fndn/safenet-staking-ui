@@ -170,8 +170,8 @@ Three separate properties, each checked differently:
 | **Gateway trust** | A gateway can serve whatever it likes under a URL. Browsers don't verify Swarm content. | Compare files fetched from a second gateway, or run your own Bee node |
 | **Availability** | Content stays retrievable only while its batch is paid for. Releases have no erasure coding, so a chunk lost from the network breaks its file until it is re-pushed (`--push-bundle`). | `yarn swarm:status`; `--push-bundle` |
 
-**Not covered by the reference.** The page's Content-Security-Policy allows scripts only from the release itself (`script-src 'self'`), so no executable code is loaded from elsewhere. But the app fetches data at runtime that can change its behaviour without changing the reference:
-- validator list and metadata: `VITE_VALIDATOR_INFO_URL` (default: GitHub raw, `safe-fndn/safenet-beta-data`)
+**Not covered by the reference.** The page's Content-Security-Policy allows scripts only from the release itself (`script-src 'self' 'unsafe-inline'`; the one inline script ships in `index.html`), so no executable code is loaded from elsewhere. But the app fetches data at runtime that can change its behaviour without changing the reference:
+- validator list and metadata: `VITE_VALIDATOR_INFO_URL` (default: GitHub raw, `safe-fndn/safenet-data`)
 - reward proofs and `latest.json`: `VITE_REWARDS_BASE_URL` (default: GitHub raw)
 - sanctions check: `VITE_SANCTIONS_API_URL`, if set
 - geo-blocking: `https://api.country.is`, falling back to `https://ipapi.co`
