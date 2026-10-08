@@ -36,11 +36,12 @@ All wagmi hooks, React Query, Radix tooltip context, and toast context are avail
 
 ### Routing (src/App.tsx)
 
-Five routes under a shared `Layout` (header + footer + `<Outlet />`), wrapped in `ErrorBoundary`:
+Routes under a shared `Layout` (header + footer + `<Outlet />`), wrapped in `ErrorBoundary`:
 - `/` → `DashboardPage` (stats, claimable banner, quick actions, rewards, staking section, stake distribution chart)
 - `/validators` → `ValidatorsPage` (validator cards with delegate/undelegate; supports `?delegate=0x...` deep-link to auto-open delegate dialog)
 - `/validators/:address` → `ValidatorDetailPage` (full validator info, delegate/undelegate buttons)
 - `/withdrawals` → `WithdrawalsPage` (pending withdrawal queue with FIFO tooltip, cooldown progress bars, claim)
+- `/terms`, `/privacy`, `/imprint` → `LegalPage` (only registered when the matching `VITE_*_URL` is a local HTML file; see `src/lib/legal.ts` and the `legalPages` plugin in `vite.config.ts`)
 - `*` → `NotFoundPage` (404 catch-all)
 
 All pages are lazy-loaded with `React.lazy()` and preloaded via `requestIdleCallback` in a `useEffect` with cleanup.
@@ -148,9 +149,9 @@ Wagmi config (`src/config/wagmi.ts`) uses `safe()` (auto-detects Safe Wallet ifr
 | `VITE_REWARDS_BASE_URL` | No | Base URL for reward proof files (defaults to GitHub raw URL) |
 | `VITE_GEOBLOCK_CACHE_DAYS` | No | Geo-block cache duration in days (defaults to 7) |
 | `VITE_DOCS_URL` | No | Footer documentation link (defaults to Safe docs) |
-| `VITE_TERMS_URL` | No | Footer terms link (hidden if unset) |
-| `VITE_PRIVACY_URL` | No | Footer privacy link (hidden if unset) |
-| `VITE_IMPRINT_URL` | No | Footer imprint link (hidden if unset) |
+| `VITE_TERMS_URL` | No | Footer terms link: full URL or `#anchor`, or a path to a local HTML fragment (e.g. `legal/terms.html`, gitignored, local builds only) inlined at build time and shown at `#/terms` (hidden if unset; unreadable file fails the build) |
+| `VITE_PRIVACY_URL` | No | Footer privacy link: full URL or `#anchor`, or a path to a local HTML fragment (e.g. `legal/privacy.html`, gitignored, local builds only) inlined at build time and shown at `#/privacy` (hidden if unset; unreadable file fails the build) |
+| `VITE_IMPRINT_URL` | No | Footer imprint link: full URL or `#anchor`, or a path to a local HTML fragment (e.g. `legal/imprint.html`, gitignored, local builds only) inlined at build time and shown at `#/imprint` (hidden if unset; unreadable file fails the build) |
 | `VITE_APP_URL` | No | Canonical app URL for social preview meta tags (`og:image`, `twitter:image`); absolute URLs are required for social crawlers |
 
 ## Adding a New Chain
