@@ -16,7 +16,7 @@ Publish the production build (`dist/`) to Swarm without a Bee node or any long-l
 - **No Bee node.** Chunks are built and stamped locally and pushed via public gateways, which validate stamps and cannot alter content-addressed chunks.
 - **One immutable batch per release.** Stamp slots can't be overwritten, so nothing can evict a release's chunks; each release is topped up independently.
 - **Ephemeral, never-funded owner key.** Generated per release, memory only, used only to sign stamps, then dropped. Without gas it can't shorten the TTL (`increaseDepth`). Top-ups are permissionless and re-pushing uses the saved stamped chunks, so a persistent key adds nothing.
-- **A person buys the batch.** Keeps spending an explicit human approval and the tooling free of transaction handling. The buyer has no rights afterwards.
+- **A person buys the batch.** Keeps spending an explicit human approval and the tooling free of transaction handling. The buyer has no rights afterwards. Since anyone can create a batch naming our owner key, the script only accepts one that matches depth, immutability and the quoted amount, so a front-run purchase can neither shorten nor abort the release.
 - **Hashing with `@ethersphere/core-sdk`** (pinned): `ChunkSplitter` for files, `MantarayNode` for the manifest with zeroed obfuscation keys (core-sdk's default is random). No erasure coding, no encryption.
   - Trade-offs: a lost chunk needs a re-push (no parity chunks), and references differ from Bee's own `/bzz` upload of the same files, so `swarm:hash` is reproducible but not a second implementation.
 - **Deterministic reference.** Every regular file (dotfiles included, nothing filtered, symlinks refused) in byte-sorted path order; fixed content-type table; `index.html` as index document, no error document unless `--error` is given.
@@ -51,7 +51,7 @@ Publish the production build (`dist/`) to Swarm without a Bee node or any long-l
 | `website.ts`, `content-type.ts` | `hashWebsite(files, options, onChunk)`: core-sdk chunking and manifest, every chunk emitted for stamping |
 | `collect.ts` | Deterministic file collection |
 | `stamping.ts` | `planDepth` (smallest immutable depth ≥ 17 whose 16-bit buckets fit all chunks), `stampChunks` (core-sdk `Stamper`, each chunk once), bundle `address(32) \| stamp(113) \| length(u16) \| data` |
-| `batch.ts` | PostageStamp `0x45a1502382541Cd610CC9068e88727426b696293`, xBZZ `0xdBF3Ea6F5beE45c02255B2c26a16F300502F68da` (16 decimals): quote, `approve`/`createBatch` calldata, `findBatch` by owner (works for ERC-4337), `validateBatch`, `remainingTtl`, `isBatchGone` |
+| `batch.ts` | PostageStamp `0x45a1502382541Cd610CC9068e88727426b696293`, xBZZ `0xdBF3Ea6F5beE45c02255B2c26a16F300502F68da` (16 decimals): quote, `approve`/`createBatch` calldata, `findBatch` by owner with full checks (depth, immutable, amount paid; skips front-run batches; works for ERC-4337), `remainingTtl`, `isBatchGone` |
 | `gateway.ts` | `pushChunks` (pre-stamped `POST /chunks`, waits ≤ 20 min for a new batch, retries, never re-stamps), `verifyWebsite`, `verifyPage` (warnings only), `subdomainUrl` (core-sdk CID) |
 | `release.ts`, `expiry.ts` | Records, `completeRelease`, expiry states (EXPIRED only when confirmed on-chain, UNKNOWN on lookup failure), top-up calls |
 
