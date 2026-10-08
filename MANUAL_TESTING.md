@@ -14,7 +14,7 @@ You'll need, on Sepolia (or whichever chain `VITE_CHAIN_ID` targets):
   (see "Admin Panel" in `CLAUDE.md`).
 - A validator address registered on the staking contract to delegate to — once connected,
   any address shown on the Validators page for the environment under test works.
-- For rewards testing:
+- For rewards testing (also needed for Claim + Stake):
   - **TODO — no testnet MerkleDrop contract exists yet.** One needs to be manually deployed
     to Sepolia and its address set as `VITE_MERKLE_DROP_ADDRESS` before this can be tested.
   - Generate a proof for your test address via `scripts/merkle-config.json` +
@@ -59,6 +59,7 @@ transaction, for easier debugging if something looks off later.
 | 5 | Overview of own stake per validator is displayed | ☐ Pass ☐ Fail | ☐ Pass ☐ Fail | ☐ Pass ☐ Fail |
 | 6 | Rewards: Claim button enabled and claiming works (address has rewards) | ☐ Pass ☐ Fail | ☐ Pass ☐ Fail | ☐ Pass ☐ Fail |
 | 7 | Rewards: Claim button disabled (address has no rewards) | ☐ Pass ☐ Fail | ☐ Pass ☐ Fail | ☐ Pass ☐ Fail |
+| 8 | Claim + Stake: claiming rewards and staking them to a validator works | ☐ Pass ☐ Fail | ☐ Pass ☐ Fail | ☐ Pass ☐ Fail |
 
 Notes / tx hashes:
 
@@ -80,8 +81,14 @@ Check every release, alongside the table above:
 - [ ] **Atomic batching** (only if your wallet/Safe advertises EIP-5792 `atomicBatch` support):
   delegating with insufficient allowance should collapse into a single "Stake" click (approve +
   stake in one signature) instead of two separate steps; with 2+ withdrawals ready to claim, a
-  "Claim All (N)" button should appear on the Withdrawals page. *(automated — simulated wallet
-  capability, still worth a real check against an actual batching-capable wallet/Safe)*
+  "Claim All (N)" button should appear on the Withdrawals page; from the rewards section,
+  "Claim + Stake" should submit as a single signature instead of a guided claim-then-stake
+  sequence. *(automated, simulated wallet capability, still worth a real check against an
+  actual batching-capable wallet/Safe)*
+- [ ] **Claim + Stake preselection**: with an active stake, opening "Claim + Stake" from the
+  rewards section preselects the validator holding your largest current stake; with no active
+  stake, no validator is preselected and you must pick one before the confirm button enables.
+  *(automated for Browser Wallet)*
 - [ ] **Rejected signature**: reject a signing request in the wallet (or close the Safe
   confirmation popup) and confirm an error toast appears and the dialog is left in a usable
   state (not stuck spinning). *(automated for Browser Wallet)*
@@ -89,6 +96,13 @@ Check every release, alongside the table above:
   transaction should show "sent to Safe Wallet for signing" rather than an immediate success
   toast; after a second owner confirms and it executes, reloading the app should reflect the
   updated state. *(manual-only, see Automation status)*
+- [ ] **Claim + Stake in a Safe** (Safe App only): the dialog should show "One transaction
+  (batched)". With a single-owner Safe, "Claim + Stake" executes the claim and the stake in one
+  Safe transaction, and the dialog closes with a success toast. With a multi-owner Safe
+  (threshold ≥ 2), the dialog stays on "Confirming onchain…" after the first signature until the
+  other owners confirm and execute it, the same as the batched approve + stake when delegating.
+  Once it executes, the claimed total and the stake should both update. *(manual-only, see
+  Automation status)*
 - [ ] **FIFO withdrawal order**: with 2+ pending withdrawals, only the oldest should show a
   Claim button; claiming it should reveal the next one. *(automated for Browser Wallet)*
 - [ ] **Partial-KYC rewards note**: for a test address whose reward proof has a `kycAmount`
@@ -103,15 +117,17 @@ Check every release, alongside the table above:
 
 ## Automation status
 
-- **Browser wallet**: rows 1–7 and all edge cases except Safe multisig queueing and compliance
-  gates are automated (`e2e/tests/wallet-connection.spec.ts`, `delegation.spec.ts`,
-  `undelegation.spec.ts`, `withdrawals.spec.ts`, `rewards.spec.ts`). Withdrawal cooldown and
-  EIP-5792 wallet capabilities are simulated (mocked timestamps / mocked
-  `wallet_getCapabilities`), not exercised against a real batching-capable wallet.
+- **Browser wallet**: rows 1–8 and all edge cases except Safe multisig queueing, Claim + Stake in
+  a Safe, and compliance gates are automated (`e2e/tests/wallet-connection.spec.ts`,
+  `delegation.spec.ts`, `undelegation.spec.ts`, `withdrawals.spec.ts`, `rewards.spec.ts`,
+  `claim-and-stake.spec.ts`). Withdrawal cooldown and EIP-5792 wallet capabilities are simulated
+  (mocked timestamps / mocked `wallet_getCapabilities`), not exercised against a real
+  batching-capable wallet.
 - **Safe App**: only smoke-tested (`e2e/tests/safe-app.spec.ts` — Connect/Disconnect UI is
-  correctly hidden inside an iframe, public data still renders). Rows 1–7 and the Safe multisig
-  queueing edge case are manual-only: a full postMessage-protocol simulation of the Safe Apps
-  SDK was scoped out as not worth the effort relative to just running this checklist by hand.
+  correctly hidden inside an iframe, public data still renders). Rows 1–8 and the Safe multisig
+  queueing and Claim + Stake in a Safe edge cases are manual-only: a full postMessage-protocol
+  simulation of the Safe Apps SDK was scoped out as not worth the effort relative to just running
+  this checklist by hand.
 - **WalletConnect**: only smoke-tested (`e2e/tests/wallet-connection.spec.ts` — the connector
   option appears in the menu). Real pairing requires a live relay/wallet and can't be
-  automated; rows 1–7 are manual-only.
+  automated; rows 1–8 are manual-only.
