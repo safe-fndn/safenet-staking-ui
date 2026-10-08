@@ -9,6 +9,7 @@ import {
   purchaseCalls,
   quote,
   remainingTtl,
+  waitForBatch,
   type BatchInfo,
   type GnosisClient,
 } from "../swarm/batch"
@@ -79,18 +80,18 @@ describe("findBatch", () => {
   const expected = { owner: OWNER, depth: 17, minTotal: PAID }
   const OTHER_ID: Hex = `0x${"55".repeat(32)}`
 
-  it("matches by owner across paged log ranges, ignoring other batches", async () => {
+  it("matches by owner across log pages of at most 100 blocks, ignoring other batches", async () => {
     const { client, ranges } = fakeClient([
       created("0x0000000000000000000000000000000000000001", { blockNumber: 50n }),
-      created(OWNER, { blockNumber: 21_000n }),
+      created(OWNER, { blockNumber: 250n }),
     ])
-    const batch = await findBatch(client, { ...expected, owner: OWNER.toLowerCase() as Address }, 1n)
-    expect(batch).toMatchObject({ batchId: BATCH_ID, owner: OWNER, depth: 17, immutable: true, totalAmount: PAID, blockNumber: 21_000n })
-    expect(ranges).toEqual([[1n, 10_000n], [10_001n, 20_000n], [20_001n, 25_000n]])
+    const batch = await findBatch(client, { ...expected, owner: OWNER.toLowerCase() as Address }, 1n, 250n)
+    expect(batch).toMatchObject({ batchId: BATCH_ID, owner: OWNER, depth: 17, immutable: true, totalAmount: PAID, blockNumber: 250n })
+    expect(ranges).toEqual([[1n, 100n], [101n, 200n], [201n, 250n]])
   })
 
   it("returns undefined until the batch exists", async () => {
-    expect(await findBatch(fakeClient([]).client, expected, 1n)).toBeUndefined()
+    expect(await findBatch(fakeClient([]).client, expected, 1n, 250n)).toBeUndefined()
   })
 
   it("skips front-run batches for our owner that can't hold the release, and reports them", async () => {
@@ -101,14 +102,55 @@ describe("findBatch", () => {
     ]
     const skipped: string[][] = []
     const { client } = fakeClient([...frontRuns, created(OWNER, { blockNumber: 100n })])
-    const batch = await findBatch(client, expected, 1n, (_, problems) => skipped.push(problems))
+    const batch = await findBatch(client, expected, 1n, 100n, (_, problems) => skipped.push(problems))
     expect(batch?.batchId).toBe(BATCH_ID)
     expect(skipped).toEqual([[expect.stringMatching(/^paid /)], ["depth 18 ≠ 17"], ["batch is mutable"]])
   })
 
   it("accepts a batch someone else paid for if it is at least as good", async () => {
     const { client } = fakeClient([created(OWNER, { batchId: OTHER_ID, totalAmount: PAID * 2n, blockNumber: 90n })])
-    expect((await findBatch(client, expected, 1n))?.batchId).toBe(OTHER_ID)
+    expect((await findBatch(client, expected, 1n, 100n))?.batchId).toBe(OTHER_ID)
+  })
+})
+
+describe("waitForBatch", () => {
+  const expected = { owner: OWNER, depth: 17, minTotal: PAID }
+
+  /** A chain that grows by `blocksPerPoll` per lookup, whose RPC fails on the given lookups. */
+  function flakyChain(logs: ReturnType<typeof created>[], failOn: number[], blocksPerPoll = 3n) {
+    let latest = 99n
+    let lookup = 0
+    const ranges: [bigint, bigint][] = []
+    const client = {
+      getBlockNumber: async () => {
+        lookup++
+        latest += blocksPerPoll
+        if (failOn.includes(lookup)) throw new Error("HTTP request failed. Status: 503")
+        return latest
+      },
+      getLogs: async ({ fromBlock, toBlock }: { fromBlock: bigint; toBlock: bigint }) => {
+        ranges.push([fromBlock, toBlock])
+        return logs.filter((l) => l.blockNumber >= fromBlock && l.blockNumber <= toBlock)
+      },
+    } as unknown as GnosisClient
+    return { client, ranges }
+  }
+  const noSleep = { sleep: async () => {} }
+
+  it("keeps polling through RPC errors and scans every block exactly once", async () => {
+    const { client, ranges } = flakyChain([created(OWNER, { blockNumber: 110n })], [2, 3])
+    const errors: unknown[] = []
+    const batch = await waitForBatch(client, expected, 100n, { deadline: Infinity, onError: (e) => errors.push(e), ...noSleep })
+    expect(batch?.blockNumber).toBe(110n)
+    expect(errors).toHaveLength(2)
+    expect(ranges).toEqual([[100n, 102n], [103n, 111n]])
+  })
+
+  it("gives up at the deadline, even while lookups keep failing", async () => {
+    let t = 0
+    const { client } = flakyChain([], [1, 2, 3, 4, 5, 6])
+    const batch = await waitForBatch(client, expected, 100n, { deadline: 3, now: () => t++, ...noSleep })
+    expect(batch).toBeUndefined()
   })
 })
 

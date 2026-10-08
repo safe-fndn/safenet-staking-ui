@@ -157,8 +157,11 @@ export function batchProblems(batch: BatchInfo, expected: ExpectedBatch): string
   ].filter((p): p is string => typeof p === "string")
 }
 
+/** Largest `getLogs` block range per request; free RPC tiers (e.g. dRPC) reject more than 100 blocks. */
+export const LOG_PAGE_BLOCKS = 100n
+
 /**
- * Finds the first batch created at or after `fromBlock` that can hold the
+ * Finds the first batch created in `fromBlock`–`toBlock` that can hold the
  * release. `_owner` is a plain `createBatch` parameter, so anyone who sees the
  * operator's pending purchase can create a batch for our owner first, e.g.
  * underfunded (the release would expire early) or with the wrong depth (the
@@ -174,11 +177,11 @@ export async function findBatch(
   client: GnosisClient,
   expected: ExpectedBatch,
   fromBlock: bigint,
+  toBlock: bigint,
   onSkip: (batch: BatchInfo, problems: string[]) => void = () => {},
 ): Promise<BatchInfo | undefined> {
-  const latest = await client.getBlockNumber()
-  for (let start = fromBlock; start <= latest; start += 10_000n) {
-    const end = start + 9_999n < latest ? start + 9_999n : latest
+  for (let start = fromBlock; start <= toBlock; start += LOG_PAGE_BLOCKS) {
+    const end = start + LOG_PAGE_BLOCKS - 1n < toBlock ? start + LOG_PAGE_BLOCKS - 1n : toBlock
     const logs = await client.getLogs({
       address: POSTAGE_STAMP,
       event: postageStampAbi.find((x) => x.type === "event" && x.name === "BatchCreated")!,
@@ -204,6 +207,49 @@ export async function findBatch(
     }
   }
   return undefined
+}
+
+export interface WaitOptions {
+  /** Give up after this time (ms since epoch). */
+  deadline: number
+  pollMs?: number
+  onSkip?: (batch: BatchInfo, problems: string[]) => void
+  /** Called for each failed lookup; waiting continues. */
+  onError?: (error: unknown) => void
+  now?: () => number
+  sleep?: (ms: number) => Promise<void>
+}
+
+/**
+ * Polls for the release's batch from `fromBlock` until `deadline`, scanning
+ * every block once. RPC errors never end the wait: once the operator has
+ * bought the batch, the stamping key exists only in this process, so giving
+ * up early would strand the purchase. A failed lookup is retried from the
+ * same block. Returns undefined at the deadline.
+ */
+export async function waitForBatch(
+  client: GnosisClient,
+  expected: ExpectedBatch,
+  fromBlock: bigint,
+  options: WaitOptions,
+): Promise<BatchInfo | undefined> {
+  const { deadline, pollMs = 10_000, onSkip, onError = () => {}, now = Date.now } = options
+  const sleep = options.sleep ?? ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)))
+  let next = fromBlock
+  for (;;) {
+    try {
+      const latest = await client.getBlockNumber()
+      if (latest >= next) {
+        const batch = await findBatch(client, expected, next, latest, onSkip)
+        if (batch) return batch
+        next = latest + 1n
+      }
+    } catch (e) {
+      onError(e)
+    }
+    if (now() >= deadline) return undefined
+    await sleep(pollMs)
+  }
 }
 
 /**
