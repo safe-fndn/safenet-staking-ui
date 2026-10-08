@@ -42,7 +42,7 @@ export function planDepth(chunks: SwarmChunk[]): { depth: number; maxBucketFill:
   let maxBucketFill = 0
   for (const c of chunks) maxBucketFill = Math.max(maxBucketFill, ++fill[bucketOf(c.address)])
   let depth = MIN_BATCH_DEPTH
-  while (2 ** (depth - BUCKET_DEPTH) < maxBucketFill) depth++
+  while (1 << (depth - BUCKET_DEPTH) < maxBucketFill) depth++
   return { depth, maxBucketFill }
 }
 
@@ -67,16 +67,25 @@ export function stampChunks(
 
 // Bundle: "SWB1" || count (u32 BE) || records of
 // address (32) || stamp (113) || length (u16 BE) || data.
+// Fixed-width fields: decodeBundle can only rely on these sizes, so
+// encodeBundle refuses addresses or stamps of any other length.
 const MAGIC = Buffer.from("SWB1")
+const ADDRESS_SIZE = 32
+const STAMP_OFFSET = ADDRESS_SIZE
+const LENGTH_OFFSET = STAMP_OFFSET + STAMP_SIZE
+const HEADER_SIZE = LENGTH_OFFSET + 2
 
 export function encodeBundle(chunks: StampedChunk[]): Uint8Array {
   const parts: Buffer[] = [MAGIC, Buffer.alloc(4)]
   parts[1].writeUInt32BE(chunks.length)
   for (const c of chunks) {
-    const header = Buffer.alloc(32 + STAMP_SIZE + 2)
+    if (c.address.length !== ADDRESS_SIZE || c.stamp.length !== STAMP_SIZE) {
+      throw new Error(`chunk ${hex(c.address)}: address must be ${ADDRESS_SIZE} bytes and stamp ${STAMP_SIZE} bytes`)
+    }
+    const header = Buffer.alloc(HEADER_SIZE)
     header.set(c.address, 0)
-    header.set(c.stamp, 32)
-    header.writeUInt16BE(c.data.length, 32 + STAMP_SIZE)
+    header.set(c.stamp, STAMP_OFFSET)
+    header.writeUInt16BE(c.data.length, LENGTH_OFFSET)
     parts.push(header, Buffer.from(c.data))
   }
   return Buffer.concat(parts)
@@ -89,12 +98,12 @@ export function decodeBundle(bytes: Uint8Array): StampedChunk[] {
   const chunks: StampedChunk[] = []
   let offset = 8
   for (let i = 0; i < count; i++) {
-    const length = buf.readUInt16BE(offset + 32 + STAMP_SIZE)
-    const dataStart = offset + 34 + STAMP_SIZE
+    const length = buf.readUInt16BE(offset + LENGTH_OFFSET)
+    const dataStart = offset + HEADER_SIZE
     if (dataStart + length > buf.length) throw new Error("truncated bundle")
     chunks.push({
-      address: new Uint8Array(buf.subarray(offset, offset + 32)),
-      stamp: new Uint8Array(buf.subarray(offset + 32, offset + 32 + STAMP_SIZE)),
+      address: new Uint8Array(buf.subarray(offset, offset + ADDRESS_SIZE)),
+      stamp: new Uint8Array(buf.subarray(offset + STAMP_OFFSET, offset + LENGTH_OFFSET)),
       data: new Uint8Array(buf.subarray(dataStart, dataStart + length)),
     })
     offset = dataStart + length

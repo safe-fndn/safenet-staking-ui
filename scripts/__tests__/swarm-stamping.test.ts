@@ -76,6 +76,12 @@ describe("bundle", () => {
     )
   })
 
+  it("refuses addresses or stamps of the wrong length instead of writing a bundle that decodes wrongly", () => {
+    const [c] = stampChunks([chunkIn(1, 1)], KEY, BATCH, 17)
+    expect(() => encodeBundle([{ ...c, stamp: c.stamp.subarray(1) }])).toThrow(/stamp 113 bytes/)
+    expect(() => encodeBundle([{ ...c, address: new Uint8Array(33) }])).toThrow(/address must be 32 bytes/)
+  })
+
   it("rejects foreign or damaged bundles", () => {
     const bytes = encodeBundle(stampChunks([chunkIn(1, 1)], KEY, BATCH, 17))
     expect(() => decodeBundle(new Uint8Array(bytes.length))).toThrow(/not a stamped-chunk bundle/)
