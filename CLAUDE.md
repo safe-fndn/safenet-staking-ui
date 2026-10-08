@@ -15,6 +15,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Coverage:** `yarn test:coverage`
 - **E2E tests:** `yarn test:e2e` (Playwright)
 - **Generate Merkle proofs:** `yarn generate:proofs` (reads `scripts/merkle-config.json`, writes to `public/rewards/`)
+- **Swarm website hash:** `npm run swarm:hash -- ./dist` (offline; prints the Swarm website reference)
 
 ## Pre-push Checklist
 
@@ -192,6 +193,17 @@ Off-chain tooling for generating Merkle proofs compatible with the MerkleDrop co
   }
 }
 ```
+
+## Swarm Website Hash
+
+`scripts/swarm-hash.ts` computes the Swarm website reference offline. Unencrypted, no erasure coding, `index.html` as index document, no error document, byte-sorted file order. See the header comment and README for details.
+
+- `scripts/swarm/website.ts` — `hashWebsite`: chunks files and builds the manifest with `@ethersphere/core-sdk` (pinned) `ChunkSplitter` and `MantarayNode`, with zeroed obfuscation keys so the reference is deterministic.
+- `scripts/swarm/content-type.ts` — Content types for the extensions the build produces (plus `txt`); any other extension throws, so a new file type is added deliberately.
+- `scripts/swarm/collect.ts` — File collection in byte-sorted insertion order.
+- `scripts/__tests__/swarm-*.test.ts` — Per-module tests: a pinned reference, manifest read-back, determinism and change sensitivity, CLI.
+
+The reference depends on file order, content types, manifest metadata and the core-sdk version. Changing any of them changes every future reference; the pinned reference in `swarm-website.test.ts` catches accidental changes (e.g. a core-sdk upgrade).
 
 ## Known Pre-existing Lint Errors
 
