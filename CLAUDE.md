@@ -204,7 +204,7 @@ Off-chain tooling for generating Merkle proofs compatible with the MerkleDrop co
 - `scripts/swarm/content-type.ts` — Content types for the extensions the build produces (plus `txt`); any other extension throws, so a new file type is added deliberately.
 - `scripts/swarm/collect.ts` — File collection in byte-sorted insertion order.
 - `scripts/swarm/stamping.ts` — Batch depth planning, stamping (each unique chunk exactly once) and the stamped-chunk bundle format.
-- `scripts/swarm/batch.ts` — Gnosis Chain PostageStamp: pricing, `approve`/`createBatch` parameters, `BatchCreated` discovery by owner, validation, remaining TTL. Read-only.
+- `scripts/swarm/batch.ts` — Gnosis Chain PostageStamp: pricing, `approve`/`createBatch` parameters, `BatchCreated` discovery by owner with full checks (depth, immutable, amount paid; skips front-run batches), remaining TTL. Read-only.
 - `scripts/swarm/gateway.ts` — Push pre-stamped chunks (`POST /chunks` + `Swarm-Postage-Stamp`) and verify retrieval via other gateways.
 - `scripts/swarm/release.ts`, `expiry.ts` — Release records (`releases/swarm/`), expiry checks and top-up calls.
 - `scripts/deploy-swarm.ts`, `scripts/swarm-status.ts` — Release and status CLIs. The release flow uses an ephemeral, never-funded stamping key and an immutable batch bought by a person; see `SWARM_RELEASE.md`.

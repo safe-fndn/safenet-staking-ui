@@ -195,7 +195,8 @@ Pinning a release on your own Bee node (`POST /pins/<reference>` on that node) k
 | `createBatch` "reverted with reason unknown" | The xBZZ transfer failed: not enough xBZZ, `approve` not mined yet, approved from a different account, or the amount was scaled wrongly. Check `balanceOf` and `allowance(you, PostageStamp)` on the xBZZ token. |
 | `createBatch` reverts with `InsufficientBalance` | The price rose since the parameters were printed. Abort and rerun the script (new key, new parameters). |
 | `BatchExists` | The same nonce was used twice from one account. Rerun for a new nonce. |
-| Script waits but never sees the batch | `_owner` doesn't match the printed address, or the transaction isn't mined yet. Abort and rerun if it was sent with wrong values. |
+| Script waits but never sees the batch | `_owner` doesn't match the printed address, a value differs from the printed ones (depth, amount, `_immutable`), or the transaction isn't mined yet. Abort and rerun if it was sent with wrong values. |
+| `Ignoring batch 0x… for our key: …` | Someone else created a batch for the printed owner that can't hold the release (e.g. underfunded, wrong depth, mutable), possibly front-running your purchase. It is skipped; the script keeps waiting for a batch that matches. |
 | `invalid batch id` while pushing | The gateway hasn't seen the new batch yet. The script retries for up to 20 minutes. |
 | `stamp signature is invalid` | The batch's `_owner` isn't the key that signed the stamps. Rerun with a new batch. |
 | Some files not retrievable yet | Wait and resume with `--push-bundle swarm-release/<reference>`. Verification retries for about a minute per gateway. |
