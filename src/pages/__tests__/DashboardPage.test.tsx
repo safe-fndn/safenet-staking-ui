@@ -19,6 +19,10 @@ vi.mock("@/components/dashboard/StakeDistribution", () => ({
   StakeDistribution: () => <div data-testid="stake-distribution">StakeDistribution</div>,
 }))
 
+vi.mock("@/components/DelegationWarnings", () => ({
+  WalletDelegationWarnings: () => <div data-testid="delegation-warnings">DelegationWarnings</div>,
+}))
+
 vi.mock("@/components/PageHero", () => ({
   PageHero: (props: Record<string, unknown>) => (
     <div data-testid="page-hero">
@@ -44,5 +48,13 @@ describe("DashboardPage", () => {
     expect(screen.getByTestId("quick-actions")).toBeInTheDocument()
     expect(screen.getByTestId("staking-section")).toBeInTheDocument()
     expect(screen.getByTestId("stake-distribution")).toBeInTheDocument()
+  })
+
+  it("renders delegation warnings below the hero and above the stats", () => {
+    render(<DashboardPage />)
+
+    const warnings = screen.getByTestId("delegation-warnings")
+    expect(screen.getByTestId("page-hero").compareDocumentPosition(warnings)).toBe(Node.DOCUMENT_POSITION_FOLLOWING)
+    expect(warnings.compareDocumentPosition(screen.getByTestId("stats-overview"))).toBe(Node.DOCUMENT_POSITION_FOLLOWING)
   })
 })

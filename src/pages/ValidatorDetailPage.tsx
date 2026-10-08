@@ -16,6 +16,8 @@ import { useToast } from "@/hooks/useToast"
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
 import { Info } from "lucide-react"
 import { useWrongNetwork } from "@/hooks/useWrongNetwork"
+import { DelegationWarningBanners } from "@/components/DelegationWarnings"
+import { getDelegationWarnings } from "@/lib/delegationWarnings"
 import ArrowLeft from "lucide-react/dist/esm/icons/arrow-left"
 import Copy from "lucide-react/dist/esm/icons/copy"
 export function ValidatorDetailPage() {
@@ -75,12 +77,16 @@ export function ValidatorDetailPage() {
     )
   }
 
+  const warnings = isConnected ? getDelegationWarnings([validatorInfo], () => userStakeAmount) : null
+
   return (
     <div className="space-y-6">
       <Link to="/validators" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
         <ArrowLeft className="h-4 w-4" aria-hidden="true" />
         Back to Validators
       </Link>
+
+      {warnings && <DelegationWarningBanners {...warnings} />}
 
       <Card>
         <CardHeader>
