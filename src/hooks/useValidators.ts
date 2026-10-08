@@ -29,6 +29,16 @@ function isValidEntry(v: unknown): v is RawValidator {
   )
 }
 
+/**
+ * Converts a 0–1 rate to a percentage with 2 decimals, rounding down so a rate
+ * just below a threshold (e.g. 0.74999) never displays as or passes for 75%.
+ * toPrecision(12) first strips float noise (0.57 * 10000 = 5699.999…) without
+ * snapping genuinely lower inputs like 0.749999999 up to 75.
+ */
+function toFlooredPercent(rate: number): number {
+  return Math.floor(Number((rate * 10000).toPrecision(12))) / 100
+}
+
 async function fetchValidators(): Promise<ValidatorInfo[]> {
   const url =
     import.meta.env.VITE_VALIDATOR_INFO_URL || DEFAULT_URL
@@ -54,10 +64,9 @@ async function fetchValidators(): Promise<ValidatorInfo[]> {
     label: v.label,
     commission:
       Math.round((v.commission ?? 0) * 100 * 100) / 100,
-    participationRate:
-      Math.round(
-        (v.participation_rate_14d ?? 0) * 100 * 100
-      ) / 100,
+    participationRate: toFlooredPercent(
+      v.participation_rate_14d ?? 0
+    ),
   }))
 }
 
