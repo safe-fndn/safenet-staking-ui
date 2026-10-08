@@ -19,7 +19,7 @@ export function DashboardPage() {
         illustrationDark={heroShieldsDark}
         illustrationAlt="Safe staking shields"
         title="Stake your SAFE"
-        subtitle="Earn rewards for helping secure Safenet Beta"
+        subtitle="Earn rewards for helping secure Safenet Aegis"
       >
         <p className="mt-3 text-xs uppercase tracking-[-0.02em] text-foreground/50 font-mono opacity-[0.56]">
           Rewards are not guaranteed and may vary.{" "}

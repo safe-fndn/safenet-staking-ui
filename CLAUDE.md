@@ -107,6 +107,7 @@ Key UI components:
 - `ClaimableBanner` — Dismissible banner when a withdrawal is ready to claim (uses `useNextClaimable`)
 - `QuickActions` — Delegate/Undelegate/Claim navigation buttons (visible when connected)
 - `ClaimRewardsDialog` — Dialog for claiming Merkle drop rewards (uses `TxButton`)
+- `ClaimAndStakeDialog`: Claims rewards and stakes them to one active validator (largest active stake preselected), as one EIP-5792 batch when supported, otherwise claim, approve if needed, then stake
 - `StakingSection` — Combined staking overview and calculator
 - `StakeDistribution` — Recharts donut chart showing delegation distribution (only renders with 2+ validators)
 

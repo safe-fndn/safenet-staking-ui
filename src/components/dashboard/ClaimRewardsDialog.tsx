@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react"
+import { useState, useEffect, useCallback } from "react"
 import {
   Dialog,
   DialogContent,
@@ -11,9 +11,8 @@ import { useAccount } from "wagmi"
 import { useRewardProof } from "@/hooks/useRewardProof"
 import { useRewards } from "@/hooks/useRewards"
 import { useClaimRewards } from "@/hooks/useClaimRewards"
-import { useToast } from "@/hooks/useToast"
+import { useTxToast } from "@/hooks/useTxToast"
 import { formatTokenAmount } from "@/lib/format"
-import { formatContractError } from "@/lib/errorFormat"
 
 interface ClaimRewardsDialogProps {
   open: boolean
@@ -29,35 +28,34 @@ export function ClaimRewardsDialog({ open, onOpenChange }: ClaimRewardsDialogPro
     isSigningTx,
     isConfirmingTx,
     isSuccess,
+    isSafeQueued,
     error,
     reset,
     txHash,
   } = useClaimRewards()
-  const { toast } = useToast()
-  const claimedAmountRef = useRef(0n)
+  // claimable drops to 0 once the claim lands, so the toast uses the amount captured on click.
+  const [claimedAmount, setClaimedAmount] = useState(0n)
 
-  useEffect(() => {
-    if (isSuccess) {
-      toast({
-        variant: "success",
-        title: "Rewards claimed",
-        description: `Claimed ${formatTokenAmount(claimedAmountRef.current)} SAFE`,
-        txHash,
-      })
-      reset()
-      onOpenChange(false)
-    }
-  }, [isSuccess, reset, onOpenChange, toast, txHash])
+  const close = useCallback(() => {
+    onOpenChange(false)
+  }, [onOpenChange])
 
-  useEffect(() => {
-    if (error) {
-      toast({
-        variant: "error",
-        title: "Claim failed",
-        description: formatContractError(error),
-      })
-    }
-  }, [error, toast])
+  useTxToast(
+    {
+      successTitle: "Rewards claimed",
+      successDescription: `Claimed ${formatTokenAmount(claimedAmount)} SAFE`,
+      errorTitle: "Claim failed",
+      safeQueuedDescription: "Your claim has been sent to Safe Wallet for signing.",
+    },
+    {
+      isSuccess,
+      error,
+      isSafeQueued,
+      txHash,
+      reset,
+      onSuccess: close,
+    },
+  )
 
   useEffect(() => {
     if (!open) {
@@ -67,7 +65,7 @@ export function ClaimRewardsDialog({ open, onOpenChange }: ClaimRewardsDialogPro
 
   function handleClaim() {
     if (!address || !proof || !proof.proof) return
-    claimedAmountRef.current = rewards.claimable
+    setClaimedAmount(rewards.claimable)
     claimRewards(
       address,
       BigInt(proof.cumulativeAmount),
@@ -99,7 +97,7 @@ export function ClaimRewardsDialog({ open, onOpenChange }: ClaimRewardsDialogPro
             isSigningTx={isSigningTx}
             isConfirmingTx={isConfirmingTx}
             onClick={handleClaim}
-            disabled={!rewards.canClaim}
+            disabled={!rewards.canClaim || !address || !proof?.proof}
           >
             Claim Rewards
           </TxButton>
