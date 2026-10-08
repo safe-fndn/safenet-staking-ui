@@ -4,6 +4,7 @@ import { QuickActions } from "@/components/dashboard/QuickActions"
 import { StakingSection } from "@/components/dashboard/StakingSection"
 import { StakeDistribution } from "@/components/dashboard/StakeDistribution"
 import { PageHero } from "@/components/PageHero"
+import { WalletDelegationWarnings } from "@/components/DelegationWarnings"
 import { getLegalPage } from "@/lib/legal"
 import heroShields from "@/assets/hero-shields.svg"
 import heroShieldsDark from "@/assets/hero-shields-dark.svg"
@@ -36,6 +37,7 @@ export function DashboardPage() {
           )}
         </p>
       </PageHero>
+      <WalletDelegationWarnings />
       <StatsOverview />
       <QuickActions />
       <StakingSection />

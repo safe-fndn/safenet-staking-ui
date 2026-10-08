@@ -2,6 +2,7 @@ import { useSearchParams } from "react-router-dom"
 import { isAddress } from "viem"
 import { ValidatorList } from "@/components/validators/ValidatorList"
 import { PageHero } from "@/components/PageHero"
+import { WalletDelegationWarnings } from "@/components/DelegationWarnings"
 import heroSquare from "@/assets/hero-square.svg"
 
 export function ValidatorsPage() {
@@ -17,6 +18,7 @@ export function ValidatorsPage() {
         title="Safenet Aegis"
         subtitle="Select a validator to stake your SAFE tokens"
       />
+      <WalletDelegationWarnings />
       <ValidatorList autoOpenDelegate={delegateParam} />
     </div>
   )

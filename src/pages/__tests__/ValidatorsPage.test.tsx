@@ -3,6 +3,10 @@ import { render, screen } from "@testing-library/react"
 import { MemoryRouter } from "react-router-dom"
 import { ValidatorsPage } from "../ValidatorsPage"
 
+vi.mock("@/components/DelegationWarnings", () => ({
+  WalletDelegationWarnings: () => <div data-testid="delegation-warnings">DelegationWarnings</div>,
+}))
+
 vi.mock("@/components/validators/ValidatorList", () => ({
   ValidatorList: ({ autoOpenDelegate }: { autoOpenDelegate?: string }) => (
     <div data-testid="validator-list" data-auto-open={autoOpenDelegate ?? ""}>
@@ -21,6 +25,18 @@ describe("ValidatorsPage", () => {
 
     expect(screen.getByText("Safenet Aegis")).toBeInTheDocument()
     expect(screen.getByText(/Select a validator to stake your SAFE/)).toBeInTheDocument()
+  })
+
+  it("renders delegation warnings below the hero and above the validator list", () => {
+    render(
+      <MemoryRouter>
+        <ValidatorsPage />
+      </MemoryRouter>,
+    )
+
+    const warnings = screen.getByTestId("delegation-warnings")
+    expect(screen.getByText("Safenet Aegis").compareDocumentPosition(warnings)).toBe(Node.DOCUMENT_POSITION_FOLLOWING)
+    expect(warnings.compareDocumentPosition(screen.getByTestId("validator-list"))).toBe(Node.DOCUMENT_POSITION_FOLLOWING)
   })
 
   it("renders ValidatorList", () => {
