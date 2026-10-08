@@ -133,16 +133,49 @@ export interface BatchInfo {
   depth: number
   bucketDepth: number
   immutable: boolean
+  /** xBZZ paid: balance per chunk × 2^depth. */
+  totalAmount: bigint
   transactionHash: Hex
   blockNumber: bigint
 }
 
+/** What the release needs: our owner key, the planned depth and at least the quoted payment. */
+export interface ExpectedBatch {
+  owner: Address
+  depth: number
+  minTotal: bigint
+}
+
+/** Why `batch` can't hold the release; empty if it can. */
+export function batchProblems(batch: BatchInfo, expected: ExpectedBatch): string[] {
+  return [
+    batch.owner.toLowerCase() !== expected.owner.toLowerCase() && `owner ${batch.owner} ≠ ${expected.owner}`,
+    batch.depth !== expected.depth && `depth ${batch.depth} ≠ ${expected.depth}`,
+    batch.bucketDepth !== BUCKET_DEPTH && `bucket depth ${batch.bucketDepth} ≠ ${BUCKET_DEPTH}`,
+    !batch.immutable && "batch is mutable",
+    batch.totalAmount < expected.minTotal && `paid ${batch.totalAmount} < ${expected.minTotal}`,
+  ].filter((p): p is string => typeof p === "string")
+}
+
 /**
- * Finds the batch created with `owner` at or after `fromBlock`. The owner is
- * not an indexed event field, so events are filtered client-side; matching by
- * owner (not transaction sender) also works for relayed (ERC-4337) purchases.
+ * Finds the first batch created at or after `fromBlock` that can hold the
+ * release. `_owner` is a plain `createBatch` parameter, so anyone who sees the
+ * operator's pending purchase can create a batch for our owner first, e.g.
+ * underfunded (the release would expire early) or with the wrong depth (the
+ * release would abort). Every candidate is therefore checked in full; batches
+ * for our owner that fail are skipped and reported via `onSkip`. A batch that
+ * passes is as good as the operator's, whoever paid for it.
+ *
+ * The owner is not an indexed event field, so events are filtered
+ * client-side; matching by owner (not transaction sender) also works for
+ * relayed (ERC-4337) purchases.
  */
-export async function findBatch(client: GnosisClient, owner: Address, fromBlock: bigint): Promise<BatchInfo | undefined> {
+export async function findBatch(
+  client: GnosisClient,
+  expected: ExpectedBatch,
+  fromBlock: bigint,
+  onSkip: (batch: BatchInfo, problems: string[]) => void = () => {},
+): Promise<BatchInfo | undefined> {
   const latest = await client.getBlockNumber()
   for (let start = fromBlock; start <= latest; start += 10_000n) {
     const end = start + 9_999n < latest ? start + 9_999n : latest
@@ -152,32 +185,25 @@ export async function findBatch(client: GnosisClient, owner: Address, fromBlock:
       fromBlock: start,
       toBlock: end,
     })
-    const match = logs.find((l) => l.args.owner?.toLowerCase() === owner.toLowerCase())
-    if (match) {
-      const a = match.args
-      return {
+    for (const log of logs) {
+      const a = log.args
+      if (a.owner?.toLowerCase() !== expected.owner.toLowerCase()) continue
+      const batch: BatchInfo = {
         batchId: a.batchId!,
         owner: a.owner!,
         depth: a.depth!,
         bucketDepth: a.bucketDepth!,
         immutable: a.immutableFlag!,
-        transactionHash: match.transactionHash!,
-        blockNumber: match.blockNumber!,
+        totalAmount: a.totalAmount!,
+        transactionHash: log.transactionHash!,
+        blockNumber: log.blockNumber!,
       }
+      const problems = batchProblems(batch, expected)
+      if (problems.length === 0) return batch
+      onSkip(batch, problems)
     }
   }
   return undefined
-}
-
-/** Throws unless the batch is exactly what the release needs. */
-export function validateBatch(batch: BatchInfo, expected: { owner: Address; depth: number }): void {
-  const problems = [
-    batch.owner.toLowerCase() !== expected.owner.toLowerCase() && `owner ${batch.owner} ≠ ${expected.owner}`,
-    batch.depth !== expected.depth && `depth ${batch.depth} ≠ ${expected.depth}`,
-    batch.bucketDepth !== BUCKET_DEPTH && `bucket depth ${batch.bucketDepth} ≠ ${BUCKET_DEPTH}`,
-    !batch.immutable && "batch is mutable",
-  ].filter(Boolean)
-  if (problems.length > 0) throw new Error(`unusable batch ${batch.batchId}: ${problems.join(", ")}`)
 }
 
 /**

@@ -3,12 +3,12 @@ import { describe, it, expect } from "vitest"
 import { HttpRequestError, TimeoutError, createPublicClient, custom, toFunctionSelector, type Address, type Hex } from "viem"
 import { gnosis } from "viem/chains"
 import {
+  batchProblems,
   findBatch,
   isBatchGone,
   purchaseCalls,
   quote,
   remainingTtl,
-  validateBatch,
   type BatchInfo,
   type GnosisClient,
 } from "../swarm/batch"
@@ -54,8 +54,10 @@ describe("purchaseCalls", () => {
   })
 })
 
-const created = (owner: Address, depth = 17, immutableFlag = true, blockNumber = 100n) => ({
-  args: { batchId: BATCH_ID, owner, depth, bucketDepth: 16, immutableFlag },
+const PAID = 3_400_000_000n << 17n
+
+const created = (owner: Address, { depth = 17, immutableFlag = true, totalAmount = PAID, blockNumber = 100n, batchId = BATCH_ID } = {}) => ({
+  args: { batchId, totalAmount, owner, depth, bucketDepth: 16, immutableFlag },
   transactionHash: `0x${"44".repeat(32)}` as Hex,
   blockNumber,
 })
@@ -74,29 +76,55 @@ function fakeClient(logs: ReturnType<typeof created>[], latest = 25_000n, reads:
 }
 
 describe("findBatch", () => {
+  const expected = { owner: OWNER, depth: 17, minTotal: PAID }
+  const OTHER_ID: Hex = `0x${"55".repeat(32)}`
+
   it("matches by owner across paged log ranges, ignoring other batches", async () => {
-    const { client, ranges } = fakeClient([created("0x0000000000000000000000000000000000000001", 17, true, 50n), created(OWNER, 17, true, 21_000n)])
-    const batch = await findBatch(client, OWNER.toLowerCase() as Address, 1n)
-    expect(batch).toMatchObject({ batchId: BATCH_ID, owner: OWNER, depth: 17, immutable: true, blockNumber: 21_000n })
+    const { client, ranges } = fakeClient([
+      created("0x0000000000000000000000000000000000000001", { blockNumber: 50n }),
+      created(OWNER, { blockNumber: 21_000n }),
+    ])
+    const batch = await findBatch(client, { ...expected, owner: OWNER.toLowerCase() as Address }, 1n)
+    expect(batch).toMatchObject({ batchId: BATCH_ID, owner: OWNER, depth: 17, immutable: true, totalAmount: PAID, blockNumber: 21_000n })
     expect(ranges).toEqual([[1n, 10_000n], [10_001n, 20_000n], [20_001n, 25_000n]])
   })
 
   it("returns undefined until the batch exists", async () => {
-    expect(await findBatch(fakeClient([]).client, OWNER, 1n)).toBeUndefined()
+    expect(await findBatch(fakeClient([]).client, expected, 1n)).toBeUndefined()
+  })
+
+  it("skips front-run batches for our owner that can't hold the release, and reports them", async () => {
+    const frontRuns = [
+      created(OWNER, { batchId: OTHER_ID, totalAmount: PAID - 1n, blockNumber: 90n }),
+      created(OWNER, { batchId: OTHER_ID, depth: 18, blockNumber: 91n }),
+      created(OWNER, { batchId: OTHER_ID, immutableFlag: false, blockNumber: 92n }),
+    ]
+    const skipped: string[][] = []
+    const { client } = fakeClient([...frontRuns, created(OWNER, { blockNumber: 100n })])
+    const batch = await findBatch(client, expected, 1n, (_, problems) => skipped.push(problems))
+    expect(batch?.batchId).toBe(BATCH_ID)
+    expect(skipped).toEqual([[expect.stringMatching(/^paid /)], ["depth 18 ≠ 17"], ["batch is mutable"]])
+  })
+
+  it("accepts a batch someone else paid for if it is at least as good", async () => {
+    const { client } = fakeClient([created(OWNER, { batchId: OTHER_ID, totalAmount: PAID * 2n, blockNumber: 90n })])
+    expect((await findBatch(client, expected, 1n))?.batchId).toBe(OTHER_ID)
   })
 })
 
-describe("validateBatch", () => {
-  const batch: BatchInfo = { batchId: BATCH_ID, owner: OWNER, depth: 17, bucketDepth: 16, immutable: true, transactionHash: "0x", blockNumber: 1n }
+describe("batchProblems", () => {
+  const batch: BatchInfo = { batchId: BATCH_ID, owner: OWNER, depth: 17, bucketDepth: 16, immutable: true, totalAmount: PAID, transactionHash: "0x", blockNumber: 1n }
+  const expected = { owner: OWNER, depth: 17, minTotal: PAID }
 
-  it("accepts the expected immutable batch", () => {
-    expect(() => validateBatch(batch, { owner: OWNER, depth: 17 })).not.toThrow()
+  it("accepts the expected immutable, fully paid batch", () => {
+    expect(batchProblems(batch, expected)).toEqual([])
   })
 
-  it("rejects mutable, wrong-owner or wrong-depth batches", () => {
-    expect(() => validateBatch({ ...batch, immutable: false }, { owner: OWNER, depth: 17 })).toThrow(/mutable/)
-    expect(() => validateBatch(batch, { owner: BUYER, depth: 17 })).toThrow(/owner/)
-    expect(() => validateBatch(batch, { owner: OWNER, depth: 18 })).toThrow(/depth/)
+  it("names every problem", () => {
+    expect(batchProblems({ ...batch, immutable: false }, expected)).toEqual(["batch is mutable"])
+    expect(batchProblems(batch, { ...expected, owner: BUYER })[0]).toMatch(/^owner /)
+    expect(batchProblems({ ...batch, bucketDepth: 17 }, expected)).toEqual(["bucket depth 17 ≠ 16"])
+    expect(batchProblems(batch, { ...expected, minTotal: PAID + 1n })[0]).toMatch(/^paid /)
   })
 })
 
