@@ -15,11 +15,13 @@ describe("content types", () => {
     ["logo.svg", "image/svg+xml"],
     ["manifest.json", "application/json"],
     ["font.woff2", "font/woff2"],
-    ["noext", "application/octet-stream"],
-    ["dir.v2/noext", "application/octet-stream"],
-    ["x.constructor", "application/octet-stream"],
+    [".well-known/security.txt", "text/plain; charset=utf-8"],
   ])("%s → %j", (path, expected) => {
     expect(contentTypeFor(path)).toBe(expected)
+  })
+
+  it.each(["image.webp", "noext", "dir.v2/noext", "x.constructor"])("refuses %s instead of guessing", (path) => {
+    expect(() => contentTypeFor(path)).toThrow(`no content type for ${path}`)
   })
 })
 
