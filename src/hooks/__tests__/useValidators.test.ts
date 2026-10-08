@@ -127,6 +127,24 @@ describe("useValidators", () => {
     expect(result).toHaveLength(2)
   })
 
+  it("queryFn rounds participation down to 2 decimals", async () => {
+    const rates = [0.74999, 0.749999999, 0.75, 0.57, 0.29, 0.999, 1]
+    const rawData = rates.map((rate, i) => ({
+      address: `0x${String(i + 1).padStart(40, "0")}`,
+      label: `V${i}`,
+      participation_rate_14d: rate,
+    }))
+    mockFetch.mockResolvedValue({
+      ok: true,
+      text: () => Promise.resolve(JSON.stringify(rawData)),
+    })
+
+    renderHook(() => useValidators())
+    const result = (await capturedQueryFn!()) as Array<{ participationRate: number }>
+
+    expect(result.map((v) => v.participationRate)).toEqual([74.99, 74.99, 75, 57, 29, 99.9, 100])
+  })
+
   it("queryFn defaults missing commission and participation to 0", async () => {
     const rawData = [
       {
