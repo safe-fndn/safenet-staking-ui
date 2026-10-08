@@ -31,6 +31,10 @@ function fakeFetch(handler: (url: string, call: Call, n: number) => Reply) {
   return { fetch, calls }
 }
 
+/** A 200 response whose body breaks off after the headers, like a dropped connection. */
+const droppedBody = () =>
+  new Response(new ReadableStream({ start: (controller) => controller.error(new Error("connection reset")) }), { status: 200 })
+
 const stored = (c: StampedChunk): Reply => ({ status: 201, body: JSON.stringify({ reference: hex(c.address) }) })
 const fast = { retryDelayMs: 1 }
 
@@ -85,6 +89,16 @@ describe("verifyWebsite", () => {
     expect(calls.map((c) => c.url)).toContain(`https://gw/bzz/${"ab".repeat(32)}/assets/a%20b.js`)
   })
 
+  it("counts a body that breaks off as a failed file instead of aborting the check", async () => {
+    const files = [
+      { path: "index.html", sha256: sha("<h1>hi") },
+      { path: "app.js", sha256: sha("x") },
+    ]
+    const fetch = (async (url: string) =>
+      url.endsWith("app.js") ? droppedBody() : new Response("<h1>hi", { status: 200 })) as typeof globalThis.fetch
+    expect(await verifyWebsite("ab".repeat(32), files, "https://gw", { ...fast, attempts: 1, fetch })).toEqual(["app.js"])
+  })
+
   it("retries until late files arrive", async () => {
     const files = [{ path: "index.html", sha256: sha("<h1>hi") }]
     const { fetch } = fakeFetch((_, __, n) => (n < 2 ? { status: 404 } : { status: 200, body: text("<h1>hi") }))
@@ -102,6 +116,11 @@ describe("verifyPage", () => {
     expect(calls.map((c) => c.url).sort()).toEqual(
       ["https://cid.bzz.limo/", "https://cid.bzz.limo/assets/app.css", "https://cid.bzz.limo/assets/app.js", "https://cid.bzz.limo/favicon.png"].sort(),
     )
+  })
+
+  it("reports the page itself when its body breaks off, instead of throwing", async () => {
+    const fetch = (async () => droppedBody()) as typeof globalThis.fetch
+    expect(await verifyPage("https://cid.bzz.limo/", fetch)).toEqual(["https://cid.bzz.limo/"])
   })
 
   it("reports assets that break, e.g. a /bzz/<ref> URL without trailing slash", async () => {

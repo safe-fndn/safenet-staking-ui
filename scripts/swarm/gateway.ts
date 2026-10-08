@@ -114,8 +114,10 @@ export async function verifyWebsite(
     const failed: typeof files = []
     await pool(pending, concurrency, async (f) => {
       const url = `${gateway}/bzz/${reference}/${f.path.split("/").map(encodeURIComponent).join("/")}`
-      const res = await fetch(url, { redirect: "manual" }).catch(() => undefined)
-      const body = res?.ok ? new Uint8Array(await res.arrayBuffer()) : undefined
+      // The body is read inside the catch too: a connection dropped mid-body fails this file, not the whole check.
+      const body = await fetch(url, { redirect: "manual" })
+        .then(async (res) => (res.ok ? new Uint8Array(await res.arrayBuffer()) : undefined))
+        .catch(() => undefined)
       if (!body || sha256(body) !== f.sha256) failed.push(f)
     })
     pending = failed
@@ -129,11 +131,12 @@ export async function verifyWebsite(
  * URLs that fail — e.g. assets that only resolve with a trailing slash.
  */
 export async function verifyPage(pageUrl: string, fetchFn: typeof fetch = globalThis.fetch): Promise<string[]> {
-  const res = await fetchFn(pageUrl).catch(() => undefined)
-  if (!res?.ok) return [pageUrl]
-  const html = await res.text()
-  const refs = [...html.matchAll(/<(?:script|link)\b[^>]*?\b(?:src|href)="([^"]+)"/g)].map((m) => m[1])
-  const urls = [...new Set(refs.filter((r) => !/^(?:[a-z]+:|\/\/|#)/i.test(r)).map((r) => new URL(r, res.url || pageUrl).href))]
+  const page = await fetchFn(pageUrl)
+    .then(async (res) => (res.ok ? { html: await res.text(), url: res.url || pageUrl } : undefined))
+    .catch(() => undefined)
+  if (!page) return [pageUrl]
+  const refs = [...page.html.matchAll(/<(?:script|link)\b[^>]*?\b(?:src|href)="([^"]+)"/g)].map((m) => m[1])
+  const urls = [...new Set(refs.filter((r) => !/^(?:[a-z]+:|\/\/|#)/i.test(r)).map((r) => new URL(r, page.url).href))]
   const failed: string[] = []
   await pool(urls, 8, async (url) => {
     const asset = await fetchFn(url).catch(() => undefined)
