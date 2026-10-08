@@ -16,6 +16,15 @@ export function createEthereumProviderScript(config: MockProviderConfig): string
       const config = ${JSON.stringify(config)};
       const listeners = {};
 
+      // Let a test simulate the user rejecting the wallet prompt (see rejectNextTx).
+      async function rejectIfRequested() {
+        if (window.__shouldRejectTx && await window.__shouldRejectTx()) {
+          const rejected = new Error('User rejected the request.');
+          rejected.code = 4001;
+          throw rejected;
+        }
+      }
+
       const provider = {
         isMetaMask: true,
         _metamask: { isUnlocked: () => Promise.resolve(true) },
@@ -65,12 +74,7 @@ export function createEthereumProviderScript(config: MockProviderConfig): string
             case 'wallet_switchEthereumChain':
               return null;
             case 'eth_sendTransaction':
-              // Let a test simulate the user rejecting the wallet prompt.
-              if (window.__shouldRejectTx && await window.__shouldRejectTx()) {
-                const rejected = new Error('User rejected the request.');
-                rejected.code = 4001;
-                throw rejected;
-              }
+              await rejectIfRequested();
               // Report the submitted call back to the Node-side mock chain state
               // (see mock-chain-state.ts) so subsequent reads reflect the "transaction".
               if (window.__mockTx && params[0] && params[0].data) {
@@ -95,9 +99,12 @@ export function createEthereumProviderScript(config: MockProviderConfig): string
               if (!config.supportsBatching) throw new Error('MockProvider: unhandled method wallet_getCapabilities');
               return { [config.chainIdHex]: { atomicBatch: { supported: true } } };
             case 'wallet_sendCalls': {
+              await rejectIfRequested();
               const calls = (params[0] && params[0].calls) || [];
-              for (const call of calls) {
-                if (window.__mockTx && call.data) await window.__mockTx(call.data);
+              // Record the batch and apply its calls in the Node-side mock chain state
+              // (see applyMockBatch in mock-chain-state.ts).
+              if (window.__mockSendCalls) {
+                await window.__mockSendCalls(calls.map(call => ({ to: call.to || '', data: call.data || '0x' })));
               }
               return '${`0x${"5".repeat(64)}`}';
             }

@@ -20,6 +20,12 @@ export interface PendingWithdrawal {
   claimableAt: bigint
 }
 
+/** One call inside an EIP-5792 wallet_sendCalls batch, as the app submitted it. */
+export interface MockCall {
+  to: string
+  data: string
+}
+
 export interface MockChainState {
   balance: bigint
   allowance: bigint
@@ -30,8 +36,13 @@ export interface MockChainState {
   merkleDropClaimed: bigint
   /** undefined = no reward proof configured for this address (served as 404) */
   rewardProof?: RewardProof | null
-  /** When true, the next eth_sendTransaction simulates the user rejecting the wallet prompt. */
+  /**
+   * When true, the next eth_sendTransaction or wallet_sendCalls simulates the user
+   * rejecting the wallet prompt (error code 4001). It resets after one use.
+   */
   rejectNextTx: boolean
+  /** Every wallet_sendCalls batch the wallet accepted, oldest first. Rejected batches are not recorded. */
+  batches: MockCall[][]
 }
 
 export interface MockChainStateOverrides {
@@ -64,6 +75,7 @@ export function createMockChainState(overrides: MockChainStateOverrides = {}): M
     merkleDropClaimed: overrides.merkleDropClaimed ?? 0n,
     rewardProof: overrides.rewardProof,
     rejectNextTx: false,
+    batches: [],
   }
 }
 
@@ -137,5 +149,16 @@ export function applyMockTx(state: MockChainState, data: string, userAddress: st
     }
     default:
       break
+  }
+}
+
+/**
+ * Record a wallet_sendCalls batch in `state.batches` and apply its calls in order,
+ * so tests can check both what was batched and the resulting state.
+ */
+export function applyMockBatch(state: MockChainState, calls: MockCall[], userAddress: string = TEST_USER): void {
+  state.batches.push(calls)
+  for (const call of calls) {
+    applyMockTx(state, call.data, userAddress)
   }
 }

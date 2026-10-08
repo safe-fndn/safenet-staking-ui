@@ -5,7 +5,7 @@
 import { test as base, type Page } from "@playwright/test"
 import { createEthereumProviderScript, createDisconnectedProviderScript } from "../mocks/ethereum-provider"
 import { createRpcHandler } from "../mocks/rpc-handler"
-import { createMockChainState, applyMockTx, type MockChainState } from "../mocks/mock-chain-state"
+import { createMockChainState, applyMockTx, applyMockBatch, type MockCall, type MockChainState } from "../mocks/mock-chain-state"
 import { CHAIN_ID_HEX, WRONG_CHAIN_ID_HEX, TEST_USER, VALIDATORS } from "./test-data"
 
 export type TestFixtures = {
@@ -27,7 +27,8 @@ interface SetupPageOptions {
   supportsBatching?: boolean
 }
 
-const MOCK_VALIDATORS = [
+/** Default validator info endpoint payload. Exported so a test can re-route the endpoint with a variant. */
+export const MOCK_VALIDATORS = [
   {
     address: VALIDATORS.validatorA,
     is_active: true,
@@ -51,6 +52,8 @@ async function setupPage(page: Page, options: SetupPageOptions, state: MockChain
   // see ethereum-provider.ts) back into the Node-side mock chain state, so RPC reads
   // reflect the effect of a "submitted" transaction (approve, stake, claim, ...).
   await page.exposeFunction("__mockTx", (data: string) => applyMockTx(state, data, TEST_USER))
+  // Same bridge for EIP-5792 wallet_sendCalls. Also records the batch in state.batches.
+  await page.exposeFunction("__mockSendCalls", (calls: MockCall[]) => applyMockBatch(state, calls, TEST_USER))
   // Lets a test simulate the user rejecting a wallet prompt (see rejectNextTx).
   await page.exposeFunction("__shouldRejectTx", () => {
     const should = state.rejectNextTx
