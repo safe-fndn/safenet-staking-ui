@@ -4,11 +4,13 @@ import { mkdtempSync, rmSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import {
+  completeRelease,
   fileChecksums,
   readReleases,
   releaseFileName,
   toolingVersions,
   writeRelease,
+  type PendingRelease,
   type SwarmRelease,
 } from "../swarm/release"
 import { text } from "./swarm-test-utils"
@@ -49,6 +51,34 @@ describe("release records", () => {
     r.batch.estimatedExpiry = null
     writeRelease(r, dir)
     expect(readReleases(dir)).toEqual([r])
+  })
+
+  describe("completeRelease", () => {
+    const done = release("2026-10-06T10:00:00.000Z", "dd".repeat(32))
+    const { pushedVia, verifiedVia, urls, ...rest } = done
+    const pending: PendingRelease = { draft: { ...rest, batch: { ...rest.batch } } }
+    delete (pending.draft.batch as Partial<SwarmRelease["batch"]>).estimatedExpiry
+    const upload = { pushedVia, verifiedVia, urls }
+
+    it("records the estimated expiry", async () => {
+      const { path, release: r, expiryError } = await completeRelease(pending, upload, async () => new Date("2027-10-06T10:00:00.000Z"), dir)
+      expect(expiryError).toBeUndefined()
+      expect(r.batch.estimatedExpiry).toBe("2027-10-06T10:00:00.000Z")
+      expect(readReleases(dir)).toEqual([r])
+      expect(path).toBe(join(dir, releaseFileName(r)))
+    })
+
+    it("still writes the record when the expiry lookup fails", async () => {
+      const { release: r, expiryError } = await completeRelease(
+        pending,
+        upload,
+        () => Promise.reject(new Error("HTTP request failed.\nURL: https://rpc.gnosischain.com")),
+        dir,
+      )
+      expect(expiryError).toBe("HTTP request failed.")
+      expect(r.batch.estimatedExpiry).toBeNull()
+      expect(readReleases(dir)).toEqual([{ ...done, batch: { ...done.batch, estimatedExpiry: null } }])
+    })
   })
 
   it("checksums every file, independent of order", () => {

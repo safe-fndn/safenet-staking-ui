@@ -73,6 +73,39 @@ export function toolingVersions(): Tooling {
   }
 }
 
+/**
+ * Everything needed to finish a release without the key. Saved as
+ * `swarm-release/<ref>/release.json` next to the bundle before pushing.
+ */
+export interface PendingRelease {
+  /** The release record, minus what pushing and verifying determine. */
+  draft: Omit<SwarmRelease, "pushedVia" | "verifiedVia" | "urls" | "batch"> & {
+    batch: Omit<SwarmRelease["batch"], "estimatedExpiry">
+  }
+}
+
+/**
+ * Writes the final record of a pushed and verified release. A failing expiry
+ * lookup never prevents the record: the content is live and the batch must
+ * show up in `swarm:status`, so the expiry is then recorded as null.
+ */
+export async function completeRelease(
+  { draft }: PendingRelease,
+  upload: Pick<SwarmRelease, "pushedVia" | "verifiedVia" | "urls">,
+  expiresAt: () => Promise<Date>,
+  dir = RELEASES_DIR,
+): Promise<{ path: string; release: SwarmRelease; expiryError?: string }> {
+  let estimatedExpiry: string | null = null
+  let expiryError: string | undefined
+  try {
+    estimatedExpiry = (await expiresAt()).toISOString()
+  } catch (e) {
+    expiryError = (e as Error).message.split("\n")[0]
+  }
+  const release: SwarmRelease = { ...draft, batch: { ...draft.batch, estimatedExpiry }, ...upload }
+  return { path: writeRelease(release, dir), release, expiryError }
+}
+
 export function releaseFileName(release: SwarmRelease): string {
   return `${release.createdAt.slice(0, 10)}-${release.reference.slice(0, 12)}.json`
 }
