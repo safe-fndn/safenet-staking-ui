@@ -14,10 +14,9 @@ import { UndelegateDialog } from "@/components/staking/UndelegateDialog"
 import { ClaimRewardsDialog } from "./ClaimRewardsDialog"
 import { ClaimAndStakeDialog } from "./ClaimAndStakeDialog"
 import { truncateAddress, formatTokenAmount } from "@/lib/format"
+import { REWARDS_DOCS_URL } from "@/lib/docs"
 import Info from "lucide-react/dist/esm/icons/info"
 import type { Address } from "viem"
-
-const rewardsDocsUrl = "https://docs.safefoundation.org/safenet/staking/rewards"
 
 interface Position {
   validator: Address
@@ -146,20 +145,9 @@ export function StakingSection() {
               <TooltipContent className="max-w-xs text-xs">
                 <p>Rewards are subject to a minimum payout threshold.</p>
                 <p className="mt-1">KYC may be required to claim rewards.</p>
-                <p className="mt-1">
-                  Rewards are subject to DAO approval.{" "}
-                  <a
-                    href="https://forum.safefoundation.org/"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="underline text-primary-foreground/80 hover:text-primary-foreground"
-                  >
-                    Follow the proposal here
-                  </a>
-                  .
-                </p>
+                <p className="mt-1">Rewards are subject to SafeDAO governance.</p>
                 <a
-                  href={rewardsDocsUrl}
+                  href={REWARDS_DOCS_URL}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="mt-1 inline-block underline text-primary-foreground/80 hover:text-primary-foreground"

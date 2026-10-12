@@ -152,6 +152,9 @@ Wagmi config (`src/config/wagmi.ts`) uses `safe()` (auto-detects Safe Wallet ifr
 | `VITE_REWARDS_BASE_URL` | No | Base URL for reward proof files (defaults to GitHub raw URL) |
 | `VITE_GEOBLOCK_CACHE_DAYS` | No | Geo-block cache duration in days (defaults to 7) |
 | `VITE_DOCS_URL` | No | Footer documentation link (defaults to Safe docs) |
+| `VITE_FAQ_URL` | No | Footer FAQ link (defaults to `VITE_DOCS_URL`) |
+| `VITE_REWARDS_DOCS_URL` | No | Dashboard rewards tooltip docs link (defaults to `VITE_DOCS_URL`) |
+| `VITE_COMMISSION_DOCS_URL` | No | Validator commission tooltip docs link (defaults to `VITE_DOCS_URL`) |
 | `VITE_TERMS_URL` | No | Footer terms link: full URL or `#anchor`, or a path to a local HTML fragment (e.g. `legal/terms.html`, gitignored, local builds only) inlined at build time and shown at `#/terms` (hidden if unset; unreadable file fails the build) |
 | `VITE_PRIVACY_URL` | No | Footer privacy link: full URL or `#anchor`, or a path to a local HTML fragment (e.g. `legal/privacy.html`, gitignored, local builds only) inlined at build time and shown at `#/privacy` (hidden if unset; unreadable file fails the build) |
 | `VITE_IMPRINT_URL` | No | Footer imprint link: full URL or `#anchor`, or a path to a local HTML fragment (e.g. `legal/imprint.html`, gitignored, local builds only) inlined at build time and shown at `#/imprint` (hidden if unset; unreadable file fails the build) |
