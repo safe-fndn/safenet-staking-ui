@@ -1,7 +1,6 @@
 import { Link } from "react-router-dom"
 import { LEGAL_PAGES } from "@/lib/legal"
-
-const docsUrl = import.meta.env.VITE_DOCS_URL || "https://docs.safefoundation.org/safenet/"
+import { DOCS_URL, FAQ_URL } from "@/lib/docs"
 
 const linkClass = "hover:text-foreground transition-colors"
 
@@ -26,10 +25,10 @@ export function Footer() {
           }
           return null
         })}
-        <a href={docsUrl} target="_blank" rel="noopener noreferrer" className={linkClass}>
+        <a href={DOCS_URL} target="_blank" rel="noopener noreferrer" className={linkClass}>
           Documentation
         </a>
-        <a href="https://docs.safefoundation.org/safenet/resources/faq" target="_blank" rel="noopener noreferrer" className={linkClass}>
+        <a href={FAQ_URL} target="_blank" rel="noopener noreferrer" className={linkClass}>
           FAQ
         </a>
       </div>
