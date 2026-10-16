@@ -4,6 +4,7 @@ import { MemoryRouter } from "react-router-dom"
 import { TooltipProvider } from "@radix-ui/react-tooltip"
 import { ValidatorCard } from "../validators/ValidatorCard"
 import { TEST_ACCOUNTS, MOCK_VALIDATORS } from "@/__tests__/test-data"
+import { formatPercent } from "@/lib/format"
 
 const mockUseAccount = vi.fn()
 
@@ -60,6 +61,13 @@ describe("ValidatorCard", () => {
     expect(screen.getByText("5%")).toBeInTheDocument()
     expect(screen.getByText("Participation (14d):")).toBeInTheDocument()
     expect(screen.getByText("99.9%")).toBeInTheDocument()
+  })
+
+  it("shows the no-data placeholder for an unknown participation rate", () => {
+    renderCard({ validators: [{ ...MOCK_VALIDATORS[0], participationRate: null }] })
+
+    expect(screen.getByText("5%")).toBeInTheDocument()
+    expect(screen.getByText(formatPercent(null))).toBeInTheDocument()
   })
 
   it("shows Active badge for active validator", () => {

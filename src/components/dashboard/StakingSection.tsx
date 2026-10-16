@@ -13,7 +13,7 @@ import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip
 import { UndelegateDialog } from "@/components/staking/UndelegateDialog"
 import { ClaimRewardsDialog } from "./ClaimRewardsDialog"
 import { ClaimAndStakeDialog } from "./ClaimAndStakeDialog"
-import { truncateAddress, formatTokenAmount } from "@/lib/format"
+import { truncateAddress, formatTokenAmount, formatPercent } from "@/lib/format"
 import { REWARDS_DOCS_URL } from "@/lib/docs"
 import Info from "lucide-react/dist/esm/icons/info"
 import type { Address } from "viem"
@@ -43,7 +43,7 @@ function PositionRow({ position, validators }: { position: Position; validators?
           {formatTokenAmount(position.amount, 18, 0)}
         </td>
         <td className="py-3 pr-4 text-sm text-right text-muted-foreground">
-          {metadata ? `${metadata.participationRate}%` : "—"}
+          {formatPercent(metadata?.participationRate)}
         </td>
         <td className="py-3 pr-4 text-right">
           {position.isActive ? (

@@ -14,9 +14,9 @@ export interface DelegationWarnings {
   lowParticipation: ValidatorInfo[]
 }
 
-/** Exactly 75% is not considered low. */
+/** Exactly 75% is not considered low. An unknown rate is not low either. */
 export function isLowParticipation(validator: ValidatorInfo): boolean {
-  return validator.participationRate < LOW_PARTICIPATION_THRESHOLD
+  return validator.participationRate !== null && validator.participationRate < LOW_PARTICIPATION_THRESHOLD
 }
 
 /**

@@ -11,6 +11,7 @@ import type { RewardProof } from "@/hooks/useRewardProof"
 import { useValidators, type ValidatorInfo } from "@/hooks/useValidators"
 import { useUserStakesOnValidators } from "@/hooks/useStakingReads"
 import { useRewards } from "@/hooks/useRewards"
+import { formatPercent } from "@/lib/format"
 
 const mockUseAccount = vi.fn()
 // vi.hoisted ensures this is initialized before the vi.mock() calls below,
@@ -121,6 +122,15 @@ describe("StakingSection", () => {
 
     expect(screen.getByText("Gnosis")).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "Unstake" })).toBeInTheDocument()
+  })
+
+  it("shows the no-data placeholder for a position with an unknown participation rate", () => {
+    mockUseAccount.mockReturnValue({ isConnected: true })
+    mockPositions([{ ...MOCK_VALIDATORS[0], participationRate: null }], [200n * 10n ** 18n])
+
+    renderSection()
+
+    expect(screen.getByRole("row", { name: /Gnosis/ })).toHaveTextContent(formatPercent(null))
   })
 
   it("shows compliance note when proof has kycAmount > 0 and kyc is not true", () => {

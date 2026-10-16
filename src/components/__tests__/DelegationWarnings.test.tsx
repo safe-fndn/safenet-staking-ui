@@ -124,6 +124,14 @@ describe("WalletDelegationWarnings", () => {
     expect(screen.queryByRole("alert")).not.toBeInTheDocument()
   })
 
+  it("shows nothing for an unknown participation rate", () => {
+    mockValidators([{ ...gnosis, participationRate: null }])
+    mockStakes([STAKE])
+    renderDashboardWarnings()
+
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument()
+  })
+
   it("shows nothing when disconnected", () => {
     mockUseAccount.mockReturnValue({ isConnected: false })
     mockValidators([{ ...gnosis, isActive: false }])

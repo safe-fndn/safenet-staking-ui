@@ -46,3 +46,8 @@ export function formatCountdown(seconds: number): string {
   if (m > 0) return `${m}m ${s}s`
   return `${s}s`
 }
+
+/** Format a percentage, or the no-data placeholder when it is unknown. */
+export function formatPercent(value: number | null | undefined): string {
+  return Number.isFinite(value) ? `${value}%` : "—"
+}
