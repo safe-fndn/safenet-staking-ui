@@ -7,6 +7,7 @@ import { TEST_ACCOUNTS, MOCK_VALIDATORS } from "@/__tests__/test-data"
 import { useValidators, type ValidatorInfo } from "@/hooks/useValidators"
 import { useUserStakeOnValidator } from "@/hooks/useStakingReads"
 import { INACTIVE_WARNING, LOW_PARTICIPATION_WARNING } from "@/lib/delegationWarnings"
+import { formatPercent } from "@/lib/format"
 
 const mockUseAccount = vi.fn()
 
@@ -72,6 +73,18 @@ describe("ValidatorDetailPage", () => {
     expect(screen.getByText("Gnosis")).toBeInTheDocument()
     expect(screen.getByText(/Commission/)).toBeInTheDocument()
     expect(screen.getByText(/Participation \(14d\)/)).toBeInTheDocument()
+  })
+
+  it("shows the no-data placeholder for an unknown participation rate", async () => {
+    const mod = await import("@/hooks/useValidators")
+    vi.mocked(mod.useValidators).mockReturnValueOnce({
+      data: [{ ...MOCK_VALIDATORS[0], participationRate: null }],
+      isLoading: false,
+    } as unknown as ReturnType<typeof mod.useValidators>)
+
+    renderWithRoute(TEST_ACCOUNTS.validator1)
+
+    expect(screen.getByText(formatPercent(null))).toBeInTheDocument()
   })
 
   it("shows stake and unstake buttons when connected", () => {
@@ -167,6 +180,15 @@ describe("ValidatorDetailPage", () => {
       renderWithRoute(TEST_ACCOUNTS.validator1)
 
       expect(screen.queryByRole("alert")).not.toBeInTheDocument()
+    })
+
+    it("shows only the inactive warning when participation is unknown", () => {
+      mockValidators([{ ...gnosis, isActive: false, participationRate: null }, greenfield])
+      renderWithRoute(TEST_ACCOUNTS.validator1)
+
+      const alerts = screen.getAllByRole("alert")
+      expect(alerts).toHaveLength(1)
+      expect(alerts[0]).toHaveTextContent(INACTIVE_WARNING)
     })
 
     it("only warns about the validator being viewed", () => {

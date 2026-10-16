@@ -22,6 +22,10 @@ describe("isLowParticipation", () => {
   it("flags anything below 75%", () => {
     expect(isLowParticipation(validator(TEST_ACCOUNTS.validator1, { participationRate: 74.99 }))).toBe(true)
   })
+
+  it("does not flag an unknown rate", () => {
+    expect(isLowParticipation(validator(TEST_ACCOUNTS.validator1, { participationRate: null }))).toBe(false)
+  })
 })
 
 describe("getDelegationWarnings", () => {
@@ -52,6 +56,11 @@ describe("getDelegationWarnings", () => {
   it("does not warn at exactly 75% participation", () => {
     const v = validator(TEST_ACCOUNTS.validator1, { participationRate: 75 })
     expect(getDelegationWarnings([v], stakeOnAll(STAKE))).toEqual({ inactive: [], lowParticipation: [] })
+  })
+
+  it("reports an inactive validator with an unknown rate only as inactive", () => {
+    const v = validator(TEST_ACCOUNTS.validator1, { isActive: false, participationRate: null })
+    expect(getDelegationWarnings([v], stakeOnAll(STAKE))).toEqual({ inactive: [v], lowParticipation: [] })
   })
 
   it("ignores affected validators the user has no stake on", () => {

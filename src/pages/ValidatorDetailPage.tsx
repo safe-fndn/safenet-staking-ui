@@ -10,7 +10,7 @@ import { DelegateDialog } from "@/components/staking/DelegateDialog"
 import { UndelegateDialog } from "@/components/staking/UndelegateDialog"
 import { useValidatorTotalStake, useUserStakeOnValidator } from "@/hooks/useStakingReads"
 import { useValidators, findValidator } from "@/hooks/useValidators"
-import { formatTokenAmount, asBigint } from "@/lib/format"
+import { formatTokenAmount, asBigint, formatPercent } from "@/lib/format"
 import { copyToClipboard } from "@/lib/clipboard"
 import { useToast } from "@/hooks/useToast"
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
@@ -146,7 +146,7 @@ export function ValidatorDetailPage() {
             </div>
             <div>
               <span className="text-muted-foreground">Participation (14d): </span>
-              <span className="font-medium">{validatorInfo.participationRate}%</span>
+              <span className="font-medium">{formatPercent(validatorInfo.participationRate)}</span>
             </div>
           </div>
 
