@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest"
-import { formatTokenAmount, truncateAddress, formatCountdown } from "../format"
+import { formatTokenAmount, truncateAddress, formatCountdown, formatPercent } from "../format"
 
 describe("formatTokenAmount", () => {
   it("formats zero", () => {
@@ -85,5 +85,19 @@ describe("formatCountdown", () => {
 
   it("formats exactly 7 days (withdrawal delay)", () => {
     expect(formatCountdown(604800)).toBe("7d 0h 0m")
+  })
+})
+
+describe("formatPercent", () => {
+  it("formats a percentage", () => {
+    expect(formatPercent(85.23)).toBe("85.23%")
+  })
+
+  it("keeps 0 as 0%", () => {
+    expect(formatPercent(0)).toBe("0%")
+  })
+
+  it.each([null, undefined, NaN])("shows the no-data placeholder for %s", (value) => {
+    expect(formatPercent(value)).toBe("—")
   })
 })

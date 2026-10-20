@@ -6,7 +6,9 @@ const INACTIVE_WARNING = "You have delegated to an inactive validator. Please re
 const LOW_PARTICIPATION_WARNING =
   "You have delegated to a validator with participation below 75%. Please review your stake."
 
-type ValidatorOverride = Partial<(typeof MOCK_VALIDATORS)[number]>
+type ValidatorOverride = Partial<Omit<(typeof MOCK_VALIDATORS)[number], "participation_rate_14d">> & {
+  participation_rate_14d?: number | null
+}
 
 /**
  * Serve a validator info payload with per-validator overrides.
@@ -80,6 +82,14 @@ test.describe("Delegation warnings", () => {
       await gotoDashboardLoaded(page)
 
       await expect(page.getByRole("link", { name: "Validator B" })).toBeVisible()
+      await expect(lowParticipationBanner(page)).toHaveCount(0)
+    })
+
+    test("does not warn when participation is unknown", async ({ connectedPage: page }) => {
+      await routeValidators(page, { [VALIDATORS.validatorB]: { participation_rate_14d: null } })
+      await gotoDashboardLoaded(page)
+
+      await expect(page.getByRole("row").filter({ hasText: "Validator B" })).toContainText("—")
       await expect(lowParticipationBanner(page)).toHaveCount(0)
     })
 

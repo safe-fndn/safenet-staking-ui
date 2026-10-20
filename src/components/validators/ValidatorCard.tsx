@@ -7,7 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { DelegateDialog } from "@/components/staking/DelegateDialog"
 import { UndelegateDialog } from "@/components/staking/UndelegateDialog"
 import { type ValidatorInfo, findValidator } from "@/hooks/useValidators"
-import { truncateAddress, formatTokenAmount } from "@/lib/format"
+import { truncateAddress, formatTokenAmount, formatPercent } from "@/lib/format"
 import { copyToClipboard } from "@/lib/clipboard"
 import { useToast } from "@/hooks/useToast"
 import { useWrongNetwork } from "@/hooks/useWrongNetwork"
@@ -175,7 +175,7 @@ export function ValidatorCard({
               Participation (14d):
             </span>
             <span className={`text-xl font-mono leading-none uppercase ${valueColor}`}>
-              {metadata ? `${metadata.participationRate}%` : "—"}
+              {formatPercent(metadata?.participationRate)}
             </span>
           </div>
         </div>

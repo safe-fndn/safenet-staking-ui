@@ -145,7 +145,7 @@ describe("useValidators", () => {
     expect(result.map((v) => v.participationRate)).toEqual([74.99, 74.99, 75, 57, 29, 99.9, 100])
   })
 
-  it("queryFn defaults missing commission and participation to 0", async () => {
+  it("queryFn defaults missing commission to 0 and leaves missing participation unknown", async () => {
     const rawData = [
       {
         address: "0x1111111111111111111111111111111111111111",
@@ -160,13 +160,34 @@ describe("useValidators", () => {
     renderHook(() => useValidators())
     const result = (await capturedQueryFn!()) as Array<{
       commission: number
-      participationRate: number
+      participationRate: number | null
       isActive: boolean
     }>
 
     expect(result[0].commission).toBe(0)
-    expect(result[0].participationRate).toBe(0)
+    expect(result[0].participationRate).toBeNull()
     expect(result[0].isActive).toBe(true)
+  })
+
+  it("queryFn reads participation only from a finite number", async () => {
+    // 1e999 parses to Infinity.
+    const json = `[
+      {"address":"0x1111111111111111111111111111111111111111","label":"Number","participation_rate_14d":0.8523},
+      {"address":"0x2222222222222222222222222222222222222222","label":"Zero","participation_rate_14d":0},
+      {"address":"0x3333333333333333333333333333333333333333","label":"Null","participation_rate_14d":null},
+      {"address":"0x4444444444444444444444444444444444444444","label":"Missing"},
+      {"address":"0x5555555555555555555555555555555555555555","label":"String","participation_rate_14d":"0.8523"},
+      {"address":"0x6666666666666666666666666666666666666666","label":"Overflow","participation_rate_14d":1e999}
+    ]`
+    mockFetch.mockResolvedValue({
+      ok: true,
+      text: () => Promise.resolve(json),
+    })
+
+    renderHook(() => useValidators())
+    const result = (await capturedQueryFn!()) as Array<{ participationRate: number | null }>
+
+    expect(result.map((v) => v.participationRate)).toEqual([85.23, 0, null, null, null, null])
   })
 })
 

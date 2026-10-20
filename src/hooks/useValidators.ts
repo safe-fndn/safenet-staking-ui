@@ -9,7 +9,8 @@ export interface ValidatorInfo {
   isActive: boolean
   label: string
   commission: number
-  participationRate: number
+  /** null when the data has no finite rate, for example a `null` or missing value in the data file. */
+  participationRate: number | null
 }
 
 interface RawValidator {
@@ -17,7 +18,7 @@ interface RawValidator {
   label: string
   commission: number
   is_active: boolean
-  participation_rate_14d: number
+  participation_rate_14d: unknown
 }
 
 function isValidEntry(v: unknown): v is RawValidator {
@@ -64,9 +65,11 @@ async function fetchValidators(): Promise<ValidatorInfo[]> {
     label: v.label,
     commission:
       Math.round((v.commission ?? 0) * 100 * 100) / 100,
-    participationRate: toFlooredPercent(
-      v.participation_rate_14d ?? 0
-    ),
+    participationRate:
+      typeof v.participation_rate_14d === "number" &&
+      Number.isFinite(v.participation_rate_14d)
+        ? toFlooredPercent(v.participation_rate_14d)
+        : null,
   }))
 }
 
