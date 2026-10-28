@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query"
-import { getAddress } from "viem"
+import { getAddress, maxUint256 } from "viem"
 import type { Address, Hex } from "viem"
 
 export interface RewardProof {
@@ -13,7 +13,8 @@ export interface RewardProof {
 function isValidProof(data: unknown): data is RewardProof {
   if (typeof data !== "object" || data === null) return false
   const obj = data as Record<string, unknown>
-  if (typeof obj.cumulativeAmount !== "string") return false
+  if (typeof obj.cumulativeAmount !== "string" || !/^\d+$/.test(obj.cumulativeAmount)) return false
+  if (BigInt(obj.cumulativeAmount) > maxUint256) return false
   if (typeof obj.merkleRoot !== "string" || !/^0x[0-9a-fA-F]{64}$/.test(obj.merkleRoot)) return false
   if (
     obj.proof !== null &&

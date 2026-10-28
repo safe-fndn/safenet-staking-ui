@@ -32,13 +32,15 @@ test.describe("Rewards", () => {
 
   test("claim button disabled when the on-chain root is stale", async ({ connectedPage: page, mockChainState }) => {
     mockChainState.rewardProof = REWARD_PROOFS.staleRoot
+    // Partly claimed, so the total appears once the reads (root included) have loaded
+    mockChainState.merkleDropClaimed = 40n * 10n ** 18n
 
     await page.goto("/")
 
-    // Claimable amount is still shown (100 SAFE) but claiming is blocked until the proof catches up
+    // The 60 SAFE left unclaimed is not shown until the proof names the on-chain root
     const row = rewardsRow(page)
-    await expect(row).toBeVisible({ timeout: 10_000 })
-    await expect(row.getByText("100", { exact: true })).toBeVisible()
+    await expect(row.getByText("Total claimed: 40 SAFE")).toBeVisible({ timeout: 10_000 })
+    await expect(row.getByText("0", { exact: true })).toBeVisible()
     await expect(page.getByRole("button", { name: "Claim Rewards" })).toBeDisabled()
   })
 

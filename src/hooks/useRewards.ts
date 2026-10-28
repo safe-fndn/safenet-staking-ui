@@ -2,6 +2,7 @@ import { useAccount, useReadContract } from "wagmi"
 import { merkleDropAbi } from "@/abi/merkleDropAbi"
 import { getContractAddresses } from "@/config/contracts"
 import { activeChain } from "@/config/chains"
+import { encodeLeaf, verifyProof } from "@/lib/merkle"
 import { useRewardProof } from "./useRewardProof"
 
 const { merkleDrop } = getContractAddresses(activeChain.id)
@@ -31,19 +32,20 @@ export function useRewards() {
     },
   })
 
-  const { data: onChainRoot } = useReadContract({
+  const { data: onChainRoot, isLoading: isRootLoading } = useReadContract({
     address: merkleDrop,
     abi: merkleDropAbi,
     functionName: "merkleRoot",
     query: {
       enabled: !!merkleDrop && hasProof,
       staleTime: 60_000,
+      refetchInterval: 15_000,
     },
   })
 
-  const isLoading = isProofLoading || isClaimedLoading
+  const isLoading = isProofLoading || isClaimedLoading || isRootLoading
 
-  if (!proof || cumulativeClaimed === undefined) {
+  if (!address || !proof || cumulativeClaimed === undefined) {
     return {
       data: { claimable: 0n, totalClaimed: 0n, canClaim: false, rootStale: false },
       isLoading,
@@ -51,14 +53,19 @@ export function useRewards() {
   }
 
   const cumulativeAmount = BigInt(proof.cumulativeAmount)
-  const claimable = cumulativeAmount > cumulativeClaimed ? cumulativeAmount - cumulativeClaimed : 0n
   const rootStale = !!onChainRoot && onChainRoot !== proof.merkleRoot
+  // The proof file is untrusted: count its amount only if it proves into the onchain root.
+  const verified =
+    onChainRoot === proof.merkleRoot &&
+    proof.proof !== null &&
+    verifyProof(encodeLeaf(address, cumulativeAmount), proof.proof, onChainRoot)
+  const claimable = verified && cumulativeAmount > cumulativeClaimed ? cumulativeAmount - cumulativeClaimed : 0n
 
   return {
     data: {
       claimable,
       totalClaimed: cumulativeClaimed,
-      canClaim: claimable > 0n && !rootStale,
+      canClaim: claimable > 0n,
       rootStale,
     },
     isLoading,

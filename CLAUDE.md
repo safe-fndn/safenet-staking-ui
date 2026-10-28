@@ -62,7 +62,7 @@ App-level guards: `useSanctionsCheck` blocks the entire app if `VITE_SANCTIONS_A
 - **Validator discovery** (`src/hooks/useValidators.ts`): Fetches validator data from a remote JSON endpoint (`VITE_VALIDATOR_INFO_URL`, defaults to GitHub raw URL). Returns `ValidatorInfo[]` with `{ address, isActive, label, commission, participationRate }`. Cached with React Query (5 min staleTime). Also exports `findValidator()` helper for synchronous address lookup.
 - **Withdrawals** (`src/hooks/useWithdrawals.ts`): Fetches pending withdrawals for the connected user. Includes `useNextClaimable` for the claimable banner.
 - **Gas estimation** (`src/hooks/useGasEstimate.ts`): Uses `estimateGas` + `getGasPrice` from viem to show estimated gas cost in delegate/undelegate dialogs. Debounced 500ms on amount change.
-- **Rewards** (`src/hooks/useRewards.ts`, `src/hooks/useRewardProof.ts`, `src/hooks/useClaimRewards.ts`): Rewards reading, Merkle proof fetching, and claim transaction hooks. Proofs come from `VITE_REWARDS_BASE_URL` (default `https://rewards.safenet-gov.eth.limo`, the IPFS content of the `rewards.safenet-gov.eth` ENS name) at `proofs/<b0>/<b1>/<b2>/<b3>/<address>.json` (first four address bytes, lowercase).
+- **Rewards** (`src/hooks/useRewards.ts`, `src/hooks/useRewardProof.ts`, `src/hooks/useClaimRewards.ts`): Rewards reading, Merkle proof fetching, and claim transaction hooks. Proofs come from `VITE_REWARDS_BASE_URL` (default `https://rewards.safenet-gov.eth.limo`, the IPFS content of the `rewards.safenet-gov.eth` ENS name) at `proofs/<b0>/<b1>/<b2>/<b3>/<address>.json` (first four address bytes, lowercase). `useRewards` shows a claimable amount only if the proof verifies against the onchain `merkleRoot()`; a stale root, a `proof: null` entry or a bad proof shows 0.
 - **Approval flow** (`src/hooks/useApprovalFlow.ts`): Wraps `useTokenAllowance` with approval type tracking (exact vs unlimited), toast notifications, and a unified API for DelegateDialog.
 - **Transaction toasts** (`src/hooks/useTxToast.ts`): Shared hook for success/error/Safe-queued toast notifications, used by DelegateDialog, UndelegateDialog, and other tx dialogs.
 
@@ -103,6 +103,7 @@ Key UI components:
 - `src/lib/format.ts` — `formatTokenAmount`, `truncateAddress`, `formatCountdown`
 - `src/lib/errorFormat.ts` — `formatContractError` for user-friendly contract error messages
 - `src/lib/clipboard.ts` — `copyToClipboard()` with navigator.clipboard API + textarea fallback
+- `src/lib/merkle.ts`: `encodeLeaf`, `hashPair`, `verifyProof` for the MerkleDrop tree (sorted pairs), shared with `scripts/merkle-tree.ts`
 
 ### Dashboard Components
 
@@ -172,10 +173,10 @@ Off-chain tooling for generating Merkle proofs compatible with the MerkleDrop co
 
 ### Scripts
 
-- `scripts/merkle-tree.ts` — Pure Merkle tree logic (no I/O). Exports `encodeLeaf`, `buildMerkleTree`, `verifyProof`. Uses sorted-pair hashing (OpenZeppelin convention).
+- `scripts/merkle-tree.ts`: Pure Merkle tree logic (no I/O). Exports `buildMerkleTree`. Uses sorted-pair hashing (OpenZeppelin convention).
 - `scripts/generate-merkle-tree.ts` — CLI entry point. Reads config, builds tree, writes output files.
 - `scripts/merkle-config.json` — Input config with epoch number and address → cumulative amount mapping.
-- `scripts/__tests__/merkle-tree.test.ts` — Unit tests for encoding, tree construction, and proof verification.
+- `scripts/__tests__/merkle-tree.test.ts`: Unit tests for tree construction. Leaf encoding and proof checks are tested in `src/lib/__tests__/merkle.test.ts`.
 
 ### Workflow
 
