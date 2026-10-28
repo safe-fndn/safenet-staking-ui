@@ -83,6 +83,17 @@ describe("useRewardProof", () => {
       return capturedOptions!.queryFn!()
     }
 
+    it("fetches from rewards.safenet-gov.eth through eth.limo by default", async () => {
+      vi.stubEnv("VITE_REWARDS_BASE_URL", "")
+      mockFetch.mockResolvedValueOnce({ status: 404 })
+
+      await callQueryFn()
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        "https://rewards.safenet-gov.eth.limo/proofs/04/84/bf/59/0x0484bf598554ab04b9b21421ed28bff6b7742993.json",
+      )
+    })
+
     it("returns null on 404", async () => {
       mockFetch.mockResolvedValueOnce({ status: 404 })
 

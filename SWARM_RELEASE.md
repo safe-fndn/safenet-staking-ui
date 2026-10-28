@@ -181,7 +181,7 @@ Three separate properties, each checked differently:
 
 **Not covered by the reference.** The page's Content-Security-Policy allows scripts only from the release itself (`script-src 'self' 'unsafe-inline'`; the one inline script ships in `index.html`), so no executable code is loaded from elsewhere. But the app fetches data at runtime that can change its behaviour without changing the reference:
 - validator list and metadata: `VITE_VALIDATOR_INFO_URL` (default: GitHub raw, `safe-fndn/safenet-data`)
-- reward proofs and `latest.json`: `VITE_REWARDS_BASE_URL` (default: GitHub raw)
+- reward proofs: `VITE_REWARDS_BASE_URL` (default: `rewards.safenet-gov.eth` through eth.limo)
 - sanctions check: `VITE_SANCTIONS_API_URL`, if set
 - geo-blocking: `https://api.country.is`, falling back to `https://ipapi.co`
 - chain state: `VITE_RPC_URL`, plus the connected wallet's own RPC

@@ -62,7 +62,7 @@ App-level guards: `useSanctionsCheck` blocks the entire app if `VITE_SANCTIONS_A
 - **Validator discovery** (`src/hooks/useValidators.ts`): Fetches validator data from a remote JSON endpoint (`VITE_VALIDATOR_INFO_URL`, defaults to GitHub raw URL). Returns `ValidatorInfo[]` with `{ address, isActive, label, commission, participationRate }`. Cached with React Query (5 min staleTime). Also exports `findValidator()` helper for synchronous address lookup.
 - **Withdrawals** (`src/hooks/useWithdrawals.ts`): Fetches pending withdrawals for the connected user. Includes `useNextClaimable` for the claimable banner.
 - **Gas estimation** (`src/hooks/useGasEstimate.ts`): Uses `estimateGas` + `getGasPrice` from viem to show estimated gas cost in delegate/undelegate dialogs. Debounced 500ms on amount change.
-- **Rewards** (`src/hooks/useRewards.ts`, `src/hooks/useRewardProof.ts`, `src/hooks/useClaimRewards.ts`): Rewards reading, Merkle proof fetching, and claim transaction hooks. Proofs are served from `public/rewards/proofs/{address}.json` and the current root/total from `public/rewards/latest.json`.
+- **Rewards** (`src/hooks/useRewards.ts`, `src/hooks/useRewardProof.ts`, `src/hooks/useClaimRewards.ts`): Rewards reading, Merkle proof fetching, and claim transaction hooks. Proofs come from `VITE_REWARDS_BASE_URL` (default `https://rewards.safenet-gov.eth.limo`, the IPFS content of the `rewards.safenet-gov.eth` ENS name) at `proofs/<b0>/<b1>/<b2>/<b3>/<address>.json` (first four address bytes, lowercase).
 - **Approval flow** (`src/hooks/useApprovalFlow.ts`): Wraps `useTokenAllowance` with approval type tracking (exact vs unlimited), toast notifications, and a unified API for DelegateDialog.
 - **Transaction toasts** (`src/hooks/useTxToast.ts`): Shared hook for success/error/Safe-queued toast notifications, used by DelegateDialog, UndelegateDialog, and other tx dialogs.
 
@@ -149,7 +149,7 @@ Wagmi config (`src/config/wagmi.ts`) uses `safe()` (auto-detects Safe Wallet ifr
 | `VITE_WALLETCONNECT_PROJECT_ID` | No | Enables WalletConnect connector |
 | `VITE_MERKLE_DROP_ADDRESS` | No | Merkle drop contract address for rewards claiming |
 | `VITE_SANCTIONS_API_URL` | No | Sanctions check endpoint (403 = blocked) |
-| `VITE_REWARDS_BASE_URL` | No | Base URL for reward proof files (defaults to GitHub raw URL) |
+| `VITE_REWARDS_BASE_URL` | No | Base URL for reward proof files (defaults to `https://rewards.safenet-gov.eth.limo`, which serves the IPFS content of the `rewards.safenet-gov.eth` ENS name) |
 | `VITE_GEOBLOCK_CACHE_DAYS` | No | Geo-block cache duration in days (defaults to 7) |
 | `VITE_DOCS_URL` | No | Footer documentation link and root for the other docs links (defaults to Safenet Aegis docs) |
 | `VITE_FAQ_URL` | No | Footer FAQ link (defaults to `<VITE_DOCS_URL>/resources/faqs`) |
@@ -185,7 +185,7 @@ Off-chain tooling for generating Merkle proofs compatible with the MerkleDrop co
    - `public/rewards/proofs/{lowercase_address}.json` — per-address proof file (`{ cumulativeAmount, merkleRoot, proof }`)
    - `public/rewards/latest.json` — root, tokenTotal, epoch, updatedAt
 4. Set the Merkle root on-chain on the MerkleDrop contract (`VITE_MERKLE_DROP_ADDRESS`)
-5. The frontend `useRewardProof` hook fetches proofs from `public/rewards/proofs/`
+5. The app fetches proofs from `VITE_REWARDS_BASE_URL` (see Rewards above), so to use a locally generated tree, point it at where `public/rewards/` is served (e.g. `http://localhost:5173/rewards` under `yarn dev`)
 
 ### Config Format
 
