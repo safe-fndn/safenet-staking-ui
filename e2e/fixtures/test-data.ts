@@ -1,3 +1,5 @@
+import { encodeLeaf, hashPair } from "../../src/lib/merkle"
+
 /** Contract addresses on Sepolia */
 export const STAKING_CONTRACT = "0x40745eec3fD6E4C005de1dec0031b2EA9f9D7c42".toLowerCase()
 export const TOKEN_CONTRACT = "0xef98bcc90b1373b2ae0d23ec318d3ee70ea61af4".toLowerCase()
@@ -55,8 +57,15 @@ export const AMOUNTS = {
 /** Mock transaction hash */
 export const MOCK_TX_HASH = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 
+/**
+ * Two leaves for TEST_USER (100 and 50 SAFE), so every fixture amount below has a real
+ * proof under one root. A real tree holds each account once; the proof check doesn't care.
+ */
+const LEAF_100 = encodeLeaf(TEST_USER, 100n * 10n ** 18n)
+const LEAF_50 = encodeLeaf(TEST_USER, 50n * 10n ** 18n)
+
 /** MerkleDrop root reported on-chain by the mock RPC (merkleRoot()) */
-export const TEST_MERKLE_ROOT = "0x" + "ab".repeat(32)
+export const TEST_MERKLE_ROOT = hashPair(LEAF_100, LEAF_50)
 
 /** Sample reward proofs (matching public/rewards/proofs/{address}.json format) for rewards.spec.ts */
 export const REWARD_PROOFS = {
@@ -64,25 +73,25 @@ export const REWARD_PROOFS = {
   claimable: {
     cumulativeAmount: (100n * 10n ** 18n).toString(),
     merkleRoot: TEST_MERKLE_ROOT,
-    proof: ["0x" + "11".repeat(32)],
+    proof: [LEAF_50],
   },
   /** cumulativeAmount equals what the test sets as already-claimed → claimable: 0, disabled */
   fullyClaimed: {
     cumulativeAmount: (50n * 10n ** 18n).toString(),
     merkleRoot: TEST_MERKLE_ROOT,
-    proof: ["0x" + "11".repeat(32)],
+    proof: [LEAF_100],
   },
-  /** proof's embedded root doesn't match the mocked on-chain root → rootStale, disabled */
+  /** same proof as `claimable`, but the file names another root → rootStale, 0 shown, disabled */
   staleRoot: {
     cumulativeAmount: (100n * 10n ** 18n).toString(),
     merkleRoot: "0x" + "cc".repeat(32),
-    proof: ["0x" + "11".repeat(32)],
+    proof: [LEAF_50],
   },
   /** part of the claimable amount is pending compliance review (kyc !== true) */
   partialKyc: {
     cumulativeAmount: (100n * 10n ** 18n).toString(),
     merkleRoot: TEST_MERKLE_ROOT,
-    proof: ["0x" + "11".repeat(32)],
+    proof: [LEAF_50],
     kycAmount: (50n * 10n ** 18n).toString(),
     kyc: false,
   },

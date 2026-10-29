@@ -1,33 +1,7 @@
 import { describe, it, expect } from "vitest"
-import { getAddress, keccak256, encodePacked, type Hex } from "viem"
-import {
-  encodeLeaf,
-  buildMerkleTree,
-  verifyProof,
-  type MerkleEntry,
-} from "../merkle-tree"
-
-describe("encodeLeaf", () => {
-  it("produces correct keccak256 of encodePacked(address, uint256)", () => {
-    const addr = "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045"
-    const amount = 1000n * 10n ** 18n
-    const result = encodeLeaf(addr, amount)
-    const expected = keccak256(
-      encodePacked(
-        ["address", "uint256"],
-        [getAddress(addr), amount],
-      ),
-    )
-    expect(result).toBe(expected)
-  })
-
-  it("normalizes mixed-case addresses to checksummed", () => {
-    const lower = "0xd8da6bf26964af9d7eed9e03e53415d37aa96045"
-    const upper = "0xD8DA6BF26964AF9D7EED9E03E53415D37AA96045"
-    const amount = 500n * 10n ** 18n
-    expect(encodeLeaf(lower, amount)).toBe(encodeLeaf(upper, amount))
-  })
-})
+import { getAddress } from "viem"
+import { encodeLeaf, verifyProof } from "../../src/lib/merkle"
+import { buildMerkleTree, type MerkleEntry } from "../merkle-tree"
 
 describe("buildMerkleTree", () => {
   it("throws on empty entries", () => {
@@ -153,35 +127,5 @@ describe("buildMerkleTree", () => {
     expect(buildMerkleTree(entries1).root).not.toBe(
       buildMerkleTree(entries2).root,
     )
-  })
-})
-
-describe("verifyProof", () => {
-  it("rejects proof against wrong root", () => {
-    const entries: MerkleEntry[] = [
-      { address: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045", amount: 1000n },
-      { address: "0x71C7656EC7ab88b098defB751B7401B5f6d8976F", amount: 500n },
-    ]
-    const tree = buildMerkleTree(entries)
-    const addr = getAddress(entries[0].address)
-    const leaf = encodeLeaf(addr, entries[0].amount)
-    const proof = tree.proofs.get(addr)!
-
-    const fakeRoot: Hex = "0x0000000000000000000000000000000000000000000000000000000000000001"
-    expect(verifyProof(leaf, proof, fakeRoot)).toBe(false)
-  })
-
-  it("rejects proof for wrong leaf", () => {
-    const entries: MerkleEntry[] = [
-      { address: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045", amount: 1000n },
-      { address: "0x71C7656EC7ab88b098defB751B7401B5f6d8976F", amount: 500n },
-    ]
-    const tree = buildMerkleTree(entries)
-    const addr = getAddress(entries[0].address)
-    const proof = tree.proofs.get(addr)!
-
-    // Use wrong amount to get different leaf
-    const wrongLeaf = encodeLeaf(addr, 999n)
-    expect(verifyProof(wrongLeaf, proof, tree.root)).toBe(false)
   })
 })

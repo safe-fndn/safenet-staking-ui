@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, type Mock } from "vitest"
 import { renderHook } from "@testing-library/react"
-import type { Address } from "viem"
+import { maxUint256, type Address } from "viem"
 
 const mockFetch = vi.fn()
 vi.stubGlobal("fetch", mockFetch)
@@ -82,6 +82,17 @@ describe("useRewardProof", () => {
     async function callQueryFn() {
       return capturedOptions!.queryFn!()
     }
+
+    it("fetches from rewards.safenet-gov.eth through eth.limo by default", async () => {
+      vi.stubEnv("VITE_REWARDS_BASE_URL", "")
+      mockFetch.mockResolvedValueOnce({ status: 404 })
+
+      await callQueryFn()
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        "https://rewards.safenet-gov.eth.limo/proofs/04/84/bf/59/0x0484bf598554ab04b9b21421ed28bff6b7742993.json",
+      )
+    })
 
     it("returns null on 404", async () => {
       mockFetch.mockResolvedValueOnce({ status: 404 })
@@ -206,6 +217,37 @@ describe("useRewardProof", () => {
       })
 
       await expect(callQueryFn()).rejects.toThrow("Invalid reward proof format")
+    })
+
+    it.each(["12.5", "-1", (2n ** 256n).toString()])("rejects cumulativeAmount %s", async (cumulativeAmount) => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          cumulativeAmount,
+          merkleRoot: "0x5aea53631d726e3cb245cb1ce31834212ab6667a4726d25168a583d3b57b6cc1",
+          proof: ["0x1998aa1fb0e54f96da60317f799a85422585dda3a8368e6af3a465c3dd455e50"],
+        }),
+      })
+
+      await expect(callQueryFn()).rejects.toThrow("Invalid reward proof format")
+    })
+
+    it("accepts the largest uint256 cumulativeAmount", async () => {
+      const proof = {
+        cumulativeAmount: maxUint256.toString(),
+        merkleRoot: "0x5aea53631d726e3cb245cb1ce31834212ab6667a4726d25168a583d3b57b6cc1",
+        proof: ["0x1998aa1fb0e54f96da60317f799a85422585dda3a8368e6af3a465c3dd455e50"],
+      }
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => proof,
+      })
+
+      const result = await callQueryFn()
+
+      expect(result).toMatchObject(proof)
     })
   })
 })

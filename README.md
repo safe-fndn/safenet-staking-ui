@@ -24,6 +24,8 @@ yarn dev
 
 The app will be available at `http://localhost:5173`.
 
+Reward proofs load from `rewards.safenet-gov.eth.limo` by default, and eth.limo answers HTTP 403 to pages served from `localhost` or `127.0.0.1`. On such a page the dashboard shows 0 claimable SAFE with no error. For a local mainnet run, start `yarn dev --host` and open the network address it prints, or set `VITE_REWARDS_BASE_URL` to an IPFS gateway that allows localhost, such as `https://gateway.pinata.cloud/ipfs/<cid>` with the CID that `rewards.safenet-gov.eth` points to.
+
 ## Environment Variables
 
 | Variable | Required | Description |
@@ -36,7 +38,7 @@ The app will be available at `http://localhost:5173`.
 | `VITE_SANCTIONS_API_URL` | No | Sanctions check endpoint (HTTP 403 = blocked) |
 | `VITE_GEOBLOCK_CACHE_DAYS` | No | Geo-block cache duration in days (defaults to 7) |
 | `VITE_VALIDATOR_INFO_URL` | No | Validator info JSON endpoint (defaults to GitHub raw URL) |
-| `VITE_REWARDS_BASE_URL` | No | Base URL for reward proof files (defaults to GitHub raw URL) |
+| `VITE_REWARDS_BASE_URL` | No | Base URL for reward proof files (defaults to `https://rewards.safenet-gov.eth.limo`, which serves the IPFS content of the `rewards.safenet-gov.eth` ENS name) |
 | `VITE_KYC_REQUIRED_URL` | No | KYC-required address list endpoint (defaults to GitHub raw URL) |
 | `VITE_DOCS_URL` | No | Documentation link in footer and root for the other docs links (defaults to Safenet Aegis docs) |
 | `VITE_FAQ_URL` | No | FAQ link in footer (defaults to `<VITE_DOCS_URL>/resources/faqs`) |
