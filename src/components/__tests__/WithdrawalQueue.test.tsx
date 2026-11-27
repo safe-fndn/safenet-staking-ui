@@ -9,7 +9,7 @@ const mockResetClaim = vi.fn()
 const mockToast = vi.fn()
 
 const mockUseAccount = vi.fn()
-const mockUsePendingWithdrawals = vi.fn()
+const mockUseWithdrawalQueue = vi.fn()
 const mockUseWithdrawalValidators = vi.fn()
 const mockUseClaimWithdrawal = vi.fn()
 
@@ -18,12 +18,9 @@ vi.mock("wagmi", () => ({
   useReadContract: vi.fn(() => ({ data: undefined, isLoading: false })),
 }))
 
-vi.mock("@/hooks/useWithdrawals", () => ({
-  usePendingWithdrawals: () => mockUsePendingWithdrawals(),
-}))
-
-vi.mock("@/hooks/useWithdrawalValidators", () => ({
-  useWithdrawalValidators: () => mockUseWithdrawalValidators(),
+vi.mock("@/hooks/useWithdrawalQueue", () => ({
+  useWithdrawalQueue: () => mockUseWithdrawalQueue(),
+  useWithdrawalValidators: (ids: bigint[] | undefined) => mockUseWithdrawalValidators(ids),
 }))
 
 vi.mock("@/hooks/useValidators", async (importOriginal) => {
@@ -88,7 +85,7 @@ describe("WithdrawalQueue", () => {
 
   it("shows connect wallet message when disconnected", () => {
     mockUseAccount.mockReturnValue({ isConnected: false })
-    mockUsePendingWithdrawals.mockReturnValue({ data: undefined, isLoading: false })
+    mockUseWithdrawalQueue.mockReturnValue({ data: undefined, isLoading: false })
 
     renderQueue()
 
@@ -97,7 +94,7 @@ describe("WithdrawalQueue", () => {
 
   it("shows loading skeletons when loading", () => {
     mockUseAccount.mockReturnValue({ isConnected: true })
-    mockUsePendingWithdrawals.mockReturnValue({ data: undefined, isLoading: true })
+    mockUseWithdrawalQueue.mockReturnValue({ data: undefined, isLoading: true })
 
     const { container } = renderQueue()
 
@@ -107,7 +104,7 @@ describe("WithdrawalQueue", () => {
 
   it("shows empty state when no withdrawals", () => {
     mockUseAccount.mockReturnValue({ isConnected: true })
-    mockUsePendingWithdrawals.mockReturnValue({ data: [], isLoading: false })
+    mockUseWithdrawalQueue.mockReturnValue({ data: { blockNumber: 100n, rows: [] }, isLoading: false })
 
     renderQueue()
 
@@ -116,10 +113,10 @@ describe("WithdrawalQueue", () => {
 
   it("renders withdrawal cards when withdrawals exist", () => {
     mockUseAccount.mockReturnValue({ isConnected: true })
-    mockUsePendingWithdrawals.mockReturnValue({
-      data: [
-        { amount: 50n * 10n ** 18n, claimableAt: BigInt(Math.floor(Date.now() / 1000) + 3600) },
-      ],
+    mockUseWithdrawalQueue.mockReturnValue({
+      data: { blockNumber: 100n, rows: [
+        { id: 7n, amount: 50n * 10n ** 18n, claimableAt: BigInt(Math.floor(Date.now() / 1000) + 3600) },
+      ] },
       isLoading: false,
     })
 
@@ -130,10 +127,10 @@ describe("WithdrawalQueue", () => {
 
   it("shows FIFO info tooltip button", () => {
     mockUseAccount.mockReturnValue({ isConnected: true })
-    mockUsePendingWithdrawals.mockReturnValue({
-      data: [
-        { amount: 50n * 10n ** 18n, claimableAt: BigInt(Math.floor(Date.now() / 1000) + 3600) },
-      ],
+    mockUseWithdrawalQueue.mockReturnValue({
+      data: { blockNumber: 100n, rows: [
+        { id: 7n, amount: 50n * 10n ** 18n, claimableAt: BigInt(Math.floor(Date.now() / 1000) + 3600) },
+      ] },
       isLoading: false,
     })
 
@@ -144,10 +141,10 @@ describe("WithdrawalQueue", () => {
 
   it("calls useClaimWithdrawal reset after successful claim (regression: infinite toast loop)", () => {
     mockUseAccount.mockReturnValue({ isConnected: true })
-    mockUsePendingWithdrawals.mockReturnValue({
-      data: [
-        { amount: 50n * 10n ** 18n, claimableAt: BigInt(Math.floor(Date.now() / 1000) - 3600) },
-      ],
+    mockUseWithdrawalQueue.mockReturnValue({
+      data: { blockNumber: 100n, rows: [
+        { id: 7n, amount: 50n * 10n ** 18n, claimableAt: BigInt(Math.floor(Date.now() / 1000) - 3600) },
+      ] },
       isLoading: false,
     })
     mockUseClaimWithdrawal.mockReturnValue({
@@ -168,5 +165,39 @@ describe("WithdrawalQueue", () => {
     expect(mockToast).toHaveBeenCalledWith(
       expect.objectContaining({ variant: "success", title: "Withdrawal claimed" }),
     )
+  })
+
+  it("labels each row by its withdrawal ID, not its position", () => {
+    mockUseAccount.mockReturnValue({ isConnected: true })
+    const later = BigInt(Math.floor(Date.now() / 1000) + 3600)
+    mockUseWithdrawalQueue.mockReturnValue({
+      data: { blockNumber: 100n, rows: [
+        { id: 8n, amount: 10n ** 18n, claimableAt: later },
+        { id: 9n, amount: 2n * 10n ** 18n, claimableAt: later },
+      ] },
+      isLoading: false,
+    })
+    // Only ID 9 is resolved so far: it must land on the second row.
+    mockUseWithdrawalValidators.mockReturnValue({ data: { "9": MOCK_VALIDATORS[0].address } })
+
+    renderQueue()
+
+    expect(mockUseWithdrawalValidators).toHaveBeenCalledWith([8n, 9n])
+    const labels = screen.getAllByText(MOCK_VALIDATORS[0].label)
+    expect(labels).toHaveLength(1)
+    expect(labels[0].closest(".border")).toHaveTextContent("2 SAFE")
+  })
+
+  it("shows an error with a retry instead of an empty queue when the read fails", async () => {
+    mockUseAccount.mockReturnValue({ isConnected: true })
+    const refetch = vi.fn()
+    mockUseWithdrawalQueue.mockReturnValue({ data: undefined, isLoading: false, isError: true, refetch })
+
+    renderQueue()
+
+    expect(screen.queryByText("No pending withdrawals.")).not.toBeInTheDocument()
+    expect(screen.getByText("Could not load your withdrawal queue.")).toBeInTheDocument()
+    screen.getByRole("button", { name: "Retry" }).click()
+    expect(refetch).toHaveBeenCalled()
   })
 })

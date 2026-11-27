@@ -18,6 +18,12 @@ import type { RewardProof } from "./rpc-responses"
 export interface PendingWithdrawal {
   amount: bigint
   claimableAt: bigint
+  /**
+   * Global withdrawal ID and validator, as the contract tracks them. Tests may
+   * leave them out; `withdrawalQueue()` assigns the next free ID and validator A.
+   */
+  id?: bigint
+  validator?: string
 }
 
 /** One call inside an EIP-5792 wallet_sendCalls batch, as the app submitted it. */
@@ -33,6 +39,8 @@ export interface MockChainState {
   stakes: Map<string, bigint>
   /** FIFO queue, oldest first */
   pendingWithdrawals: PendingWithdrawal[]
+  /** Next global withdrawal ID the contract would assign (IDs start at 1). */
+  nextWithdrawalId: bigint
   merkleDropClaimed: bigint
   /** undefined = no reward proof configured for this address (served as 404) */
   rewardProof?: RewardProof | null
@@ -72,11 +80,30 @@ export function createMockChainState(overrides: MockChainStateOverrides = {}): M
     pendingWithdrawals:
       overrides.pendingWithdrawals ??
       [{ amount: AMOUNTS.pendingWithdrawalAmount, claimableAt: BigInt(Math.floor(Date.now() / 1000) - 3600) }],
+    nextWithdrawalId: 1n,
     merkleDropClaimed: overrides.merkleDropClaimed ?? 0n,
     rewardProof: overrides.rewardProof,
     rejectNextTx: false,
     batches: [],
   }
+}
+
+/** A pending withdrawal with its contract-side ID and validator filled in. */
+export type QueuedWithdrawal = Required<PendingWithdrawal>
+
+/**
+ * The pending withdrawals as the contract's linked list holds them: each with
+ * a global ID and its validator. Entries a test added without an ID get the
+ * next free ID (and validator A), so tests can keep assigning
+ * `pendingWithdrawals` directly and the queue, node and event reads agree.
+ */
+export function withdrawalQueue(state: MockChainState): QueuedWithdrawal[] {
+  for (const w of state.pendingWithdrawals) {
+    if (w.id === undefined) w.id = state.nextWithdrawalId++
+    else if (w.id >= state.nextWithdrawalId) state.nextWithdrawalId = w.id + 1n
+    w.validator ??= VALIDATORS.validatorA.toLowerCase()
+  }
+  return state.pendingWithdrawals as QueuedWithdrawal[]
 }
 
 /** 4-byte selectors for the write methods the mock provider intercepts. */
@@ -128,7 +155,8 @@ export function applyMockTx(state: MockChainState, data: string, userAddress: st
       state.stakes.set(validator, (state.stakes.get(validator) ?? 0n) - amount)
       // Real contract locks the withdrawal for withdrawDelay before it's claimable.
       const claimableAt = BigInt(Math.floor(Date.now() / 1000)) + AMOUNTS.withdrawDelay
-      state.pendingWithdrawals.push({ amount, claimableAt })
+      withdrawalQueue(state) // settle IDs of existing entries first
+      state.pendingWithdrawals.push({ amount, claimableAt, id: state.nextWithdrawalId++, validator })
       break
     }
     case TX_SELECTORS.claimWithdrawal: {

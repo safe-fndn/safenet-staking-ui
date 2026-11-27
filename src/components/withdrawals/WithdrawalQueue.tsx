@@ -1,7 +1,6 @@
 import { useAccount } from "wagmi"
-import { usePendingWithdrawals } from "@/hooks/useWithdrawals"
 import { useWithdrawDelay } from "@/hooks/useStakingReads"
-import { useWithdrawalValidators } from "@/hooks/useWithdrawalValidators"
+import { useWithdrawalQueue, useWithdrawalValidators } from "@/hooks/useWithdrawalQueue"
 import { useValidators } from "@/hooks/useValidators"
 import { useClaimWithdrawal, useBatchClaimWithdrawals } from "@/hooks/useStakingWrites"
 import { useToast } from "@/hooks/useToast"
@@ -17,9 +16,11 @@ import Loader2 from "lucide-react/dist/esm/icons/loader-2"
 
 export function WithdrawalQueue() {
   const { isConnected } = useAccount()
-  const { data: withdrawals, isLoading } = usePendingWithdrawals()
+  // Rows and their IDs come from one queue snapshot; validators are looked up by ID.
+  const { data: snapshot, isLoading, isError, refetch } = useWithdrawalQueue()
+  const withdrawals = snapshot?.rows
   const { data: withdrawDelay } = useWithdrawDelay()
-  const { data: withdrawalValidators } = useWithdrawalValidators()
+  const { data: validatorById } = useWithdrawalValidators(withdrawals?.map((w) => w.id))
   const { data: allValidators } = useValidators()
   const { claimWithdrawal, isSigningTx, isConfirmingTx, isSuccess: isClaimed, isSafeQueued: isClaimSafeQueued, error: claimError, txHash: claimTxHash, reset: resetClaim } = useClaimWithdrawal()
   const {
@@ -119,6 +120,17 @@ export function WithdrawalQueue() {
     )
   }
 
+  if (isError && !snapshot) {
+    return (
+      <div className="rounded-lg border p-8 text-center text-muted-foreground space-y-3">
+        <p>Could not load your withdrawal queue.</p>
+        <Button size="sm" variant="outline" onClick={() => refetch()}>
+          Retry
+        </Button>
+      </div>
+    )
+  }
+
   if (!withdrawals || withdrawals.length === 0) {
     return (
       <div className="rounded-lg border p-8 text-center text-muted-foreground">
@@ -167,7 +179,7 @@ export function WithdrawalQueue() {
       </div>
       {withdrawals.map((w, i) => (
         <WithdrawalCard
-          key={`${w.amount}-${w.claimableAt}`}
+          key={w.id.toString()}
           amount={w.amount}
           claimableAt={Number(w.claimableAt)}
           isFirst={i === 0}
@@ -175,7 +187,7 @@ export function WithdrawalQueue() {
           isSigningTx={claimingIndex === i && isSigningTx}
           isConfirmingTx={claimingIndex === i && isConfirmingTx}
           withdrawDelay={withdrawDelay !== undefined ? Number(withdrawDelay) : undefined}
-          validator={withdrawalValidators?.[i]}
+          validator={validatorById?.[w.id.toString()]}
           validators={allValidators}
         />
       ))}

@@ -2,7 +2,8 @@
  * Mock eth_getLogs responses for validator discovery and transaction history.
  */
 
-import { STAKING_CONTRACT, VALIDATORS, TEST_USER, AMOUNTS } from "../fixtures/test-data"
+import { STAKING_CONTRACT, VALIDATORS, TEST_USER, AMOUNTS, BLOCK_NUMBER } from "../fixtures/test-data"
+import { withdrawalQueue, type MockChainState } from "./mock-chain-state"
 import { toUint256, toAddress } from "./rpc-responses"
 
 // Event topic hashes (keccak256 of event signatures)
@@ -93,27 +94,37 @@ export function getStakeIncreasedLogs(): object[] {
 }
 
 /**
- * Generate mock WithdrawalInitiated logs for the test user.
+ * WithdrawalInitiated logs for the user's pending withdrawals, served from the
+ * mock chain state so IDs and validators match withdrawalQueues/withdrawalNodes.
+ * They sit at the current block, so the app's newest-first scan finds them in
+ * its first chunk.
  */
-export function getWithdrawalInitiatedLogs(): object[] {
-  return [
-    {
-      address: "0x" + STAKING_CONTRACT.replace("0x", ""),
-      topics: [
-        TOPICS.WithdrawalInitiated,
-        addrTopic(TEST_USER),
-        addrTopic(VALIDATORS.validatorA),
-        "0x" + toUint256(1n), // withdrawalId
-      ],
-      data: "0x" + toUint256(AMOUNTS.pendingWithdrawalAmount),
-      blockNumber: "0x5000003",
-      blockHash: "0x" + "f3".repeat(32),
-      transactionHash: "0x" + "a3".repeat(32),
-      transactionIndex: "0x0",
-      logIndex: "0x0",
-      removed: false,
-    },
-  ]
+export function getWithdrawalInitiatedLogs(state: MockChainState): object[] {
+  return withdrawalQueue(state).map((w, i) => ({
+    address: "0x" + STAKING_CONTRACT.replace("0x", ""),
+    topics: [
+      TOPICS.WithdrawalInitiated,
+      addrTopic(TEST_USER),
+      addrTopic(w.validator),
+      "0x" + toUint256(w.id),
+    ],
+    data: "0x" + toUint256(w.amount),
+    blockNumber: BLOCK_NUMBER,
+    blockHash: "0x" + "f3".repeat(32),
+    transactionHash: "0x" + toUint256(0xa300n + w.id),
+    transactionIndex: "0x" + i.toString(16),
+    logIndex: "0x" + i.toString(16),
+    removed: false,
+  }))
+}
+
+/** Whether a hex block number is inside a getLogs fromBlock/toBlock range (tags count as unbounded). */
+function inRange(block: string, fromBlock?: string, toBlock?: string): boolean {
+  const n = BigInt(block)
+  const bound = (b?: string) => (b && b.startsWith("0x") ? BigInt(b) : undefined)
+  const from = bound(fromBlock)
+  const to = bound(toBlock)
+  return (from === undefined || n >= from) && (to === undefined || n <= to)
 }
 
 /**
@@ -127,10 +138,15 @@ export function getWithdrawalClaimedLogs(): object[] {
  * Match a getLogs request against our mock data.
  * Returns the appropriate logs based on the topics filter.
  */
-export function matchGetLogs(params: {
-  address?: string
-  topics?: (string | string[] | null)[]
-}): object[] {
+export function matchGetLogs(
+  params: {
+    address?: string
+    topics?: (string | string[] | null)[]
+    fromBlock?: string
+    toBlock?: string
+  },
+  state: MockChainState,
+): object[] {
   const address = params.address?.toLowerCase()
   const stakingAddr = STAKING_CONTRACT.toLowerCase()
 
@@ -144,7 +160,7 @@ export function matchGetLogs(params: {
     return [
       ...getValidatorUpdatedLogs(),
       ...getStakeIncreasedLogs(),
-      ...getWithdrawalInitiatedLogs(),
+      ...getWithdrawalInitiatedLogs(state),
       ...getWithdrawalClaimedLogs(),
     ]
   }
@@ -170,7 +186,9 @@ export function matchGetLogs(params: {
       return logs
     }
     case TOPICS.WithdrawalInitiated: {
-      let logs = getWithdrawalInitiatedLogs()
+      let logs = getWithdrawalInitiatedLogs(state).filter((l) =>
+        inRange((l as { blockNumber: string }).blockNumber, params.fromBlock, params.toBlock),
+      )
       if (topics[1]) {
         const staker = (Array.isArray(topics[1]) ? topics[1][0] : topics[1]).toLowerCase()
         logs = logs.filter(l => (l as { topics: string[] }).topics[1].toLowerCase() === staker)
