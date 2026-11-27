@@ -20,10 +20,10 @@ interface WithdrawalCardProps {
   isConfirmingTx: boolean
   /**
    * Why claiming is disabled for now: "updating" while the queue hasn't
-   * refreshed past a confirmed claim, "busy" while Claim All is signing or
-   * confirming.
+   * refreshed past a confirmed claim, "safe" while a claim is queued in Safe,
+   * "busy" while Claim All is signing or confirming.
    */
-  claimLock?: "updating" | "busy"
+  claimLock?: "updating" | "safe" | "busy"
   withdrawDelay?: number
   validator?: Address
   validators?: ValidatorInfo[]
@@ -157,6 +157,8 @@ export function WithdrawalCard({
                   />
                   Claiming all…
                 </>
+              ) : claimLock === "safe" ? (
+                "Queued in Safe"
               ) : (
                 <>
                   Claim

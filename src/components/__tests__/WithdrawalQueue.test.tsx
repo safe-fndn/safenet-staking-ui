@@ -23,6 +23,14 @@ vi.mock("@/hooks/useWithdrawalQueue", () => ({
   useWithdrawalValidators: (ids: bigint[] | undefined) => mockUseWithdrawalValidators(ids),
 }))
 
+const mockUseSafeTxStatus = vi.fn<(hash?: string) => { status: string; blockNumber?: bigint }>(() => ({ status: "pending" }))
+vi.mock("@/hooks/useSafeTxStatus", () => ({
+  useSafeTxStatus: (hash?: string) => mockUseSafeTxStatus(hash),
+}))
+
+// Run as the Safe app, so pending Safe claims are persisted (they need an address; most tests have none).
+vi.mock("@/lib/safe", () => ({ isSafeApp: true }))
+
 vi.mock("@/hooks/useValidators", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/hooks/useValidators")>()
   return {
@@ -52,7 +60,9 @@ vi.mock("@/hooks/useCountdown", () => ({
 describe("WithdrawalQueue", () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    localStorage.clear()
     mockUseCountdown.mockReturnValue(3600)
+    mockUseSafeTxStatus.mockReturnValue({ status: "pending" })
     mockUseClaimWithdrawal.mockReturnValue({
       claimWithdrawal: mockClaimWithdrawal,
       isSigningTx: false,
@@ -261,6 +271,50 @@ describe("WithdrawalQueue", () => {
     expect(refetch).toHaveBeenCalled()
   })
 
+  it("keeps Claim locked while the queued Safe claim can still execute, even if the head changes", () => {
+    mockUseAccount.mockReturnValue({ isConnected: true })
+    mockUseCountdown.mockReturnValue(0)
+    mockUseWithdrawalQueue.mockReturnValue({ data: { blockNumber: 100n, rows: readyRows(7n, 8n) }, isLoading: false })
+    mockUseClaimWithdrawal.mockReturnValue(claimHook({ isSafeQueued: true, txHash: "0x5afe" }))
+
+    const { rerender } = renderQueue()
+    const rerenderQueue = () => rerender(<TooltipProvider><WithdrawalQueue /></TooltipProvider>)
+    expect(mockUseSafeTxStatus).toHaveBeenLastCalledWith("0x5afe")
+    expect(screen.getByRole("button", { name: "Queued in Safe" })).toBeDisabled()
+
+    // The toast resets the hook, and another signer claims 7 meanwhile: the queued claim
+    // could still execute and claim 8, so the lock holds.
+    mockUseClaimWithdrawal.mockReturnValue(claimHook())
+    mockUseWithdrawalQueue.mockReturnValue({ data: { blockNumber: 101n, rows: readyRows(8n, 9n) }, isLoading: false })
+    rerenderQueue()
+    expect(screen.getByRole("button", { name: "Queued in Safe" })).toBeDisabled()
+
+    // It executed in block 105: claiming waits for a snapshot of that block.
+    mockUseSafeTxStatus.mockReturnValue({ status: "executed", blockNumber: 105n })
+    rerenderQueue()
+    expect(mockUseWithdrawalQueue).toHaveBeenLastCalledWith({ minBlock: 105n })
+    expect(screen.getByRole("button", { name: /Updating/ })).toBeDisabled()
+
+    mockUseWithdrawalQueue.mockReturnValue({ data: { blockNumber: 105n, rows: readyRows(9n) }, isLoading: false })
+    rerenderQueue()
+    expect(screen.getByRole("button", { name: /Claim/ })).toBeEnabled()
+    expect(mockUseSafeTxStatus).toHaveBeenLastCalledWith(undefined) // no longer tracked
+  })
+
+  it("unlocks when the queued Safe claim is dropped", () => {
+    mockUseAccount.mockReturnValue({ isConnected: true })
+    mockUseCountdown.mockReturnValue(0)
+    mockUseWithdrawalQueue.mockReturnValue({ data: { blockNumber: 100n, rows: readyRows(7n) }, isLoading: false })
+    mockUseClaimWithdrawal.mockReturnValue(claimHook({ isSafeQueued: true, txHash: "0x5afe" }))
+
+    const { rerender } = renderQueue()
+    expect(screen.getByRole("button", { name: "Queued in Safe" })).toBeDisabled()
+
+    mockUseSafeTxStatus.mockReturnValue({ status: "dropped" })
+    rerender(<TooltipProvider><WithdrawalQueue /></TooltipProvider>)
+    expect(screen.getByRole("button", { name: /Claim/ })).toBeEnabled()
+  })
+
   it("waits for the queue after a partly failed Claim All, using the successful receipts' block", () => {
     mockUseAccount.mockReturnValue({ isConnected: true })
     mockUseCountdown.mockReturnValue(0)
@@ -284,6 +338,51 @@ describe("WithdrawalQueue", () => {
     expect(screen.getByRole("button", { name: /Updating/ })).toBeDisabled()
     expect(screen.getByRole("button", { name: /Claim All/ })).toBeDisabled()
     expect(mockToast).toHaveBeenCalledWith(expect.objectContaining({ title: "Some claims failed" }))
+  })
+
+  it("after a reload, keeps an executed Safe claim's stale row locked until the queue reaches its block", async () => {
+    const { pendingSafeClaimKey } = await import("@/hooks/useSafeClaimLock")
+    const { activeChain } = await import("@/config/chains")
+    const safe = "0x1111111111111111111111111111111111111111"
+    // Stored before the reload: the claim executed in block 105, the queue had not caught up.
+    localStorage.setItem(
+      pendingSafeClaimKey(activeChain.id, safe),
+      JSON.stringify({ hash: `0x${"5a".repeat(32)}`, executedBlock: "105" }),
+    )
+    mockUseAccount.mockReturnValue({ isConnected: true, address: safe })
+    mockUseCountdown.mockReturnValue(0)
+    // The page opens with the old (cached) queue, still showing the claimed withdrawal 7.
+    mockUseWithdrawalQueue.mockReturnValue({ data: { blockNumber: 104n, rows: readyRows(7n, 8n) }, isLoading: false })
+
+    const { rerender } = renderQueue()
+    expect(mockUseWithdrawalQueue).toHaveBeenLastCalledWith({ minBlock: 105n })
+    expect(screen.getByRole("button", { name: /Updating/ })).toBeDisabled()
+
+    mockUseWithdrawalQueue.mockReturnValue({ data: { blockNumber: 105n, rows: readyRows(8n) }, isLoading: false })
+    rerender(<TooltipProvider><WithdrawalQueue /></TooltipProvider>)
+    expect(screen.getByRole("button", { name: /Claim/ })).toBeEnabled()
+    expect(localStorage.getItem(pendingSafeClaimKey(activeChain.id, safe))).toBeNull()
+  })
+
+  it("does not send a claim when another tab already queued one for this Safe", async () => {
+    const { pendingSafeClaimKey } = await import("@/hooks/useSafeClaimLock")
+    const { activeChain } = await import("@/config/chains")
+    const safe = "0x1111111111111111111111111111111111111111"
+    mockUseAccount.mockReturnValue({ isConnected: true, address: safe })
+    mockUseCountdown.mockReturnValue(0)
+    mockUseWithdrawalQueue.mockReturnValue({ data: { blockNumber: 100n, rows: readyRows(7n) }, isLoading: false })
+
+    renderQueue()
+    const claim = screen.getByRole("button", { name: /Claim/ })
+    expect(claim).toBeEnabled()
+
+    // Another tab queues a claim; this tab has not received the storage event yet.
+    localStorage.setItem(pendingSafeClaimKey(activeChain.id, safe), JSON.stringify({ hash: `0x${"5a".repeat(32)}` }))
+    await act(async () => claim.click())
+
+    expect(mockClaimWithdrawal).not.toHaveBeenCalled()
+    expect(mockToast).toHaveBeenCalledWith(expect.objectContaining({ title: "Claim already queued" }))
+    expect(screen.getByRole("button", { name: "Queued in Safe" })).toBeDisabled()
   })
 
   const batchHook = (overrides: Record<string, unknown> = {}) => ({

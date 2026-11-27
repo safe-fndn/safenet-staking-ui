@@ -1,6 +1,7 @@
 import { useAccount } from "wagmi"
 import { useWithdrawDelay } from "@/hooks/useStakingReads"
 import { useWithdrawalQueue, useWithdrawalValidators } from "@/hooks/useWithdrawalQueue"
+import { useSafeClaimLock } from "@/hooks/useSafeClaimLock"
 import { useValidators } from "@/hooks/useValidators"
 import { useClaimWithdrawal, useBatchClaimWithdrawals } from "@/hooks/useStakingWrites"
 import { useToast } from "@/hooks/useToast"
@@ -30,13 +31,20 @@ export function WithdrawalQueue() {
     confirmedBlock: batchBlock,
   } = useBatchClaimWithdrawals()
 
+  // In the Safe app a claim is only queued and may execute much later, whatever
+  // happens to the queue meanwhile (another signer may claim the head first).
+  // Claiming stays locked while it can still execute, across page visits and
+  // reloads; once it executed, its block feeds the gate below.
+  // (A Safe batch needs no lock: its status stays "confirming" until it executes.)
+  const { lockedHash: queuedSafeTx, safeBlock, release: releaseSafeClaim, canSubmit: canSubmitSafeClaim } = useSafeClaimLock(isClaimSafeQueued ? claimTxHash : undefined)
+
   // claimWithdrawal() takes no ID: it claims whatever is at the head. After a
   // claim confirms, keep every claim control disabled until the queue snapshot
   // is at least as new as the claim's block, so a stale row can't trigger a
   // claim of the next withdrawal. Recorded during render (not in an effect)
   // because the tx toast resets the claim hooks right after success.
   const [awaitBlock, setAwaitBlock] = useState<bigint | undefined>(undefined)
-  for (const block of [claimBlock, batchBlock]) {
+  for (const block of [claimBlock, batchBlock, safeBlock]) {
     if (block !== undefined && (awaitBlock === undefined || block > awaitBlock)) setAwaitBlock(block)
   }
 
@@ -44,11 +52,14 @@ export function WithdrawalQueue() {
   const { data: snapshot, isLoading, isError, refetch } = useWithdrawalQueue({ minBlock: awaitBlock })
   const withdrawals = snapshot?.rows
   const isSyncing = awaitBlock !== undefined && (!snapshot || snapshot.blockNumber < awaitBlock)
+  // An executed Safe claim stays stored (surviving reloads) until a snapshot reaches its block.
+  releaseSafeClaim(snapshot?.blockNumber)
   // Both claim kinds act on the head of the queue, so only one may be in flight:
   // a single claim and Claim All each lock out the other while signing or confirming.
   const isSingleBusy = isSigningTx || isConfirmingTx
   const isBatchInFlight = isBatchSigning || isBatchConfirming
-  const claimLock = isBatchInFlight ? "busy" : isSyncing ? "updating" : undefined
+  const claimLock =
+    queuedSafeTx !== undefined ? "safe" : isBatchInFlight ? "busy" : isSyncing ? "updating" : undefined
   const { data: withdrawDelay } = useWithdrawDelay()
   const { data: validatorById } = useWithdrawalValidators(withdrawals?.map((w) => w.id))
   const { data: allValidators } = useValidators()
@@ -78,10 +89,14 @@ export function WithdrawalQueue() {
     : 0
   const showClaimAll = supportsBatching && claimableCount >= 2
 
-  // Never send while another claim is signing or confirming.
+  // Recheck right before sending: another tab may have queued a claim for this Safe.
   const guardClaim = (send: () => void) => {
-    if (isSingleBusy || isBatchInFlight) return
-    send()
+    if (isSingleBusy || isBatchInFlight) return // another claim is signing or confirming
+    if (canSubmitSafeClaim()) {
+      send()
+    } else {
+      toast({ variant: "error", title: "Claim already queued", description: "A claim for this Safe is waiting in Safe Wallet. Claiming unlocks once it executes or is rejected." })
+    }
   }
 
   const handleClaimReset = useCallback(() => {
