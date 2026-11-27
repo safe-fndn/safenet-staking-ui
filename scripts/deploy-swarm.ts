@@ -52,7 +52,7 @@ import {
   verifyPage,
   verifyWebsite,
 } from "./swarm/gateway"
-import { completeRelease, fileChecksums, sha256, toolingVersions, writePendingRelease, type FileChecksum, type PendingRelease } from "./swarm/release"
+import { completeRelease, fileChecksums, lockRelease, sha256, toolingVersions, writePendingRelease, type FileChecksum, type PendingRelease } from "./swarm/release"
 import { decodeBundle, encodeBundle, planDepth, stampChunks, uniqueChunks, type StampedChunk } from "./swarm/stamping"
 import { hashWebsite, type SwarmChunk } from "./swarm/website"
 
@@ -60,6 +60,14 @@ const log = (...lines: string[]) => console.error(lines.join("\n"))
 function fail(message: string): never {
   log(`Error: ${message}`)
   process.exit(1)
+}
+/** Takes the release's lock (see lockRelease), or fails if another run holds it. */
+function lock(releaseDir: string): void {
+  try {
+    lockRelease(releaseDir)
+  } catch (e) {
+    fail((e as Error).message)
+  }
 }
 const list = (env: string | undefined, fallback: string[]) => (env ? env.split(",").map((s) => s.trim()).filter(Boolean) : fallback)
 
@@ -150,6 +158,8 @@ async function finish(releaseDir: string): Promise<void> {
   const metaPath = join(releaseDir, "release.json")
   const bundlePath = join(releaseDir, "bundle.bin")
   if (!existsSync(metaPath) || !existsSync(bundlePath)) fail(`${releaseDir} must contain bundle.bin and release.json`)
+  // Read the metadata only while holding the lock, so a concurrent run's upload history is never lost.
+  lock(releaseDir)
   const pending = JSON.parse(readFileSync(metaPath, "utf8")) as PendingRelease
   const { draft } = pending
   const bundle = readFileSync(bundlePath)
@@ -250,6 +260,15 @@ async function release(): Promise<void> {
 
   if (values["dry-run"]) return
 
+  // Reserve the release directory before anything is bought: another run on
+  // this release must make this one stop here, not after the purchase.
+  const releaseDir = join("swarm-release", reference)
+  mkdirSync(releaseDir, { recursive: true })
+  lock(releaseDir)
+  if (existsSync(join(releaseDir, "bundle.bin"))) {
+    fail(`${releaseDir} already holds a stamped release; resume it with --push-bundle ${releaseDir} instead of buying a new batch`)
+  }
+
   // 3. Ephemeral stamping key (memory only) and the purchase for the operator.
   let key: Hex | undefined = generatePrivateKey()
   const owner = privateKeyToAccount(key).address
@@ -284,8 +303,6 @@ async function release(): Promise<void> {
   const stamped = stampChunks(chunks, key, batch.batchId, depth)
   key = undefined
   const bundle = encodeBundle(stamped)
-  const releaseDir = join("swarm-release", reference)
-  mkdirSync(releaseDir, { recursive: true })
   writeFileSync(join(releaseDir, "bundle.bin"), bundle)
   const pending: PendingRelease = {
     draft: {

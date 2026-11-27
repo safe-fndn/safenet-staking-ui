@@ -3,8 +3,8 @@
  * `releases/swarm/`, so anyone can find a release's batch to top it up and
  * re-check its reference with `swarm:hash`.
  */
-import { createHash } from "node:crypto"
-import { closeSync, fsyncSync, mkdirSync, openSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync, writeSync } from "node:fs"
+import { createHash, randomBytes } from "node:crypto"
+import { closeSync, fsyncSync, linkSync, mkdirSync, openSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync, writeSync } from "node:fs"
 import { join } from "node:path"
 import type { Hex } from "viem"
 
@@ -90,6 +90,106 @@ export interface PendingRelease {
    * an independent verifier later. Missing in bundles saved by older tooling.
    */
   attemptedGateways?: string[]
+}
+
+const isAlive = (pid: number) => {
+  try {
+    process.kill(pid, 0)
+    return true
+  } catch (e) {
+    // EPERM: the process exists but belongs to someone else.
+    return (e as NodeJS.ErrnoException).code === "EPERM"
+  }
+}
+
+/** Test hooks for lockRelease's takeover steps. */
+export interface LockHooks {
+  /** Runs after a dead owner was seen, before the takeover mutex is taken. */
+  beforeTakeover?: () => void
+}
+
+/**
+ * Takes the exclusive lock of a saved release, so two runs on one bundle
+ * cannot both read release.json and then overwrite each other's upload
+ * history. Re-entrant within one process; throws if another live process
+ * holds it. Returns the release function, which also runs on exit.
+ *
+ * Protocol (relies only on atomic link and rename):
+ * - A lock is created complete: the PID is written to a private temp file,
+ *   which is then hard-linked to `release.lock`. The link fails if the lock
+ *   exists, and a lock never exists without its PID, so a new lock is never
+ *   mistaken for an empty, stale one.
+ * - A lock whose owner is gone (a crashed run) is taken over only under a
+ *   second lock, `release.lock.takeover`, created the same way. Holding it,
+ *   the taker rereads the owner; only if it is still the dead one does it
+ *   atomically rename its own lock over it. A run that saw the dead owner
+ *   earlier finds the new, live owner on its reread and stops.
+ * - A lock or takeover file that cannot be read as a PID is never removed
+ *   automatically.
+ */
+export function lockRelease(dir: string, pid = process.pid, alive = isAlive, hooks: LockHooks = {}): () => void {
+  const path = join(dir, "release.lock")
+  const takeoverPath = `${path}.takeover`
+  const ownerOf = (file: string): number | undefined => {
+    try {
+      const value = Number(readFileSync(file, "utf8").trim())
+      return Number.isInteger(value) && value > 0 ? value : undefined
+    } catch {
+      return undefined
+    }
+  }
+  /** Creates `target` holding our PID, atomically and only if it does not exist yet. */
+  const createExclusive = (target: string): boolean => {
+    const tmp = `${target}.${pid}.${randomBytes(4).toString("hex")}.tmp`
+    writeFileSync(tmp, `${pid}\n`, { flag: "wx" })
+    try {
+      linkSync(tmp, target)
+      return true
+    } catch (e) {
+      if ((e as NodeJS.ErrnoException).code === "EEXIST") return false
+      throw e
+    } finally {
+      rmSync(tmp, { force: true })
+    }
+  }
+  const inUse = (owner: number) => new Error(`${dir} is in use by another run (process ${owner}); wait for it to finish`)
+  const unreadable = (file: string) =>
+    new Error(`${file} exists but holds no valid PID; if no other run is using ${dir}, delete it and retry`)
+
+  if (!createExclusive(path)) {
+    const owner = ownerOf(path)
+    if (owner === undefined) throw unreadable(path)
+    if (owner !== pid) {
+      if (alive(owner)) throw inUse(owner)
+      hooks.beforeTakeover?.()
+      if (!createExclusive(takeoverPath)) {
+        const taker = ownerOf(takeoverPath)
+        if (taker !== undefined && taker !== pid && alive(taker)) {
+          throw new Error(`another run (process ${taker}) is taking over the lock of ${dir}; retry once it is done`)
+        }
+        throw new Error(`${takeoverPath} was left by a run that is gone; if no other run is using ${dir}, delete it and retry`)
+      }
+      try {
+        const current = ownerOf(path)
+        if (current !== owner) {
+          // Replaced meanwhile (or released): never steal a lock we did not see die.
+          if (current !== undefined && alive(current)) throw inUse(current)
+          throw new Error(`the lock of ${dir} changed while taking it over; retry`)
+        }
+        const tmp = `${path}.${pid}.${randomBytes(4).toString("hex")}.tmp`
+        writeFileSync(tmp, `${pid}\n`, { flag: "wx" })
+        renameSync(tmp, path)
+      } finally {
+        rmSync(takeoverPath, { force: true })
+      }
+    }
+  }
+
+  const release = () => {
+    if (ownerOf(path) === pid) rmSync(path, { force: true })
+  }
+  process.once("exit", release)
+  return release
 }
 
 /**

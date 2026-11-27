@@ -2,7 +2,7 @@
 import { describe, it, expect } from "vitest"
 import { execFile, spawnSync } from "node:child_process"
 import { createHash } from "node:crypto"
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { createServer, type Server } from "node:http"
 import type { AddressInfo } from "node:net"
 import { tmpdir } from "node:os"
@@ -186,6 +186,61 @@ describe("deploy:swarm CLI", { timeout: 30_000 }, () => {
     } finally {
       a.server.close()
       b.server.close()
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+
+  it("refuses to resume a release another live run holds, before reading its metadata", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "swarm-release-"))
+    try {
+      writeFileSync(join(dir, "bundle.bin"), "")
+      writeFileSync(join(dir, "release.json"), JSON.stringify({ draft: { bundleSha256: "00" } }))
+      // This test process is alive, so its PID makes the lock current.
+      writeFileSync(join(dir, "release.lock"), `${process.pid}\n`)
+      const r = run("--push-bundle", dir)
+      expect(r.status).toBe(1)
+      expect(r.stderr).toMatch(new RegExp(`in use by another run \\(process ${process.pid}\\)`))
+
+      // A lock left by a run that is gone is taken over, and released on exit.
+      writeFileSync(join(dir, "release.lock"), "2147483646\n")
+      const stale = run("--push-bundle", dir)
+      expect(stale.status).toBe(1)
+      expect(stale.stderr).toMatch(/^Error: .*bundle\.bin does not match .*release\.json$/m) // got past the lock to the bundle check
+      expect(existsSync(join(dir, "release.lock"))).toBe(false)
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+
+  it("gives a release lock to exactly one of many runs started at once, also when taking over a dead owner's lock", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "swarm-release-"))
+    const script = join(dir, "..", `lock-race-${process.pid}.ts`)
+    writeFileSync(
+      script,
+      `import { lockRelease } from ${JSON.stringify(resolve(__dirname, "../swarm/release.ts"))}
+try {
+  lockRelease(process.argv[2])
+  console.log("got")
+  setTimeout(() => {}, 2000) // hold it while the others start and try
+} catch (e) {
+  console.log("busy: " + (e as Error).message)
+}
+`,
+    )
+    const race = () =>
+      Promise.all(
+        Array.from({ length: 8 }, () => new Promise<string>((done) => execFile(TSX, [script, dir], (_e, out) => done(out.trim())))),
+      )
+    try {
+      const fresh = await race()
+      expect(fresh.filter((r) => r === "got")).toHaveLength(1)
+
+      // A lock left by a process that is gone: still exactly one winner.
+      writeFileSync(join(dir, "release.lock"), "2147483646\n")
+      const takeover = await race()
+      expect(takeover.filter((r) => r === "got")).toHaveLength(1)
+    } finally {
+      rmSync(script, { force: true })
       rmSync(dir, { recursive: true, force: true })
     }
   })

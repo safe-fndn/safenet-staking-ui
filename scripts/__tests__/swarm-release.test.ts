@@ -4,6 +4,7 @@ import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSyn
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import {
+  lockRelease,
   writeAll,
   writePendingRelease,
   completeRelease,
@@ -155,5 +156,86 @@ describe("writeAll", () => {
 
   it("fails instead of truncating when a write makes no progress", () => {
     expect(() => writeAll(0, new Uint8Array(10), () => 0)).toThrow(/no progress at byte 0 of 10/)
+  })
+})
+
+describe("lockRelease", () => {
+  let dir: string
+  beforeEach(() => {
+    dir = mkdtempSync(join(tmpdir(), "swarm-lock-"))
+  })
+  afterEach(() => rmSync(dir, { recursive: true, force: true }))
+  const lockFile = () => join(dir, "release.lock")
+
+  it("gives the lock to one run and refuses a second live one", () => {
+    const release = lockRelease(dir, 1001, () => true)
+    expect(readFileSync(lockFile(), "utf8").trim()).toBe("1001")
+    expect(() => lockRelease(dir, 1002, () => true)).toThrow(/in use by another run \(process 1001\)/)
+    release()
+    expect(readdirSync(dir)).toEqual([])
+    lockRelease(dir, 1002, () => true)
+    expect(readFileSync(lockFile(), "utf8").trim()).toBe("1002")
+  })
+
+  it("is re-entrant within one process", () => {
+    lockRelease(dir, 1001, () => true)
+    expect(() => lockRelease(dir, 1001, () => true)).not.toThrow()
+  })
+
+  it("takes over a lock whose process is gone", () => {
+    writeFileSync(lockFile(), "1001\n")
+    lockRelease(dir, 1002, (pid) => pid !== 1001)
+    expect(readFileSync(lockFile(), "utf8").trim()).toBe("1002")
+    expect(readdirSync(dir)).toEqual(["release.lock"]) // takeover lock and temp files gone
+  })
+
+  it("never treats an empty or unreadable lock as stale", () => {
+    // E.g. a lock some other tool created without its PID yet: never removed automatically.
+    writeFileSync(lockFile(), "")
+    expect(() => lockRelease(dir, 1002, () => false)).toThrow(/holds no valid PID/)
+    expect(readFileSync(lockFile(), "utf8")).toBe("")
+  })
+
+  it("creates the lock with its PID in one step, leaving no temporary files", () => {
+    lockRelease(dir, 1001, () => true)
+    expect(readdirSync(dir)).toEqual(["release.lock"])
+    expect(readFileSync(lockFile(), "utf8")).toBe("1001\n")
+  })
+
+  it("does not take over when another run replaced the dead owner's lock meanwhile", () => {
+    writeFileSync(lockFile(), "1001\n")
+    const alive = (pid: number) => pid !== 1001
+    expect(() =>
+      lockRelease(dir, 1002, alive, {
+        // Between seeing 1001 dead and taking the takeover lock, run 1003 took over.
+        beforeTakeover: () => lockRelease(dir, 1003, alive),
+      }),
+    ).toThrow(/in use by another run \(process 1003\)/)
+    expect(readFileSync(lockFile(), "utf8").trim()).toBe("1003")
+    expect(readdirSync(dir)).toEqual(["release.lock"])
+  })
+
+  it("lets only one of two runs take over a dead owner's lock", () => {
+    writeFileSync(lockFile(), "1001\n")
+    const alive = (pid: number) => pid !== 1001
+    // 1003 is mid-takeover (holds the takeover lock) when 1002 tries.
+    writeFileSync(`${lockFile()}.takeover`, "1003\n")
+    expect(() => lockRelease(dir, 1002, alive)).toThrow(/another run \(process 1003\) is taking over/)
+    expect(readFileSync(lockFile(), "utf8").trim()).toBe("1001")
+  })
+
+  it("does not remove a takeover lock left by a crashed run", () => {
+    writeFileSync(lockFile(), "1001\n")
+    writeFileSync(`${lockFile()}.takeover`, "1004\n")
+    const alive = (pid: number) => pid !== 1001 && pid !== 1004
+    expect(() => lockRelease(dir, 1002, alive)).toThrow(/was left by a run that is gone; .* delete it/)
+    expect(readdirSync(dir).sort()).toEqual(["release.lock", "release.lock.takeover"])
+  })
+
+  it("only removes its own lock on release", () => {
+    const release = lockRelease(dir, 1001, () => true)
+    writeFileSync(lockFile(), "1003\n") // e.g. taken over after this run was presumed dead
+    release()
+    expect(readFileSync(lockFile(), "utf8").trim()).toBe("1003")
   })
 })
