@@ -140,6 +140,20 @@ function useBatchCalls() {
   const isSuccess = callsStatus?.status === "success"
   const isReverted = callsStatus?.status === "failure"
   const txHash = callsStatus?.receipts?.[0]?.transactionHash
+  /**
+   * Latest block among the batch's successful receipts, once the batch is
+   * final. A non-atomic batch can fail (e.g. EIP-5792 status 600) after some
+   * calls already went through; their effects are onchain all the same.
+   */
+  const confirmedBlock =
+    isSuccess || isReverted
+      ? callsStatus?.receipts
+          // In a successful batch every call succeeded, even if a wallet omits per-receipt status.
+          ?.filter((r) => isSuccess || r.status === "success")
+          .reduce<bigint | undefined>((max, r) => (max === undefined || r.blockNumber > max ? r.blockNumber : max), undefined)
+      : undefined
+  /** At least one call of the batch changed onchain state, even if the batch as a whole failed. */
+  const hasOnchainEffects = isSuccess || confirmedBlock !== undefined
 
   return {
     sendCalls,
@@ -151,13 +165,15 @@ function useBatchCalls() {
     error,
     reset,
     txHash,
+    confirmedBlock,
+    hasOnchainEffects,
   }
 }
 
 export function useBatchStake() {
   const { sendCalls, ...batch } = useBatchCalls()
 
-  useInvalidateOnSuccess(batch.isSuccess, STAKING_FN_NAMES, STAKING_EXTRA_KEYS)
+  useInvalidateOnSuccess(batch.hasOnchainEffects, STAKING_FN_NAMES, STAKING_EXTRA_KEYS)
 
   function batchApproveAndStake(validator: Address, amount: bigint) {
     sendCalls({
@@ -189,7 +205,7 @@ export function useBatchClaimAndStake() {
   const { merkleDrop } = addresses
   const { sendCalls, ...batch } = useBatchCalls()
 
-  useInvalidateOnSuccess(batch.isSuccess, CLAIM_AND_STAKE_FN_NAMES, CLAIM_AND_STAKE_EXTRA_KEYS)
+  useInvalidateOnSuccess(batch.hasOnchainEffects, CLAIM_AND_STAKE_FN_NAMES, CLAIM_AND_STAKE_EXTRA_KEYS)
 
   function batchClaimAndStake(
     account: Address,
@@ -261,7 +277,9 @@ export function useInitiateWithdrawal() {
 
 export function useClaimWithdrawal() {
   const { writeContract, data: txHash, isPending, isSuccess: isSubmitted, reset, error: writeError } = useWriteContract()
-  const { isLoading: isConfirming, isSuccess, error: receiptError } = useWaitForTransactionReceipt({ hash: txHash })
+  const { data: receipt, isLoading: isConfirming, isSuccess, error: receiptError } = useWaitForTransactionReceipt({ hash: txHash })
+  /** Block the claim was mined in; reads older than this still show the claimed withdrawal. */
+  const confirmedBlock = isSuccess ? receipt?.blockNumber : undefined
   const error = writeError ?? receiptError
 
   const isSafeQueued = isSafeApp && isSubmitted && !isSuccess
@@ -276,13 +294,13 @@ export function useClaimWithdrawal() {
     })
   }
 
-  return { claimWithdrawal, isSigningTx: isPending, isConfirmingTx: isConfirming, isSuccess, isSafeQueued, error, reset, txHash }
+  return { claimWithdrawal, isSigningTx: isPending, isConfirmingTx: isConfirming, isSuccess, isSafeQueued, error, reset, txHash, confirmedBlock }
 }
 
 export function useBatchClaimWithdrawals() {
   const { sendCalls, ...batch } = useBatchCalls()
 
-  useInvalidateOnSuccess(batch.isSuccess, STAKING_FN_NAMES, STAKING_EXTRA_KEYS)
+  useInvalidateOnSuccess(batch.hasOnchainEffects, STAKING_FN_NAMES, STAKING_EXTRA_KEYS)
 
   function batchClaimWithdrawals(count: number) {
     const calls = Array.from({ length: count }, () => ({

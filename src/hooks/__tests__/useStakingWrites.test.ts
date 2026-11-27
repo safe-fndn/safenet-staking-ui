@@ -641,12 +641,45 @@ describe.each([
     expect(mockInvalidateQueries).not.toHaveBeenCalled()
   })
 
-  it("does not invalidate when the batch fails", () => {
+  it("does not invalidate when the batch fails without any successful call", () => {
     mockSendCalls({ id: "batch-1" })
-    mockCallsStatus({ status: "failure" })
+    mockCallsStatus({ status: "failure", receipts: [{ transactionHash: MOCK_TX_HASH, status: "reverted", blockNumber: 101n }] })
 
-    renderHook(() => useHook())
+    const { result } = renderHook(() => useHook())
+    expect(result.current.confirmedBlock).toBeUndefined()
     expect(mockInvalidateQueries).not.toHaveBeenCalled()
+  })
+
+  it("treats a partly failed (non-atomic) batch as onchain: refreshes and reports the successful calls' block", () => {
+    mockSendCalls({ id: "batch-1" })
+    // EIP-5792 status 600: the first call went through, a later one reverted.
+    mockCallsStatus({
+      status: "failure",
+      receipts: [
+        { transactionHash: MOCK_TX_HASH, status: "success", blockNumber: 101n },
+        { transactionHash: MOCK_TX_HASH, status: "reverted", blockNumber: 102n },
+      ],
+    })
+
+    const { result } = renderHook(() => useHook())
+    expect(result.current.isReverted).toBe(true)
+    expect(result.current.confirmedBlock).toBe(101n)
+    expect(result.current.hasOnchainEffects).toBe(true)
+    expect(mockInvalidateQueries).toHaveBeenCalled()
+  })
+
+  it("reports the latest successful receipt's block for a successful batch", () => {
+    mockSendCalls({ id: "batch-1" })
+    mockCallsStatus({
+      status: "success",
+      receipts: [
+        { transactionHash: MOCK_TX_HASH, status: "success", blockNumber: 101n },
+        { transactionHash: MOCK_TX_HASH, status: "success", blockNumber: 103n },
+      ],
+    })
+
+    const { result } = renderHook(() => useHook())
+    expect(result.current.confirmedBlock).toBe(103n)
   })
 
   it("does not invalidate again on re-render while isSuccess stays true", () => {

@@ -56,7 +56,7 @@ beforeEach(() => {
 })
 
 describe("useWithdrawalQueue", () => {
-  it("reads queue, rows and nodes at one pinned block", async () => {
+  it("reads queue, rows and nodes at one fresh, pinned block", async () => {
     mockQueue()
     const { result } = renderHook(() => useWithdrawalQueue(), { wrapper: wrapperFor(newClient()) })
 
@@ -71,6 +71,8 @@ describe("useWithdrawalQueue", () => {
         ],
       }),
     )
+    // A fresh block number, not viem's cached one, so a post-claim refetch reads the new block.
+    expect(getBlockNumber).toHaveBeenCalledWith({ cacheTime: 0 })
     for (const [call] of readContract.mock.calls) expect(call.blockNumber).toBe(1_200_000n)
     expect(calls("withdrawalNodes")).toHaveLength(2)
   })

@@ -16,13 +16,7 @@ import Loader2 from "lucide-react/dist/esm/icons/loader-2"
 
 export function WithdrawalQueue() {
   const { isConnected } = useAccount()
-  // Rows and their IDs come from one queue snapshot; validators are looked up by ID.
-  const { data: snapshot, isLoading, isError, refetch } = useWithdrawalQueue()
-  const withdrawals = snapshot?.rows
-  const { data: withdrawDelay } = useWithdrawDelay()
-  const { data: validatorById } = useWithdrawalValidators(withdrawals?.map((w) => w.id))
-  const { data: allValidators } = useValidators()
-  const { claimWithdrawal, isSigningTx, isConfirmingTx, isSuccess: isClaimed, isSafeQueued: isClaimSafeQueued, error: claimError, txHash: claimTxHash, reset: resetClaim } = useClaimWithdrawal()
+  const { claimWithdrawal, isSigningTx, isConfirmingTx, isSuccess: isClaimed, isSafeQueued: isClaimSafeQueued, error: claimError, txHash: claimTxHash, reset: resetClaim, confirmedBlock: claimBlock } = useClaimWithdrawal()
   const {
     batchClaimWithdrawals,
     supportsBatching,
@@ -33,7 +27,31 @@ export function WithdrawalQueue() {
     error: batchError,
     reset: resetBatch,
     txHash: batchTxHash,
+    confirmedBlock: batchBlock,
   } = useBatchClaimWithdrawals()
+
+  // claimWithdrawal() takes no ID: it claims whatever is at the head. After a
+  // claim confirms, keep every claim control disabled until the queue snapshot
+  // is at least as new as the claim's block, so a stale row can't trigger a
+  // claim of the next withdrawal. Recorded during render (not in an effect)
+  // because the tx toast resets the claim hooks right after success.
+  const [awaitBlock, setAwaitBlock] = useState<bigint | undefined>(undefined)
+  for (const block of [claimBlock, batchBlock]) {
+    if (block !== undefined && (awaitBlock === undefined || block > awaitBlock)) setAwaitBlock(block)
+  }
+
+  // Rows and their IDs come from one queue snapshot; validators are looked up by ID.
+  const { data: snapshot, isLoading, isError, refetch } = useWithdrawalQueue({ minBlock: awaitBlock })
+  const withdrawals = snapshot?.rows
+  const isSyncing = awaitBlock !== undefined && (!snapshot || snapshot.blockNumber < awaitBlock)
+  // Both claim kinds act on the head of the queue, so only one may be in flight:
+  // a single claim and Claim All each lock out the other while signing or confirming.
+  const isSingleBusy = isSigningTx || isConfirmingTx
+  const isBatchInFlight = isBatchSigning || isBatchConfirming
+  const claimLock = isBatchInFlight ? "busy" : isSyncing ? "updating" : undefined
+  const { data: withdrawDelay } = useWithdrawDelay()
+  const { data: validatorById } = useWithdrawalValidators(withdrawals?.map((w) => w.id))
+  const { data: allValidators } = useValidators()
   const { toast } = useToast()
   const [claimingIndex, setClaimingIndex] = useState<number | null>(null)
 
@@ -59,7 +77,12 @@ export function WithdrawalQueue() {
     ? withdrawals.filter((w) => Number(w.claimableAt) <= now).length
     : 0
   const showClaimAll = supportsBatching && claimableCount >= 2
-  const isBatchBusy = isBatchSigning || isBatchConfirming
+
+  // Never send while another claim is signing or confirming.
+  const guardClaim = (send: () => void) => {
+    if (isSingleBusy || isBatchInFlight) return
+    send()
+  }
 
   const handleClaimReset = useCallback(() => {
     resetClaim()
@@ -95,12 +118,19 @@ export function WithdrawalQueue() {
     }
   }, [batchError, toast])
 
+  // A non-atomic batch can fail after some claims went through (batchBlock is
+  // then set); the queue refreshes and claiming waits for it either way.
+  const isBatchPartial = isBatchReverted && batchBlock !== undefined
   useEffect(() => {
     if (isBatchReverted) {
-      toast({ variant: "error", title: "Batch claim reverted", description: "The batch transaction was reverted onchain" })
+      toast(
+        isBatchPartial
+          ? { variant: "error", title: "Some claims failed", description: "Part of the batch was claimed; the queue is refreshing" }
+          : { variant: "error", title: "Batch claim reverted", description: "The batch transaction was reverted onchain" },
+      )
       resetBatch()
     }
-  }, [isBatchReverted, resetBatch, toast])
+  }, [isBatchReverted, isBatchPartial, resetBatch, toast])
 
   if (!isConnected) {
     return (
@@ -158,8 +188,8 @@ export function WithdrawalQueue() {
         {showClaimAll && (
           <Button
             size="sm"
-            onClick={() => batchClaimWithdrawals(claimableCount)}
-            disabled={isBatchBusy}
+            onClick={() => guardClaim(() => batchClaimWithdrawals(claimableCount))}
+            disabled={isBatchInFlight || isSingleBusy || claimLock !== undefined}
           >
             {isBatchSigning ? (
               <>
@@ -183,7 +213,8 @@ export function WithdrawalQueue() {
           amount={w.amount}
           claimableAt={Number(w.claimableAt)}
           isFirst={i === 0}
-          onClaim={() => { setClaimingIndex(i); claimWithdrawal() }}
+          claimLock={claimLock}
+          onClaim={() => guardClaim(() => { setClaimingIndex(i); claimWithdrawal() })}
           isSigningTx={claimingIndex === i && isSigningTx}
           isConfirmingTx={claimingIndex === i && isConfirmingTx}
           withdrawDelay={withdrawDelay !== undefined ? Number(withdrawDelay) : undefined}

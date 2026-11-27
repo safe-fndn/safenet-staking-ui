@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
-import { render, screen } from "@testing-library/react"
+import { act, render, screen } from "@testing-library/react"
 import { TooltipProvider } from "@radix-ui/react-tooltip"
 import { WithdrawalQueue } from "../withdrawals/WithdrawalQueue"
 import { MOCK_VALIDATORS } from "@/__tests__/test-data"
@@ -19,7 +19,7 @@ vi.mock("wagmi", () => ({
 }))
 
 vi.mock("@/hooks/useWithdrawalQueue", () => ({
-  useWithdrawalQueue: () => mockUseWithdrawalQueue(),
+  useWithdrawalQueue: (opts?: { minBlock?: bigint }) => mockUseWithdrawalQueue(opts),
   useWithdrawalValidators: (ids: bigint[] | undefined) => mockUseWithdrawalValidators(ids),
 }))
 
@@ -44,13 +44,15 @@ vi.mock("@/hooks/useToast", () => ({
   useToast: vi.fn(() => ({ toast: mockToast })),
 }))
 
+const mockUseCountdown = vi.fn(() => 3600)
 vi.mock("@/hooks/useCountdown", () => ({
-  useCountdown: () => 3600,
+  useCountdown: () => mockUseCountdown(),
 }))
 
 describe("WithdrawalQueue", () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mockUseCountdown.mockReturnValue(3600)
     mockUseClaimWithdrawal.mockReturnValue({
       claimWithdrawal: mockClaimWithdrawal,
       isSigningTx: false,
@@ -188,6 +190,64 @@ describe("WithdrawalQueue", () => {
     expect(labels[0].closest(".border")).toHaveTextContent("2 SAFE")
   })
 
+  it("disables Claim after a claim confirms until the snapshot reaches the claim's block", () => {
+    mockUseAccount.mockReturnValue({ isConnected: true })
+    mockUseCountdown.mockReturnValue(0)
+    const past = BigInt(Math.floor(Date.now() / 1000) - 3600)
+    const rows = [{ id: 7n, amount: 10n ** 18n, claimableAt: past }]
+    // The claim was mined in block 101; the refetch still read block 100.
+    mockUseWithdrawalQueue.mockReturnValue({ data: { blockNumber: 100n, rows }, isLoading: false })
+    mockUseClaimWithdrawal.mockReturnValue({
+      claimWithdrawal: mockClaimWithdrawal,
+      isSigningTx: false,
+      isConfirmingTx: false,
+      isSuccess: true,
+      isSafeQueued: false,
+      error: null,
+      txHash: "0xabc",
+      reset: mockResetClaim,
+      confirmedBlock: 101n,
+    })
+
+    const { rerender } = renderQueue()
+
+    expect(mockUseWithdrawalQueue).toHaveBeenLastCalledWith({ minBlock: 101n })
+    expect(screen.getByRole("button", { name: /Updating/ })).toBeDisabled()
+
+    // The claim hook is reset by the toast; the gate must hold on its own.
+    mockUseClaimWithdrawal.mockReturnValue({
+      claimWithdrawal: mockClaimWithdrawal,
+      isSigningTx: false,
+      isConfirmingTx: false,
+      isSuccess: false,
+      isSafeQueued: false,
+      error: null,
+      txHash: undefined,
+      reset: mockResetClaim,
+    })
+    rerender(<TooltipProvider><WithdrawalQueue /></TooltipProvider>)
+    expect(screen.getByRole("button", { name: /Updating/ })).toBeDisabled()
+
+    // A snapshot at the claim's block re-enables claiming.
+    mockUseWithdrawalQueue.mockReturnValue({ data: { blockNumber: 101n, rows }, isLoading: false })
+    rerender(<TooltipProvider><WithdrawalQueue /></TooltipProvider>)
+    expect(screen.getByRole("button", { name: /Claim/ })).toBeEnabled()
+  })
+
+  const claimHook = (overrides: Record<string, unknown> = {}) => ({
+    claimWithdrawal: mockClaimWithdrawal,
+    isSigningTx: false,
+    isConfirmingTx: false,
+    isSuccess: false,
+    isSafeQueued: false,
+    error: null,
+    txHash: undefined,
+    reset: mockResetClaim,
+    ...overrides,
+  })
+  const readyRows = (...ids: bigint[]) =>
+    ids.map((id) => ({ id, amount: 10n ** 18n, claimableAt: BigInt(Math.floor(Date.now() / 1000) - 3600) }))
+
   it("shows an error with a retry instead of an empty queue when the read fails", async () => {
     mockUseAccount.mockReturnValue({ isConnected: true })
     const refetch = vi.fn()
@@ -199,5 +259,86 @@ describe("WithdrawalQueue", () => {
     expect(screen.getByText("Could not load your withdrawal queue.")).toBeInTheDocument()
     screen.getByRole("button", { name: "Retry" }).click()
     expect(refetch).toHaveBeenCalled()
+  })
+
+  it("waits for the queue after a partly failed Claim All, using the successful receipts' block", () => {
+    mockUseAccount.mockReturnValue({ isConnected: true })
+    mockUseCountdown.mockReturnValue(0)
+    mockUseWithdrawalQueue.mockReturnValue({ data: { blockNumber: 100n, rows: readyRows(7n, 8n) }, isLoading: false })
+    mockUseBatchClaimWithdrawals.mockReturnValue({
+      batchClaimWithdrawals: vi.fn(),
+      supportsBatching: true,
+      isSigningTx: false,
+      isConfirmingTx: false,
+      isSuccess: false,
+      isReverted: true,
+      error: null,
+      reset: vi.fn(),
+      txHash: undefined,
+      confirmedBlock: 101n,
+    })
+
+    renderQueue()
+
+    expect(mockUseWithdrawalQueue).toHaveBeenLastCalledWith({ minBlock: 101n })
+    expect(screen.getByRole("button", { name: /Updating/ })).toBeDisabled()
+    expect(screen.getByRole("button", { name: /Claim All/ })).toBeDisabled()
+    expect(mockToast).toHaveBeenCalledWith(expect.objectContaining({ title: "Some claims failed" }))
+  })
+
+  const batchHook = (overrides: Record<string, unknown> = {}) => ({
+    batchClaimWithdrawals: mockBatchClaim,
+    supportsBatching: true,
+    isSigningTx: false,
+    isConfirmingTx: false,
+    isSuccess: false,
+    isReverted: false,
+    error: null,
+    reset: vi.fn(),
+    txHash: undefined,
+    ...overrides,
+  })
+  const mockBatchClaim = vi.fn()
+
+  it("locks the single Claim while Claim All is confirming", async () => {
+    mockUseAccount.mockReturnValue({ isConnected: true })
+    mockUseCountdown.mockReturnValue(0)
+    mockUseWithdrawalQueue.mockReturnValue({ data: { blockNumber: 100n, rows: readyRows(7n, 8n) }, isLoading: false })
+    mockUseBatchClaimWithdrawals.mockReturnValue(batchHook({ isConfirmingTx: true }))
+
+    renderQueue()
+
+    const single = screen.getByRole("button", { name: /Claiming all/ })
+    expect(single).toBeDisabled()
+    await act(async () => single.click())
+    expect(mockClaimWithdrawal).not.toHaveBeenCalled()
+  })
+
+  it("locks Claim All while a single claim is signing or confirming", async () => {
+    mockUseAccount.mockReturnValue({ isConnected: true })
+    mockUseCountdown.mockReturnValue(0)
+    mockUseWithdrawalQueue.mockReturnValue({ data: { blockNumber: 100n, rows: readyRows(7n, 8n) }, isLoading: false })
+    mockUseBatchClaimWithdrawals.mockReturnValue(batchHook())
+
+    for (const state of [{ isSigningTx: true }, { isConfirmingTx: true }]) {
+      mockUseClaimWithdrawal.mockReturnValue(claimHook(state))
+      const { unmount } = renderQueue()
+      const all = screen.getByRole("button", { name: /Claim All/ })
+      expect(all).toBeDisabled()
+      await act(async () => all.click())
+      expect(mockBatchClaim).not.toHaveBeenCalled()
+      unmount()
+    }
+  })
+
+  it("offers both controls again once nothing is in flight", () => {
+    mockUseAccount.mockReturnValue({ isConnected: true })
+    mockUseCountdown.mockReturnValue(0)
+    mockUseWithdrawalQueue.mockReturnValue({ data: { blockNumber: 100n, rows: readyRows(7n, 8n) }, isLoading: false })
+    mockUseBatchClaimWithdrawals.mockReturnValue(batchHook())
+
+    renderQueue()
+    expect(screen.getByRole("button", { name: /Claim All/ })).toBeEnabled()
+    expect(screen.getByRole("button", { name: /^Claim$/ })).toBeEnabled()
   })
 })

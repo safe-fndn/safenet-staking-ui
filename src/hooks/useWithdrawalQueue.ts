@@ -9,6 +9,8 @@ const MAX_BLOCK_RANGE = 49_999n
 /** Older log chunks fetched at once after the newest one comes up short. */
 const LOG_SCAN_PARALLELISM = 4
 const POLL_INTERVAL = 15_000
+/** Poll interval while the snapshot is older than a confirmed transaction. */
+const CATCH_UP_INTERVAL = 2_000
 /** Retry interval for validator lookups that found no event yet. */
 const MISSING_RETRY_INTERVAL = 30_000
 export const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000" as Address
@@ -37,16 +39,19 @@ export interface WithdrawalQueueSnapshot {
  * The connected staker's pending withdrawals in queue order, with their
  * global withdrawal IDs.
  *
- * Every read is pinned to one block, so rows and IDs always come from the
- * same queue state, even if another signer claims or adds a withdrawal
- * meanwhile.
+ * Every read is pinned to one freshly fetched block (bypassing viem's block
+ * number cache), so rows and IDs always come from the same queue state, and a
+ * refetch right after a confirmed transaction does not reread an older block.
  *
  * Each poll costs three calls: the block number, then `withdrawalQueues` and
  * `getPendingWithdrawals` together. The linked list (one call per node) is
  * only walked again when head, tail or length changed: withdrawals leave only
  * at the head, so an unchanged triple means an unchanged ID list.
+ *
+ * `minBlock`: the block of a transaction the caller is waiting for. While the
+ * snapshot is older, it polls every 2s instead of every 15s.
  */
-export function useWithdrawalQueue() {
+export function useWithdrawalQueue({ minBlock }: { minBlock?: bigint } = {}) {
   const client = usePublicClient()
   const { address } = useAccount()
   const queryClient = useQueryClient()
@@ -56,7 +61,7 @@ export function useWithdrawalQueue() {
     queryKey,
     queryFn: async (): Promise<WithdrawalQueueSnapshot> => {
       if (!client || !address) return { blockNumber: 0n, head: 0n, tail: 0n, rows: [] }
-      const blockNumber = await client.getBlockNumber()
+      const blockNumber = await client.getBlockNumber({ cacheTime: 0 })
       const read = { address: addresses.staking, abi: stakingAbi, blockNumber } as const
       const [[head, tail], pending] = await Promise.all([
         client.readContract({ ...read, functionName: "withdrawalQueues", args: [address] }),
@@ -87,7 +92,10 @@ export function useWithdrawalQueue() {
       }
     },
     enabled: !!client && !!address,
-    refetchInterval: POLL_INTERVAL,
+    refetchInterval: (query) => {
+      const snapshot = query.state.data
+      return minBlock !== undefined && snapshot && snapshot.blockNumber < minBlock ? CATCH_UP_INTERVAL : POLL_INTERVAL
+    },
   })
 }
 

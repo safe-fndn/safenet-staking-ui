@@ -18,6 +18,12 @@ interface WithdrawalCardProps {
   onClaim: () => void
   isSigningTx: boolean
   isConfirmingTx: boolean
+  /**
+   * Why claiming is disabled for now: "updating" while the queue hasn't
+   * refreshed past a confirmed claim, "busy" while Claim All is signing or
+   * confirming.
+   */
+  claimLock?: "updating" | "busy"
   withdrawDelay?: number
   validator?: Address
   validators?: ValidatorInfo[]
@@ -30,6 +36,7 @@ export function WithdrawalCard({
   onClaim,
   isSigningTx,
   isConfirmingTx,
+  claimLock,
   withdrawDelay,
   validator,
   validators,
@@ -111,7 +118,7 @@ export function WithdrawalCard({
           {canClaim && (
             <button
               onClick={onClaim}
-              disabled={isBusy}
+              disabled={isBusy || claimLock !== undefined}
               className="inline-flex items-center gap-[5px]
                 px-2 py-1 text-[11.5px] font-mono uppercase
                 leading-[15px] border border-foreground
@@ -133,6 +140,22 @@ export function WithdrawalCard({
                     aria-hidden="true"
                   />
                   Confirming…
+                </>
+              ) : claimLock === "updating" ? (
+                <>
+                  <Loader2
+                    className="h-4 w-4 animate-spin"
+                    aria-hidden="true"
+                  />
+                  Updating…
+                </>
+              ) : claimLock === "busy" ? (
+                <>
+                  <Loader2
+                    className="h-4 w-4 animate-spin"
+                    aria-hidden="true"
+                  />
+                  Claiming all…
                 </>
               ) : (
                 <>
