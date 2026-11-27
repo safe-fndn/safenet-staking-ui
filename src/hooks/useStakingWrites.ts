@@ -67,7 +67,7 @@ const STAKING_FN_NAMES = [
   "allowance",
 ]
 
-const STAKING_EXTRA_KEYS = [["validators"]]
+const STAKING_EXTRA_KEYS = [["validators"], ["withdrawalQueue"]]
 
 /** Contract function names to invalidate after claiming rewards. */
 export const REWARD_FN_NAMES = ["cumulativeClaimed", "balanceOf"]

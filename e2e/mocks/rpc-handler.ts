@@ -191,7 +191,7 @@ export function createRpcHandler(userAddress: string, state: MockChainState) {
         if (!params || !params[0]) {
           return { ...base, result: [] }
         }
-        const logs = matchGetLogs(params[0])
+        const logs = matchGetLogs(params[0], state)
         return { ...base, result: logs }
       }
 

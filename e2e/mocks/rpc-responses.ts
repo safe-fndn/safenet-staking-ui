@@ -6,7 +6,7 @@
  */
 
 import { AMOUNTS, STAKING_CONTRACT, TOKEN_CONTRACT, MERKLE_DROP_CONTRACT, TEST_MERKLE_ROOT, VALIDATORS } from "../fixtures/test-data"
-import type { MockChainState } from "./mock-chain-state"
+import { withdrawalQueue, type MockChainState } from "./mock-chain-state"
 
 export interface RewardProof {
   cumulativeAmount: string
@@ -46,6 +46,7 @@ export const SELECTORS = {
   stakes: "0xa4e47b66",
   totalStakerStakes: "0x42007deb",
   withdrawalQueues: "0x86fa9442",
+  withdrawalNodes: "0x51be0f80",
   getPendingWithdrawals: "0xf340c0d0",
   getNextClaimableWithdrawal: "0xb870e6c8",
   // Token contract reads
@@ -94,9 +95,10 @@ export function buildCallResponses(userAddress: string, state: MockChainState): 
   )
 
   // Staking: nextWithdrawalId() → uint64
-  responses.set(key(staking, SELECTORS.nextWithdrawalId), () =>
-    "0x" + toUint256(2n)
-  )
+  responses.set(key(staking, SELECTORS.nextWithdrawalId), () => {
+    withdrawalQueue(state)
+    return "0x" + toUint256(state.nextWithdrawalId)
+  })
 
   // Staking: isValidator(address) → bool
   responses.set(key(staking, SELECTORS.isValidator), (data: string) => {
@@ -139,10 +141,25 @@ export function buildCallResponses(userAddress: string, state: MockChainState): 
     return "0x" + toUint256(0n)
   })
 
-  // Staking: withdrawalQueues(address) → (uint64 head, uint64 tail)
-  responses.set(key(staking, SELECTORS.withdrawalQueues), () =>
-    "0x" + toUint256(0n) + toUint256(1n)
-  )
+  // Staking: withdrawalQueues(address) → (uint64 head, uint64 tail); 0 = empty
+  responses.set(key(staking, SELECTORS.withdrawalQueues), (data: string) => {
+    const stakerParam = "0x" + data.slice(10, 74).replace(/^0+/, "").toLowerCase()
+    const queue = stakerParam === user ? withdrawalQueue(state) : []
+    return "0x" + toUint256(queue[0]?.id ?? 0n) + toUint256(queue.at(-1)?.id ?? 0n)
+  })
+
+  // Staking: withdrawalNodes(address, uint64 id) → (uint256 amount, uint128 claimableAt, uint64 previous, uint64 next)
+  // A node that is not in the staker's queue reads as all zeros, like an unset mapping entry.
+  responses.set(key(staking, SELECTORS.withdrawalNodes), (data: string) => {
+    const stakerParam = "0x" + data.slice(10, 74).replace(/^0+/, "").toLowerCase()
+    const id = BigInt("0x" + data.slice(74, 138))
+    const queue = stakerParam === user ? withdrawalQueue(state) : []
+    const i = queue.findIndex((w) => w.id === id)
+    if (i < 0) return "0x" + toUint256(0n).repeat(4)
+    const node = queue[i]
+    return "0x" + toUint256(node.amount) + toUint256(node.claimableAt) +
+      toUint256(queue[i - 1]?.id ?? 0n) + toUint256(queue[i + 1]?.id ?? 0n)
+  })
 
   // Staking: getPendingWithdrawals(address) → (amount, claimableAt)[]
   responses.set(key(staking, SELECTORS.getPendingWithdrawals), (data: string) => {
