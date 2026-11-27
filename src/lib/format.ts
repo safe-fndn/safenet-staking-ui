@@ -8,6 +8,21 @@ export function formatTokenAmount(amount: bigint, decimals = 18, maxDecimals = 4
   return decimal ? `${delimited}.${decimal}` : delimited
 }
 
+/** Smallest amount shown with decimals; anything below it shows as "<0.0001". */
+const MIN_DISPLAY_DECIMALS = 4
+
+/**
+ * Format a token amount for compact display. Uses `maxDecimals`, but a
+ * nonzero amount never shows as "0": amounts below 1 get up to 4 decimals,
+ * and dust below 0.0001 shows as "<0.0001".
+ */
+export function formatDisplayAmount(amount: bigint, decimals = 18, maxDecimals = 4): string {
+  const formatted = formatTokenAmount(amount, decimals, maxDecimals)
+  if (amount <= 0n || /[1-9]/.test(formatted)) return formatted
+  const precise = formatTokenAmount(amount, decimals, Math.max(maxDecimals, MIN_DISPLAY_DECIMALS))
+  return /[1-9]/.test(precise) ? precise : `<0.${"0".repeat(MIN_DISPLAY_DECIMALS - 1)}1`
+}
+
 /** Format a token amount as a plain numeric string (no commas). */
 export function formatTokenAmountRaw(amount: bigint, decimals = 18, maxDecimals = 4): string {
   const formatted = formatUnits(amount, decimals)

@@ -1,7 +1,7 @@
 import { useRef, useState, useEffect, useCallback } from "react"
 import { useAccount, useConnect, useDisconnect, useSwitchChain } from "wagmi"
 import { Button } from "@/components/ui/button"
-import { truncateAddress, formatTokenAmount } from "@/lib/format"
+import { truncateAddress } from "@/lib/format"
 import { activeChain } from "@/config/chains"
 import { useTokenBalance } from "@/hooks/useTokenBalance"
 import { useToast } from "@/hooks/useToast"
@@ -10,6 +10,7 @@ import Copy from "lucide-react/dist/esm/icons/copy"
 import ArrowUpRight from "lucide-react/dist/esm/icons/arrow-up-right"
 import { SafeTokenBadge } from "@/components/ui/SafeTokenBadge"
 import { isSafeApp } from "@/lib/safe"
+import { TokenAmount } from "@/components/ui/TokenAmount"
 
 function ConnectWalletButton({ onClick, ref: buttonRef, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement> & { ref?: React.Ref<HTMLButtonElement> }) {
   return (
@@ -179,7 +180,7 @@ export function ConnectButton() {
             border border-black/20 dark:border-white/20"
         >
           <span className="text-base font-semibold tracking-[-0.02em]">
-            {formatTokenAmount(typeof balance === "bigint" ? balance : 0n, 18, 0)}
+            <TokenAmount amount={typeof balance === "bigint" ? balance : 0n} maxDecimals={0} />
           </span>
           <SafeTokenBadge />
         </span>

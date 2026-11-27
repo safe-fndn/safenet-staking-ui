@@ -13,10 +13,11 @@ import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip
 import { UndelegateDialog } from "@/components/staking/UndelegateDialog"
 import { ClaimRewardsDialog } from "./ClaimRewardsDialog"
 import { ClaimAndStakeDialog } from "./ClaimAndStakeDialog"
-import { truncateAddress, formatTokenAmount, formatPercent } from "@/lib/format"
+import { truncateAddress, formatPercent } from "@/lib/format"
 import { REWARDS_DOCS_URL } from "@/lib/docs"
 import Info from "lucide-react/dist/esm/icons/info"
 import type { Address } from "viem"
+import { TokenAmount } from "@/components/ui/TokenAmount"
 
 interface Position {
   validator: Address
@@ -40,7 +41,7 @@ function PositionRow({ position, validators }: { position: Position; validators?
           </Link>
         </td>
         <td className="py-3 pr-4 text-sm font-semibold text-right">
-          {formatTokenAmount(position.amount, 18, 0)}
+          <TokenAmount amount={position.amount} maxDecimals={0} />
         </td>
         <td className="py-3 pr-4 text-sm text-right text-muted-foreground">
           {formatPercent(metadata?.participationRate)}
@@ -163,10 +164,10 @@ export function StakingSection() {
           <div className="flex items-center justify-between rounded-none bg-muted/30 p-3">
             <div>
               <span className="text-sm text-muted-foreground">Claimable SAFE</span>
-              <p className="font-semibold">{formatTokenAmount(rewards.claimable, 18, 0)}</p>
+              <p className="font-semibold"><TokenAmount amount={rewards.claimable} maxDecimals={0} /></p>
               {rewards.totalClaimed > 0n && (
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  Total claimed: {formatTokenAmount(rewards.totalClaimed, 18, 0)} SAFE
+                  Total claimed: <TokenAmount amount={rewards.totalClaimed} maxDecimals={0} suffix="SAFE" />
                 </p>
               )}
             </div>

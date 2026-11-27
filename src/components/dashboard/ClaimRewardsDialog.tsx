@@ -13,6 +13,7 @@ import { useRewards } from "@/hooks/useRewards"
 import { useClaimRewards } from "@/hooks/useClaimRewards"
 import { useTxToast } from "@/hooks/useTxToast"
 import { formatTokenAmount } from "@/lib/format"
+import { TokenAmount } from "@/components/ui/TokenAmount"
 
 interface ClaimRewardsDialogProps {
   open: boolean
@@ -88,7 +89,7 @@ export function ClaimRewardsDialog({ open, onOpenChange }: ClaimRewardsDialogPro
           <div className="flex items-center justify-between rounded-lg border p-4">
             <span className="text-sm text-muted-foreground">Claimable SAFE</span>
             <span className="text-lg font-semibold">
-              {formatTokenAmount(rewards.claimable)}
+              <TokenAmount amount={rewards.claimable} />
             </span>
           </div>
 

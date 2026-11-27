@@ -7,13 +7,14 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { DelegateDialog } from "@/components/staking/DelegateDialog"
 import { UndelegateDialog } from "@/components/staking/UndelegateDialog"
 import { type ValidatorInfo, findValidator } from "@/hooks/useValidators"
-import { truncateAddress, formatTokenAmount, formatPercent } from "@/lib/format"
+import { truncateAddress, formatPercent } from "@/lib/format"
 import { copyToClipboard } from "@/lib/clipboard"
 import { useToast } from "@/hooks/useToast"
 import { useWrongNetwork } from "@/hooks/useWrongNetwork"
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
 import { COMMISSION_DOCS_URL } from "@/lib/docs"
 import { Info } from "lucide-react"
+import { TokenAmount } from "@/components/ui/TokenAmount"
 
 interface ValidatorCardProps {
   validator: Address
@@ -193,7 +194,7 @@ export function ValidatorCard({
             <Skeleton className="h-5 w-28" />
           ) : (
             <span className={`text-xl font-mono leading-none uppercase ${valueColor}`}>
-              {formatTokenAmount(totalStake ?? 0n, 18, 0)}
+              <TokenAmount amount={totalStake ?? 0n} maxDecimals={0} />
             </span>
           )}
         </div>
@@ -213,7 +214,7 @@ export function ValidatorCard({
                 <Skeleton className="h-5 w-28" />
               ) : (
                 <span className={`text-xl font-mono leading-none uppercase ${valueColor}`}>
-                  {formatTokenAmount(userStake ?? 0n, 18, 0)}
+                  <TokenAmount amount={userStake ?? 0n} maxDecimals={0} />
                 </span>
               )}
             </div>

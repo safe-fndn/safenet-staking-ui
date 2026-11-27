@@ -1,6 +1,5 @@
 import { Progress } from "@/components/ui/progress"
 import {
-  formatTokenAmount,
   formatCountdown,
   truncateAddress,
 } from "@/lib/format"
@@ -10,6 +9,7 @@ import { findValidator, type ValidatorInfo } from "@/hooks/useValidators"
 import type { Address } from "viem"
 import Loader2 from "lucide-react/dist/esm/icons/loader-2"
 import ArrowUpRight from "lucide-react/dist/esm/icons/arrow-up-right"
+import { TokenAmount } from "@/components/ui/TokenAmount"
 
 interface WithdrawalCardProps {
   amount: bigint
@@ -106,7 +106,7 @@ export function WithdrawalCard({
         {/* Right: amount + claim button */}
         <div className="flex flex-col items-end gap-4">
           <span className="text-xl font-mono leading-none uppercase">
-            {formatTokenAmount(amount, 18, 0)} SAFE
+            <TokenAmount amount={amount} suffix="SAFE" />
           </span>
           {canClaim && (
             <button
