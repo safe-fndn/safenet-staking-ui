@@ -5,8 +5,9 @@ import { useUserStakesOnValidators } from "@/hooks/useStakingReads"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { findValidator } from "@/hooks/useValidators"
-import { formatTokenAmount, truncateAddress } from "@/lib/format"
+import { truncateAddress } from "@/lib/format"
 import type { Address } from "viem"
+import { TokenAmount } from "@/components/ui/TokenAmount"
 
 const LazyPieChart = lazy(() =>
   import("recharts").then((m) => ({
@@ -35,7 +36,7 @@ const LazyPieChart = lazy(() =>
                 <div className="rounded-lg border bg-background p-2 shadow-md">
                   <p className="text-sm font-medium">{entry.name}</p>
                   <p className="text-xs text-muted-foreground">
-                    {formatTokenAmount(entry.amount)}
+                    <TokenAmount amount={entry.amount} />
                   </p>
                 </div>
               )

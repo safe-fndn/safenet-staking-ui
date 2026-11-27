@@ -3,7 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useTotalStaked, useUserTotalStake } from "@/hooks/useStakingReads"
 import { useValidators } from "@/hooks/useValidators"
-import { formatTokenAmount, asBigint } from "@/lib/format"
+import { asBigint } from "@/lib/format"
+import { TokenAmount } from "@/components/ui/TokenAmount"
 
 export function StatsOverview() {
   const { isConnected } = useAccount()
@@ -16,7 +17,7 @@ export function StatsOverview() {
   const globalStats = [
     {
       title: "Total SAFE Staked",
-      value: loadingTotalStaked ? null : formatTokenAmount(asBigint(totalStaked), 18, 0),
+      value: loadingTotalStaked ? null : <TokenAmount amount={asBigint(totalStaked)} maxDecimals={0} />,
       loading: loadingTotalStaked,
     },
     {
@@ -30,7 +31,7 @@ export function StatsOverview() {
     ? [
         {
           title: "Your Staked SAFE",
-          value: loadingUserStake ? null : formatTokenAmount(asBigint(userTotalStake), 18, 0),
+          value: loadingUserStake ? null : <TokenAmount amount={asBigint(userTotalStake)} maxDecimals={0} />,
           loading: loadingUserStake,
         },
       ]

@@ -48,6 +48,12 @@ describe("WithdrawalCard", () => {
     expect(screen.getByText(/SAFE/)).toBeInTheDocument()
   })
 
+  it("renders amounts below 1 SAFE with decimals", () => {
+    render(<WithdrawalCard {...defaultProps} amount={10n ** 16n} />)
+
+    expect(screen.getByText("0.01 SAFE")).toBeInTheDocument()
+  })
+
   it("renders validator label", () => {
     render(<WithdrawalCard {...defaultProps} />)
 

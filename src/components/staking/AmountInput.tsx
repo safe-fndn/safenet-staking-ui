@@ -1,6 +1,7 @@
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { formatTokenAmount, formatTokenAmountRaw } from "@/lib/format"
+import { formatTokenAmountRaw } from "@/lib/format"
+import { TokenAmount } from "@/components/ui/TokenAmount"
 
 interface AmountInputProps {
   value: string
@@ -29,7 +30,7 @@ export function AmountInput({ value, onChange, maxAmount, label = "Amount", disa
         <label htmlFor="amount-input" className="text-sm font-medium">{label}</label>
         {maxAmount !== undefined && (
           <span className="text-xs text-muted-foreground">
-            SAFE Balance: {formatTokenAmount(maxAmount)}
+            SAFE Balance: <TokenAmount amount={maxAmount} />
           </span>
         )}
       </div>

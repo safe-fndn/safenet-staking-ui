@@ -26,7 +26,7 @@ describe("AmountInput", () => {
   it("shows balance when maxAmount provided", () => {
     render(<AmountInput value="" onChange={mockOnChange} maxAmount={maxAmount} />)
 
-    expect(screen.getByText(/SAFE Balance: 1,000/)).toBeInTheDocument()
+    expect(screen.getByText(/SAFE Balance:/)).toHaveTextContent("SAFE Balance: 1,000")
   })
 
   it("shows percentage buttons when maxAmount provided", () => {

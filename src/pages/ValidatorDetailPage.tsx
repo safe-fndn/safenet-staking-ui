@@ -10,7 +10,7 @@ import { DelegateDialog } from "@/components/staking/DelegateDialog"
 import { UndelegateDialog } from "@/components/staking/UndelegateDialog"
 import { useValidatorTotalStake, useUserStakeOnValidator } from "@/hooks/useStakingReads"
 import { useValidators, findValidator } from "@/hooks/useValidators"
-import { formatTokenAmount, asBigint, formatPercent } from "@/lib/format"
+import { asBigint, formatPercent } from "@/lib/format"
 import { copyToClipboard } from "@/lib/clipboard"
 import { useToast } from "@/hooks/useToast"
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
@@ -21,6 +21,7 @@ import { getDelegationWarnings } from "@/lib/delegationWarnings"
 import { COMMISSION_DOCS_URL } from "@/lib/docs"
 import ArrowLeft from "lucide-react/dist/esm/icons/arrow-left"
 import Copy from "lucide-react/dist/esm/icons/copy"
+import { TokenAmount } from "@/components/ui/TokenAmount"
 export function ValidatorDetailPage() {
   const { address: validatorAddress } = useParams<{ address: string }>()
   const { isConnected } = useAccount()
@@ -156,7 +157,7 @@ export function ValidatorDetailPage() {
               {loadingTotal ? (
                 <Skeleton className="h-7 w-32 mt-1" />
               ) : (
-                <p className="text-xl font-bold">{formatTokenAmount(asBigint(totalStake), 18, 0)}</p>
+                <p className="text-xl font-bold"><TokenAmount amount={asBigint(totalStake)} maxDecimals={0} /></p>
               )}
             </div>
             {isConnected && (
@@ -165,7 +166,7 @@ export function ValidatorDetailPage() {
                 {loadingUser ? (
                   <Skeleton className="h-7 w-32 mt-1" />
                 ) : (
-                  <p className="text-xl font-bold">{formatTokenAmount(userStakeAmount ?? 0n, 18, 0)}</p>
+                  <p className="text-xl font-bold"><TokenAmount amount={userStakeAmount ?? 0n} maxDecimals={0} /></p>
                 )}
               </div>
             )}
