@@ -61,56 +61,32 @@ export function useWithdrawalValidators() {
         currentId = node[3]
       }
 
-      // 2. Fetch WithdrawalInitiated events and build withdrawalId → validator map.
-      const getEventLogs = () =>
-        client.getLogs({
+      // 2. Resolve each withdrawalId to its validator via WithdrawalInitiated
+      //    events. Pending withdrawals are recent, so scan backwards from the
+      //    latest block one chunk at a time and stop once every ID is found.
+      //    Chunk errors propagate so React Query retries instead of caching
+      //    zero addresses.
+      const pending = new Set(nodeIds)
+      const idToValidator = new Map<bigint, Address>()
+      const minBlock = deployBlock > 0n ? deployBlock : 0n
+      let to = await client.getBlockNumber()
+      while (pending.size > 0 && to >= minBlock) {
+        const from =
+          to - MAX_BLOCK_RANGE > minBlock ? to - MAX_BLOCK_RANGE : minBlock
+        const logs = await client.getLogs({
           address: addresses.staking,
           event: WITHDRAWAL_INITIATED_EVENT,
           args: { staker: address },
-          fromBlock: deployBlock,
-          toBlock: "latest",
+          fromBlock: from,
+          toBlock: to,
         })
-      type EventLog = Awaited<ReturnType<typeof getEventLogs>>
-      let logs: EventLog
-      try {
-        logs = await getEventLogs()
-      } catch {
-        // Chunked fallback for RPC block-range limits.
-        // Fetch all chunks in parallel for better latency.
-        const latestBlock = await client.getBlockNumber()
-        const minBlock = deployBlock > 0n ? deployBlock : 0n
-
-        const chunkPromises: Promise<EventLog>[] = []
-        let from = minBlock
-        while (from <= latestBlock) {
-          const to =
-            from + MAX_BLOCK_RANGE > latestBlock
-              ? latestBlock
-              : from + MAX_BLOCK_RANGE
-          chunkPromises.push(
-            client
-              .getLogs({
-                address: addresses.staking,
-                event: WITHDRAWAL_INITIATED_EVENT,
-                args: { staker: address },
-                fromBlock: from,
-                toBlock: to,
-              })
-              .catch(() => [])
-          )
-          from = to + 1n
+        for (const log of logs) {
+          const { withdrawalId, validator } = log.args
+          if (withdrawalId === undefined || !validator) continue
+          const id = BigInt(withdrawalId)
+          if (pending.delete(id)) idToValidator.set(id, validator)
         }
-
-        const chunkResults = await Promise.all(chunkPromises)
-        logs = chunkResults.flat()
-      }
-
-      const idToValidator = new Map<bigint, Address>()
-      for (const log of logs) {
-        const { withdrawalId, validator } = log.args
-        if (withdrawalId !== undefined && validator) {
-          idToValidator.set(BigInt(withdrawalId), validator)
-        }
+        to = from - 1n
       }
 
       // 3. Map each linked-list node ID to its validator.
