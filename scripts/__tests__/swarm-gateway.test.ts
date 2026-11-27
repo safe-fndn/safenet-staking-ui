@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, it, expect } from "vitest"
 import { createHash } from "node:crypto"
-import { pushChunks, pushToGateways, subdomainUrl, verifyPage, verifyWebsite } from "../swarm/gateway"
+import { gatewayOperator, independentVerifiers, pushChunks, pushToGateways, subdomainUrl, verifyPage, verifyWebsite } from "../swarm/gateway"
 import type { StampedChunk } from "../swarm/stamping"
 import { hex, pseudoRandom, text } from "./swarm-test-utils"
 
@@ -56,6 +56,9 @@ describe("pushToGateways", () => {
     expect(tried).toEqual(["https://a", "https://b"])
     expect(r.pushed).toEqual(["https://b"])
     expect(r.failed.map((f) => f.gateway)).toEqual(["https://a"])
+    // The failed gateway still counts as uploaded-to for the independence check.
+    expect(r.attempted).toEqual(["https://a", "https://b"])
+    expect(independentVerifiers(["https://a", "https://c"], r.attempted)).toEqual(["https://c"])
   })
 
   it("pushes to every gateway with all", async () => {
@@ -79,6 +82,37 @@ describe("pushToGateways", () => {
     expect(attempts).toEqual(gateways)
     expect(r.pushed).toEqual(["https://a", "https://c"])
     expect(failures).toEqual(["https://b: https://b is down"])
+  })
+
+  it("skips a gateway canAttempt refuses, checking right before each attempt", async () => {
+    const { push, tried } = fakePush(["https://a"])
+    const seen: string[][] = []
+    const attempted: string[] = []
+    const r = await pushToGateways([chunk(1)], gateways, {
+      all: false,
+      push,
+      onAttempt: (gw) => attempted.push(gw),
+      // Refuse c once a and b were tried, like the last independent verifier.
+      canAttempt: (gw) => {
+        seen.push([...attempted])
+        return gw !== "https://c" || attempted.length < 2
+      },
+    })
+    expect(tried).toEqual(["https://a", "https://b"])
+    expect(r.skipped).toEqual([])
+    const { push: push2, tried: tried2 } = fakePush(["https://a", "https://b"])
+    const attempted2: string[] = []
+    const r2 = await pushToGateways([chunk(1)], gateways, {
+      all: false,
+      push: push2,
+      onAttempt: (gw) => attempted2.push(gw),
+      canAttempt: (gw) => gw !== "https://c" || attempted2.length < 2,
+    })
+    expect(tried2).toEqual(["https://a", "https://b"])
+    expect(r2.pushed).toEqual([])
+    expect(r2.skipped).toEqual(["https://c"])
+    expect(r2.attempted).toEqual(["https://a", "https://b"])
+    expect(seen[0]).toEqual([])
   })
 
   it("returns no pushed gateway when every gateway fails", async () => {
@@ -225,6 +259,31 @@ describe("verifyPage", () => {
     expect(await verifyPage("https://gw/bzz/ref", fetch)).toEqual(
       expect.arrayContaining(["https://gw/bzz/assets/app.js", "https://gw/bzz/assets/app.css", "https://gw/bzz/favicon.png"]),
     )
+  })
+})
+
+describe("independentVerifiers", () => {
+  it("excludes a gateway whose upload failed, since it may still have stored the chunks", () => {
+    // bzz.limo stored the chunks but sent a malformed 201, so the upload failed; it can still serve them back.
+    const attempted = ["https://beeport.xyz", "https://bzz.limo"]
+    expect(independentVerifiers(["https://bzz.limo"], attempted)).toEqual([])
+  })
+
+  it("treats gateways under one domain as one operator", () => {
+    expect(gatewayOperator("https://download.gateway.ethswarm.org")).toBe("ethswarm.org")
+    expect(gatewayOperator("https://api.gateway.ethswarm.org/")).toBe("ethswarm.org")
+    expect(gatewayOperator("https://bzz.limo")).toBe("bzz.limo")
+    // api.gateway.ethswarm.org was pushed to, so download.gateway.ethswarm.org does not count.
+    expect(
+      independentVerifiers(["https://download.gateway.ethswarm.org", "https://bzz.limo"], ["https://api.gateway.ethswarm.org"]),
+    ).toEqual(["https://bzz.limo"])
+  })
+
+  it("keeps only verify gateways whose operator was not pushed to", () => {
+    expect(independentVerifiers(["https://bzz.limo"], ["https://bzz.limo/"])).toEqual([])
+    expect(
+      independentVerifiers(["https://download.gateway.ethswarm.org", "https://bzz.limo"], ["https://bzz.limo", "https://beeport.xyz"]),
+    ).toEqual(["https://download.gateway.ethswarm.org"])
   })
 })
 

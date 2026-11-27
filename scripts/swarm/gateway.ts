@@ -125,24 +125,41 @@ export interface PushToGatewaysOptions {
   /** Push to every gateway instead of stopping at the first that accepts every chunk. */
   all: boolean
   push?: (chunks: StampedChunk[], gateway: string) => Promise<void>
+  /**
+   * Whether `gateway` may be tried at all; a gateway it rejects is skipped and
+   * reported in `skipped`. Used to never push to the last independent verifier.
+   */
+  canAttempt?: (gateway: string) => boolean
   onAttempt?: (gateway: string) => void
+  onSkip?: (gateway: string) => void
   onFailure?: (gateway: string, error: Error) => void
 }
 
 /**
  * Pushes `chunks` to `gateways` in order, one gateway at a time. Without
  * `all` it stops at the first gateway that accepts every chunk; with `all` it
- * tries every gateway. Failures are reported, never thrown.
+ * tries every gateway. Failures are reported, never thrown. `attempted` lists
+ * every gateway an upload was started on, successful or not; `skipped` the
+ * ones `canAttempt` refused (checked right before each attempt, so it sees
+ * every earlier attempt).
  */
 export async function pushToGateways(
   chunks: StampedChunk[],
   gateways: string[],
-  { all, push = pushChunks, onAttempt = () => {}, onFailure = () => {} }: PushToGatewaysOptions,
-): Promise<{ pushed: string[]; failed: { gateway: string; error: Error }[] }> {
+  { all, push = pushChunks, canAttempt = () => true, onAttempt = () => {}, onSkip = () => {}, onFailure = () => {} }: PushToGatewaysOptions,
+): Promise<{ pushed: string[]; failed: { gateway: string; error: Error }[]; attempted: string[]; skipped: string[] }> {
+  const attempted: string[] = []
+  const skipped: string[] = []
   const pushed: string[] = []
   const failed: { gateway: string; error: Error }[] = []
   for (const gateway of gateways) {
+    if (!canAttempt(gateway)) {
+      skipped.push(gateway)
+      onSkip(gateway)
+      continue
+    }
     onAttempt(gateway)
+    attempted.push(gateway)
     try {
       await push(chunks, gateway)
       pushed.push(gateway)
@@ -153,7 +170,28 @@ export async function pushToGateways(
       onFailure(gateway, error)
     }
   }
-  return { pushed, failed }
+  return { pushed, failed, attempted, skipped }
+}
+
+/**
+ * The operator a gateway belongs to: the last two labels of its hostname
+ * (`download.gateway.ethswarm.org` and `api.gateway.ethswarm.org` are both
+ * `ethswarm.org`). Gateways of one operator likely share Bee nodes and their
+ * store, so they count as one for independent verification.
+ */
+export const gatewayOperator = (gateway: string) => new URL(gateway).hostname.split(".").slice(-2).join(".")
+
+/**
+ * The gateways in `verifiedVia` whose operator no upload was attempted on.
+ * Only these show the release is retrievable from the network rather than
+ * from an upload gateway's own store. `attempted` must include failed uploads
+ * and uploads of earlier runs of the same release: a gateway can store chunks
+ * and still fail the upload (e.g. a malformed 201 reply), and keeps them
+ * across runs.
+ */
+export function independentVerifiers(verifiedVia: string[], attempted: string[]): string[] {
+  const uploadedTo = new Set(attempted.map(gatewayOperator))
+  return verifiedVia.filter((gw) => !uploadedTo.has(gatewayOperator(gw)))
 }
 
 const sha256 = (data: Uint8Array) => createHash("sha256").update(data).digest("hex")

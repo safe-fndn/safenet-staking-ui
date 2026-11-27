@@ -99,7 +99,14 @@ Once `createBatch` is mined, the script continues automatically:
 2. **Stamps every chunk exactly once,** then drops the key.
 3. **Saves the stamped chunks and the release metadata** to `swarm-release/<reference>/` (`bundle.bin`, `release.json`), *before* pushing. This is local only and gitignored, and is what lets a failed release be resumed.
 4. **Pushes them** to `https://beeport.xyz`, falling back to `https://api.gateway.ethswarm.org`, then `https://bzz.limo`. With `--push-all` it pushes to every one of them instead of stopping at the first that accepts (see [Pushing to several gateways](#pushing-to-several-gateways)). A freshly bought batch can take a few minutes to become usable; the script retries meanwhile.
-5. **Verifies** every file by sha256 via `/bzz/<reference>/` through `https://download.gateway.ethswarm.org` and `https://bzz.limo` (which fetches every manifest and data chunk), and loads the page like a browser (warning about any asset that doesn't load).
+5. **Verifies** every file by sha256 via `/bzz/<reference>/` through `https://download.gateway.ethswarm.org` and `https://bzz.limo` (which fetches every manifest and data chunk), and loads the page like a browser (warning about any asset that doesn't load). At least one gateway of an operator that no upload was ever attempted on must read every file back; otherwise the release fails and is not recorded. A gateway can serve what it was sent from its own store, so only a read-back elsewhere shows the chunks reached the network. Precisely:
+   - **Operators, not URLs:** gateways count as one operator when their hostnames end in the same two labels. `download.gateway.ethswarm.org` and `api.gateway.ethswarm.org` are both `ethswarm.org` and likely share Bee nodes.
+   - **Failed uploads count:** a gateway may have stored some or all chunks before its upload failed.
+   - **Earlier runs count:** every gateway an upload is started on is saved to `release.json` (`attemptedGateways`, written atomically so an interrupted write never corrupts it) before the upload begins, and a `--push-bundle` resume checks against that whole history. Bundles saved before this field existed have no history, so a resume of one only knows its own run.
+
+   - **No push to the last verifier:** before each push gateway, the script checks that a verify gateway of another operator would remain. If not, it skips that gateway instead of uploading to it.
+
+   With the defaults, a push that lands on beeport.xyz is verified by `download.gateway.ethswarm.org`, and one that falls back to `api.gateway.ethswarm.org` needs `bzz.limo` to read it back. If both of those pushes fail, the script does not fall back to `bzz.limo`, since uploading there would leave no independent verifier. It stops instead; add a verify gateway of another operator and resume.
 6. **Writes the release record** `releases/swarm/<date>-<ref>.json` and prints the reference and its URLs. The record is the release receipt: git commit, sha256 of every file, Swarm reference, tooling versions, upload settings, batch (id, depth, purchase tx, estimated expiry), gateways, retrieval URLs and the ENS contenthash value `bzz://<reference>`. If the final expiry lookup fails, the record is still written, with `estimatedExpiry: null`; `yarn swarm:status` reads the live value.
 
 If pushing or verifying fails, nothing is lost: resume with `--push-bundle` (see [Resuming a release](#resuming-a-release)).
@@ -149,16 +156,18 @@ It repeats every step after stamping:
 
 ### Pushing to several gateways
 
-By default the script pushes to the first gateway that accepts every chunk. Add `--push-all` to push to every gateway in `SWARM_PUSH_GATEWAYS` (default: beeport.xyz, api.gateway.ethswarm.org, bzz.limo), for a fresh release or for an existing one:
+By default the script pushes to the first gateway that accepts every chunk. Add `--push-all` to push to every gateway in `SWARM_PUSH_GATEWAYS` (default: beeport.xyz, api.gateway.ethswarm.org, bzz.limo), for a fresh release or for an existing one. It also needs a verify gateway of an operator outside that list (see below):
 
 ```bash
-yarn deploy:swarm ./dist --ttl-days 365 --push-all
-yarn deploy:swarm --push-bundle swarm-release/<reference> --push-all
+SWARM_VERIFY_GATEWAYS=https://download.gateway.ethswarm.org,https://bzz.limo,https://<other-operator-gateway> \
+  yarn deploy:swarm ./dist --ttl-days 365 --push-all
+yarn deploy:swarm --push-bundle swarm-release/<reference> --push-all   # same SWARM_VERIFY_GATEWAYS
 ```
 
 - It pushes to one gateway at a time and fails only if none accepts the chunks. A gateway that fails is named in a warning; rerun the second command to retry it.
 - The record's `pushedVia` lists every gateway that accepted every chunk, from this run only. A resume overwrites the record, so pass `--push-all` again (or every gateway in `SWARM_PUSH_GATEWAYS`) to keep the full list.
-- Once chunks reach the network, any gateway can serve them. Extra pushes guard against a gateway that accepted chunks without passing them on; `verifiedVia` is what shows they are retrievable.
+- Once chunks reach the network, any gateway can serve them. Extra pushes guard against a gateway that accepted chunks without passing them on; `verifiedVia` is what shows they are retrievable, and it must include a gateway of an operator no upload was attempted on (see step 5 of [Let the script finish](#5-let-the-script-finish)).
+- **`--push-all` needs an extra verify gateway.** With the default gateways it pushes to every verify operator (ethswarm.org, bzz.limo), so no read-back could be independent. The script refuses this before buying or pushing anything. Add a gateway of another operator to `SWARM_VERIFY_GATEWAYS`, or leave out `--push-all`.
 
 So a resumed release ends up recorded exactly like one that succeeded the first time. `swarm-release/<reference>/` exists only on the machine that made the release. Without it, resuming needs a new batch.
 
@@ -222,6 +231,9 @@ Pinning a release on your own Bee node (`POST /pins/<reference>` on that node) k
 | `invalid batch id` while pushing | The gateway hasn't seen the new batch yet. The script retries for up to 20 minutes. |
 | `stamp signature is invalid` | The batch's `_owner` isn't the key that signed the stamps. Rerun with a new batch. |
 | Some files not retrievable yet | Wait and resume with `--push-bundle swarm-release/<reference>`. Verification retries for about a minute per gateway. |
+| `only read back through operators an upload was attempted on` | Only gateways of operators that were uploaded to (now or in an earlier run) served the files, so they may not have reached the network. Wait and resume with `--push-bundle swarm-release/<reference>`, or add a verify gateway of another operator via `SWARM_VERIFY_GATEWAYS`. |
+| `no gateway accepted the chunks, and … was skipped` | The remaining push gateways are run by the only operators left to verify. Add a verify gateway of another operator via `SWARM_VERIFY_GATEWAYS` and resume with `--push-bundle swarm-release/<reference>`. |
+| `--push-all pushes to every operator in SWARM_VERIFY_GATEWAYS` | Add a verify gateway of another operator via `SWARM_VERIFY_GATEWAYS`, or leave out `--push-all`. |
 | Page loads, but scripts/styles 400 on `bzz.limo/bzz/<ref>` | The URL is missing its trailing slash. Use `…/bzz/<ref>/` or the subdomain URL. |
 | `swarm:status` shows `UNKNOWN` | The RPC lookup failed; nothing is known about the batch. Retry, or set `SWARM_GNOSIS_RPC_URL`. Don't re-upload. |
 

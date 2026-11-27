@@ -44,13 +44,15 @@ import { collectWebsiteFiles } from "./swarm/collect"
 import {
   DEFAULT_PUSH_GATEWAYS,
   DEFAULT_VERIFY_GATEWAYS,
+  gatewayOperator,
+  independentVerifiers,
   pushChunks,
   pushToGateways,
   subdomainUrl,
   verifyPage,
   verifyWebsite,
 } from "./swarm/gateway"
-import { completeRelease, fileChecksums, sha256, toolingVersions, type FileChecksum, type PendingRelease } from "./swarm/release"
+import { completeRelease, fileChecksums, sha256, toolingVersions, writePendingRelease, type FileChecksum, type PendingRelease } from "./swarm/release"
 import { decodeBundle, encodeBundle, planDepth, stampChunks, uniqueChunks, type StampedChunk } from "./swarm/stamping"
 import { hashWebsite, type SwarmChunk } from "./swarm/website"
 
@@ -85,15 +87,36 @@ async function pushAndVerify(
   reference: string,
   files: FileChecksum[],
   releaseDir: string,
+  pending: PendingRelease,
 ): Promise<{ pushedVia: string[]; verifiedVia: string[] }> {
   const all = values["push-all"]
-  const { pushed: pushedVia, failed } = await pushToGateways(chunks, pushGateways, {
+  const metaPath = join(releaseDir, "release.json")
+  const history = () => pending.attemptedGateways ?? []
+  const { pushed: pushedVia, failed, skipped } = await pushToGateways(chunks, pushGateways, {
     all,
     push: (c, gw) => pushChunks(c, gw, { onProgress: (d, t) => d % 100 === 0 && log(`  ${d}/${t}`) }),
-    onAttempt: (gw) => log(`Pushing ${chunks.length} chunks to ${gw} …`),
+    // Never push to a gateway whose upload would leave no independent verifier,
+    // e.g. the bzz.limo fallback after ethswarm.org was already tried.
+    canAttempt: (gw) => independentVerifiers(verifyGateways, [...history(), gw]).length > 0,
+    onSkip: (gw) => log(`Skipping ${gw}: after uploading to it, no verify gateway of another operator would remain`),
+    onAttempt: (gw) => {
+      // Saved before the upload starts, so even a crash mid-upload keeps the history for a resume.
+      pending.attemptedGateways = [...new Set([...history(), gw])]
+      writePendingRelease(metaPath, pending)
+      log(`Pushing ${chunks.length} chunks to ${gw} …`)
+    },
     onFailure: (gw, e) => log(`  ${gw} failed: ${e.message}`),
   })
-  if (pushedVia.length === 0) fail(`no gateway accepted the chunks; resume later with --push-bundle ${releaseDir}`)
+  if (pushedVia.length === 0) {
+    fail(
+      skipped.length > 0
+        ? `no gateway accepted the chunks, and ${skipped.join(", ")} ${skipped.length === 1 ? "was" : "were"} skipped because uploading there ` +
+            `would leave no independent verify gateway (uploads so far: ${history().join(", ") || "none"}); ` +
+            `add a verify gateway of another operator via SWARM_VERIFY_GATEWAYS, then resume with --push-bundle ${releaseDir}`
+        : `no gateway accepted the chunks; resume later with --push-bundle ${releaseDir}`,
+    )
+  }
+  if (skipped.length > 0) log(`Warning: skipped ${skipped.join(", ")} to keep a verify gateway of another operator`)
   if (all && failed.length > 0) {
     log(`Warning: not pushed to ${failed.map((f) => f.gateway).join(", ")}; retry with --push-bundle ${releaseDir} --push-all`)
   }
@@ -103,7 +126,18 @@ async function pushAndVerify(
     log(`Verify via ${gw}: ${bad.length === 0 ? `all ${files.length} files match` : `${bad.length} files missing or different (e.g. ${bad[0]})`}`)
     if (bad.length === 0) verifiedVia.push(gw)
   }
-  if (verifiedVia.length === 0) fail("the files are not retrievable through any verify gateway yet; resume later with --push-bundle")
+  if (verifiedVia.length === 0) fail(`the files are not retrievable through any verify gateway yet; resume later with --push-bundle ${releaseDir}`)
+  // A gateway can serve what it was sent from its own store, so only a
+  // read-back through an operator no upload was ever attempted on (in this run
+  // or an earlier one, failed or not) shows the release is on the network.
+  if (independentVerifiers(verifiedVia, pending.attemptedGateways ?? []).length === 0) {
+    fail(
+      `the files were only read back through operators an upload was attempted on ` +
+        `(${verifiedVia.join(", ")}; uploads so far: ${(pending.attemptedGateways ?? []).join(", ")}), ` +
+        `not through any other operator's gateway; resume later with --push-bundle ${releaseDir}, ` +
+        "or add a gateway of another operator via SWARM_VERIFY_GATEWAYS",
+    )
+  }
   return { pushedVia, verifiedVia }
 }
 
@@ -120,10 +154,11 @@ async function finish(releaseDir: string): Promise<void> {
   const { draft } = pending
   const bundle = readFileSync(bundlePath)
   if (sha256(bundle) !== draft.bundleSha256) fail(`${bundlePath} does not match ${metaPath}`)
+  checkVerifiersForPushAll()
   const chunks = decodeBundle(bundle)
   const { reference } = draft
 
-  const { pushedVia, verifiedVia } = await pushAndVerify(chunks, reference, draft.fileChecksums, releaseDir)
+  const { pushedVia, verifiedVia } = await pushAndVerify(chunks, reference, draft.fileChecksums, releaseDir, pending)
   const page = subdomainUrl(reference)
   const brokenAssets = await verifyPage(page)
   if (brokenAssets.length > 0) log(`Warning: ${page} references assets that do not load:`, ...brokenAssets.map((u) => `  ${u}`))
@@ -153,11 +188,27 @@ const printCall = (step: string, c: Call) =>
     `    calldata                 ${c.data}`,
   )
 
+/**
+ * With --push-all every push gateway gets the chunks, so a verify gateway only
+ * counts if its operator is not among them. Checked before anything is bought
+ * or pushed, since such a release could never pass verification.
+ */
+function checkVerifiersForPushAll(): void {
+  if (!values["push-all"]) return
+  if (independentVerifiers(verifyGateways, pushGateways).length > 0) return
+  fail(
+    `--push-all pushes to every operator in SWARM_VERIFY_GATEWAYS (${[...new Set(verifyGateways.map(gatewayOperator))].join(", ")}), ` +
+      "so no read-back could be independent; add a verify gateway of another operator via SWARM_VERIFY_GATEWAYS, " +
+      "or leave out --push-all",
+  )
+}
+
 async function release(): Promise<void> {
   const ttlDays = Number(values["ttl-days"])
   if (!(ttlDays > 0)) fail("--ttl-days <days> is required (how long the release stays stored before a top-up)")
   const dir = resolve(positionals[0] ?? "dist")
   if (!existsSync(dir) || !statSync(dir).isDirectory()) fail(`not a directory: ${dir}`)
+  checkVerifiersForPushAll()
   const settings = {
     order: "sorted",
     indexDocument: values.index,
@@ -257,7 +308,7 @@ async function release(): Promise<void> {
       bundleSha256: sha256(bundle),
     },
   }
-  writeFileSync(join(releaseDir, "release.json"), JSON.stringify(pending, null, 2) + "\n")
+  writePendingRelease(join(releaseDir, "release.json"), pending)
   log(`Stamped ${stamped.length} chunks; key discarded; saved to ${releaseDir}/ (resume with --push-bundle ${releaseDir})`)
 
   // 6. Push, verify, record.

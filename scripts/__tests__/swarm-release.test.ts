@@ -1,9 +1,11 @@
 // @vitest-environment node
 import { describe, it, expect, beforeEach, afterEach } from "vitest"
-import { mkdtempSync, rmSync } from "node:fs"
+import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import {
+  writeAll,
+  writePendingRelease,
   completeRelease,
   fileChecksums,
   readReleases,
@@ -95,5 +97,63 @@ describe("release records", () => {
     expect(tooling.node).toBe(process.version)
     expect(tooling["@ethersphere/core-sdk"]).toMatch(/^\d+\.\d+\.\d+/)
     expect(tooling.viem).toMatch(/^\d+\.\d+\.\d+/)
+  })
+})
+
+describe("writePendingRelease", () => {
+  let dir: string
+  beforeEach(() => {
+    dir = mkdtempSync(join(tmpdir(), "swarm-pending-"))
+  })
+  afterEach(() => rmSync(dir, { recursive: true, force: true }))
+
+  it("replaces release.json and leaves no temporary file behind", () => {
+    const path = join(dir, "release.json")
+    writeFileSync(path, "{}")
+    const pending = { draft: { reference: "ab" }, attemptedGateways: ["https://a"] } as unknown as Parameters<typeof writePendingRelease>[1]
+    writePendingRelease(path, pending)
+    expect(JSON.parse(readFileSync(path, "utf8"))).toEqual(pending)
+    expect(readdirSync(dir)).toEqual(["release.json"])
+  })
+
+  it("keeps the previous metadata intact when a write fails", () => {
+    const path = join(dir, "release.json")
+    const original = JSON.stringify({ draft: { reference: "ab" } })
+    writeFileSync(path, original)
+    // A value JSON cannot encode makes the write fail, like an interrupted one would.
+    const broken = { draft: { reference: "ab", size: 1n } } as unknown as Parameters<typeof writePendingRelease>[1]
+    expect(() => writePendingRelease(path, broken)).toThrow()
+    expect(readFileSync(path, "utf8")).toBe(original)
+    expect(readdirSync(dir)).toEqual(["release.json"])
+  })
+
+  it("keeps the previous metadata intact when the replacement cannot be written", () => {
+    const path = join(dir, "release.json")
+    const original = JSON.stringify({ draft: { reference: "ab" } })
+    writeFileSync(path, original)
+    // A directory where the temporary file goes makes the write itself fail.
+    mkdirSync(`${path}.${process.pid}.tmp`)
+    const next = { draft: { reference: "cd" } } as unknown as Parameters<typeof writePendingRelease>[1]
+    expect(() => writePendingRelease(path, next)).toThrow(/EISDIR/)
+    expect(readFileSync(path, "utf8")).toBe(original)
+  })
+})
+
+describe("writeAll", () => {
+  it("keeps writing after short writes until every byte is written", () => {
+    const data = new TextEncoder().encode('{"draft":{"reference":"ab"}}\n')
+    const out: number[] = []
+    // A writer that only ever takes 3 bytes, like a short write.
+    const short = (_fd: number, buf: Uint8Array, offset: number, length: number) => {
+      const n = Math.min(3, length)
+      out.push(...buf.subarray(offset, offset + n))
+      return n
+    }
+    writeAll(0, data, short)
+    expect(new Uint8Array(out)).toEqual(data)
+  })
+
+  it("fails instead of truncating when a write makes no progress", () => {
+    expect(() => writeAll(0, new Uint8Array(10), () => 0)).toThrow(/no progress at byte 0 of 10/)
   })
 })

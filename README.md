@@ -197,7 +197,7 @@ yarn deploy:swarm ./dist --ttl-days 365             # release
 `deploy:swarm` uploads without a Bee node or any long-lived key:
 - A person buys a fresh **immutable** postage batch from their own wallet on Gnosis Chain, with a one-off stamping key as owner. The script prints the exact transactions.
 - The script stamps every chunk with that key, discards the key, and pushes the stamped chunks to public gateways.
-- It verifies retrieval (every file and the page itself) and writes a release record to `releases/swarm/`. A failed push or check can be resumed with `--push-bundle` without the key. `--push-all` pushes to every push gateway instead of the first that accepts.
+- It verifies retrieval (every file and the page itself) and writes a release record to `releases/swarm/`. A failed push or check can be resumed with `--push-bundle` without the key. `--push-all` pushes to every push gateway instead of the first that accepts. A release counts as verified only if a gateway of an operator no upload was ever attempted on reads it back, so `--push-all` needs an extra verify gateway in `SWARM_VERIFY_GATEWAYS`.
 
 Pointing ENS at a release is done separately. Anyone can extend a release's lifetime with `topUp`; `yarn swarm:status` warns 7 days before a release expires. Step-by-step instructions, including the manual batch purchase and top-ups, are in [`SWARM_RELEASE.md`](./SWARM_RELEASE.md).
 

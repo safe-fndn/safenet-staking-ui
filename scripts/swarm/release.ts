@@ -4,7 +4,7 @@
  * re-check its reference with `swarm:hash`.
  */
 import { createHash } from "node:crypto"
-import { mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs"
+import { closeSync, fsyncSync, mkdirSync, openSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync, writeSync } from "node:fs"
 import { join } from "node:path"
 import type { Hex } from "viem"
 
@@ -82,6 +82,54 @@ export interface PendingRelease {
   /** The release record, minus what pushing and verifying determine. */
   draft: Omit<SwarmRelease, "pushedVia" | "verifiedVia" | "urls" | "batch"> & {
     batch: Omit<SwarmRelease["batch"], "estimatedExpiry">
+  }
+  /**
+   * Every gateway an upload of this bundle was ever started on, across runs
+   * (fresh release and every --push-bundle resume). Saved before each upload
+   * starts, so a gateway that kept chunks from an earlier run never counts as
+   * an independent verifier later. Missing in bundles saved by older tooling.
+   */
+  attemptedGateways?: string[]
+}
+
+/**
+ * Writes all of `data` to `fd`. `writeSync` may write fewer bytes than asked
+ * (a short write); this loops until everything is written, and fails on a
+ * write that makes no progress instead of silently truncating.
+ */
+export function writeAll(fd: number, data: Uint8Array, write: (fd: number, data: Uint8Array, offset: number, length: number) => number = writeSync): void {
+  for (let offset = 0; offset < data.length; ) {
+    const written = write(fd, data, offset, data.length - offset)
+    if (!(written > 0)) throw new Error(`write made no progress at byte ${offset} of ${data.length}`)
+    offset += written
+  }
+}
+
+/**
+ * Writes `release.json` of a saved release atomically: to a temporary file in
+ * the same directory, flushed to disk, then renamed over the original. An
+ * interrupted write leaves the previous metadata intact, so the stamped bundle
+ * stays resumable.
+ */
+export function writePendingRelease(path: string, pending: PendingRelease): void {
+  const data = Buffer.from(JSON.stringify(pending, null, 2) + "\n")
+  const tmp = `${path}.${process.pid}.tmp`
+  try {
+    const fd = openSync(tmp, "w")
+    try {
+      writeAll(fd, data)
+      fsyncSync(fd)
+    } finally {
+      closeSync(fd)
+    }
+    renameSync(tmp, path)
+  } catch (e) {
+    try {
+      rmSync(tmp, { force: true })
+    } catch {
+      // Cleanup is best effort; the original error is what matters.
+    }
+    throw e
   }
 }
 
