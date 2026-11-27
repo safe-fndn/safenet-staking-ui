@@ -98,7 +98,7 @@ Once `createBatch` is mined, the script continues automatically:
 1. **Validates the batch:** owner, depth, bucket depth 16, immutable.
 2. **Stamps every chunk exactly once,** then drops the key.
 3. **Saves the stamped chunks and the release metadata** to `swarm-release/<reference>/` (`bundle.bin`, `release.json`), *before* pushing. This is local only and gitignored, and is what lets a failed release be resumed.
-4. **Pushes them** to `https://beeport.xyz`, falling back to `https://api.gateway.ethswarm.org`. A freshly bought batch can take a few minutes to become usable; the script retries meanwhile.
+4. **Pushes them** to `https://beeport.xyz`, falling back to `https://api.gateway.ethswarm.org`, then `https://bzz.limo`. With `--push-all` it pushes to every one of them instead of stopping at the first that accepts (see [Pushing to several gateways](#pushing-to-several-gateways)). A freshly bought batch can take a few minutes to become usable; the script retries meanwhile.
 5. **Verifies** every file by sha256 via `/bzz/<reference>/` through `https://download.gateway.ethswarm.org` and `https://bzz.limo` (which fetches every manifest and data chunk), and loads the page like a browser (warning about any asset that doesn't load).
 6. **Writes the release record** `releases/swarm/<date>-<ref>.json` and prints the reference and its URLs. The record is the release receipt: git commit, sha256 of every file, Swarm reference, tooling versions, upload settings, batch (id, depth, purchase tx, estimated expiry), gateways, retrieval URLs and the ENS contenthash value `bzz://<reference>`. If the final expiry lookup fails, the record is still written, with `estimatedExpiry: null`; `yarn swarm:status` reads the live value.
 
@@ -146,6 +146,19 @@ It repeats every step after stamping:
 - pushes the stamped chunks (re-pushing chunks that are already stored is harmless)
 - verifies every file and the page
 - writes the release record
+
+### Pushing to several gateways
+
+By default the script pushes to the first gateway that accepts every chunk. Add `--push-all` to push to every gateway in `SWARM_PUSH_GATEWAYS` (default: beeport.xyz, api.gateway.ethswarm.org, bzz.limo), for a fresh release or for an existing one:
+
+```bash
+yarn deploy:swarm ./dist --ttl-days 365 --push-all
+yarn deploy:swarm --push-bundle swarm-release/<reference> --push-all
+```
+
+- It pushes to one gateway at a time and fails only if none accepts the chunks. A gateway that fails is named in a warning; rerun the second command to retry it.
+- The record's `pushedVia` lists every gateway that accepted every chunk, from this run only. A resume overwrites the record, so pass `--push-all` again (or every gateway in `SWARM_PUSH_GATEWAYS`) to keep the full list.
+- Once chunks reach the network, any gateway can serve them. Extra pushes guard against a gateway that accepted chunks without passing them on; `verifiedVia` is what shows they are retrievable.
 
 So a resumed release ends up recorded exactly like one that succeeded the first time. `swarm-release/<reference>/` exists only on the machine that made the release. Without it, resuming needs a new batch.
 

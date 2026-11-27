@@ -40,6 +40,10 @@ describe("deploy:swarm CLI", { timeout: 30_000 }, () => {
       const r = run("--push-bundle", dir)
       expect(r.status).toBe(1)
       expect(r.stderr).toMatch(/must contain bundle\.bin and release\.json/)
+      // --push-all is a known option: parsing passes and the same validation fails.
+      const all = run("--push-bundle", dir, "--push-all")
+      expect(all.status).toBe(1)
+      expect(all.stderr).toMatch(/must contain bundle\.bin and release\.json/)
     } finally {
       rmSync(dir, { recursive: true, force: true })
     }

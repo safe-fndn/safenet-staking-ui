@@ -32,7 +32,8 @@ export interface SwarmRelease {
      */
     estimatedExpiry: string | null
   }
-  pushedVia: string
+  /** Gateways that accepted every chunk, in push order (several with --push-all). */
+  pushedVia: string[]
   verifiedVia: string[]
   /** Where to open the release: its own subdomain first, then `<gateway>/bzz/<reference>/`. */
   urls: string[]

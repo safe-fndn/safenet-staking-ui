@@ -29,7 +29,7 @@ describe("release records", () => {
     chunks: 3,
     tooling: { node: "v22.0.0", "@ethersphere/core-sdk": "0.2.1", viem: "2.46.2" },
     batch: { id: `0x${"11".repeat(32)}`, depth: 17, perChunk: "1", owner: "0x1", purchaseTx: "0x", blockNumber: "1", estimatedExpiry: createdAt },
-    pushedVia: "https://beeport.xyz",
+    pushedVia: ["https://beeport.xyz"],
     verifiedVia: [],
     urls: [`https://bah5qcgzaexample.bzz.limo/`],
     ensContenthash: `bzz://${reference}`,

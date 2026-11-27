@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, it, expect } from "vitest"
 import { createHash } from "node:crypto"
-import { pushChunks, subdomainUrl, verifyPage, verifyWebsite } from "../swarm/gateway"
+import { pushChunks, pushToGateways, subdomainUrl, verifyPage, verifyWebsite } from "../swarm/gateway"
 import type { StampedChunk } from "../swarm/stamping"
 import { hex, pseudoRandom, text } from "./swarm-test-utils"
 
@@ -38,6 +38,57 @@ const droppedBody = () =>
 const stored = (c: StampedChunk): Reply => ({ status: 201, body: JSON.stringify({ reference: hex(c.address) }) })
 const fast = { retryDelayMs: 1 }
 
+describe("pushToGateways", () => {
+  const gateways = ["https://a", "https://b", "https://c"]
+  /** A fake push that rejects the gateways in `down`. */
+  const fakePush = (down: string[] = []) => {
+    const tried: string[] = []
+    const push = async (_: StampedChunk[], gw: string) => {
+      tried.push(gw)
+      if (down.includes(gw)) throw new Error(`${gw} is down`)
+    }
+    return { push, tried }
+  }
+
+  it("stops at the first gateway that accepts every chunk", async () => {
+    const { push, tried } = fakePush(["https://a"])
+    const r = await pushToGateways([chunk(1)], gateways, { all: false, push })
+    expect(tried).toEqual(["https://a", "https://b"])
+    expect(r.pushed).toEqual(["https://b"])
+    expect(r.failed.map((f) => f.gateway)).toEqual(["https://a"])
+  })
+
+  it("pushes to every gateway with all", async () => {
+    const { push, tried } = fakePush()
+    const r = await pushToGateways([chunk(1)], gateways, { all: true, push })
+    expect(tried).toEqual(gateways)
+    expect(r.pushed).toEqual(gateways)
+    expect(r.failed).toEqual([])
+  })
+
+  it("reports a failed gateway and carries on with the rest", async () => {
+    const { push } = fakePush(["https://b"])
+    const attempts: string[] = []
+    const failures: string[] = []
+    const r = await pushToGateways([chunk(1)], gateways, {
+      all: true,
+      push,
+      onAttempt: (gw) => attempts.push(gw),
+      onFailure: (gw, e) => failures.push(`${gw}: ${e.message}`),
+    })
+    expect(attempts).toEqual(gateways)
+    expect(r.pushed).toEqual(["https://a", "https://c"])
+    expect(failures).toEqual(["https://b: https://b is down"])
+  })
+
+  it("returns no pushed gateway when every gateway fails", async () => {
+    const { push } = fakePush(gateways)
+    const r = await pushToGateways([chunk(1)], gateways, { all: true, push })
+    expect(r.pushed).toEqual([])
+    expect(r.failed).toHaveLength(3)
+  })
+})
+
 describe("pushChunks", () => {
   it("waits for the batch on the first chunk, then pushes the rest with their own stamps", async () => {
     const chunks = [chunk(1), chunk(2), chunk(3)]
@@ -68,6 +119,52 @@ describe("pushChunks", () => {
 
     const wrong = fakeFetch(() => stored(chunk(2)))
     await expect(pushChunks([chunk(1)], "https://gw", { ...fast, fetch: wrong.fetch })).rejects.toThrow(/expected/)
+  })
+
+  it("after a failure, takes no more chunks and settles every in-flight request before rejecting", async () => {
+    const chunks = Array.from({ length: 12 }, (_, i) => chunk(i + 1))
+    const byStamp = new Map(chunks.map((c) => [hex(c.stamp), c]))
+    const events: string[] = []
+    let inFlight = 0
+    const fetch = (async (_url: string, init?: RequestInit) => {
+      const c = byStamp.get((init?.headers as Record<string, string>)["Swarm-Postage-Stamp"])!
+      const n = chunks.indexOf(c)
+      events.push(`start ${n}`)
+      inFlight++
+      // Chunk 2 fails fast; the others are slow, so they are in flight when it fails.
+      await new Promise((r) => setTimeout(r, n === 2 ? 1 : 20))
+      inFlight--
+      events.push(`end ${n}`)
+      return n === 2
+        ? new Response('{"message":"stamp signature is invalid"}', { status: 400 })
+        : new Response(JSON.stringify({ reference: hex(c.address) }), { status: 201 })
+    }) as typeof globalThis.fetch
+
+    await expect(pushChunks(chunks, "https://gw", { ...fast, concurrency: 3, fetch })).rejects.toThrow(/signature is invalid/)
+    expect(inFlight).toBe(0)
+    const settled = events.length
+    await new Promise((r) => setTimeout(r, 50))
+    expect(events).toHaveLength(settled) // nothing starts after the rejection
+    // Chunks 1 and 3 were in flight with chunk 2 and finished; nothing was started after the failure.
+    const failedAt = events.indexOf("end 2")
+    expect(events.slice(failedAt + 1).filter((e) => e.startsWith("start"))).toEqual([])
+    expect(events.filter((e) => e.startsWith("start")).length).toBeLessThan(chunks.length)
+  })
+
+  it("stops retrying once another chunk has failed the gateway", async () => {
+    const chunks = [chunk(1), chunk(2), chunk(3)]
+    const byStamp = new Map(chunks.map((c) => [hex(c.stamp), c]))
+    const { fetch, calls } = fakeFetch((_, call) => {
+      const c = byStamp.get(call.stamp!)!
+      if (c === chunks[0]) return stored(c)
+      if (c === chunks[1]) return { status: 400, body: '{"message":"stamp signature is invalid"}' }
+      return { status: 503 } // would be retried up to 5 times
+    })
+    await expect(pushChunks(chunks, "https://gw", { retryDelayMs: 5, concurrency: 2, fetch })).rejects.toThrow(/signature is invalid/)
+    const retries = calls.filter((c) => c.stamp === hex(chunks[2].stamp)).length
+    await new Promise((r) => setTimeout(r, 150))
+    expect(calls.filter((c) => c.stamp === hex(chunks[2].stamp)).length).toBe(retries) // no retry after rejecting
+    expect(retries).toBeLessThan(5)
   })
 
   it("gives up waiting for the batch after batchWaitMs", async () => {

@@ -7,18 +7,20 @@
  *   yarn deploy:swarm ./dist --ttl-days 365
  *   yarn deploy:swarm ./dist --ttl-days 365 --dry-run      # plan and cost only
  *   yarn deploy:swarm --push-bundle swarm-release/<ref>    # resume: push, verify, record — no key needed
+ *   yarn deploy:swarm --push-bundle swarm-release/<ref> --push-all   # push to every push gateway
  *
  * Flow: hash and chunk the build offline (same code as `swarm:hash`) → print
  * the approve/createBatch parameters for the operator's wallet → wait for the
  * batch on-chain → stamp every chunk once, then drop the key → save the
  * stamped chunks and the release metadata to swarm-release/<ref>/ → push to a
- * gateway → verify chunks, files and the page via other gateways → write
+ * gateway (--push-all: to every push gateway) → verify chunks, files and the page via other gateways → write
  * releases/swarm/<date>-<ref>.json. If pushing or verifying fails, resume with
  * --push-bundle: it repeats every step after stamping, including the record.
  * Publishing on ENS is done separately.
  *
  * The stamping key never leaves process memory and is never funded.
- * Options: --index, --error (as swarm:hash), --wait-minutes (default 120).
+ * Options: --index, --error (as swarm:hash), --wait-minutes (default 120),
+ * --push-all (push to every gateway in SWARM_PUSH_GATEWAYS, not just the first that accepts).
  * Env: SWARM_GNOSIS_RPC_URL, SWARM_PUSH_GATEWAYS, SWARM_VERIFY_GATEWAYS.
  */
 import { execFileSync } from "node:child_process"
@@ -39,7 +41,15 @@ import {
   type Call,
 } from "./swarm/batch"
 import { collectWebsiteFiles } from "./swarm/collect"
-import { DEFAULT_PUSH_GATEWAYS, DEFAULT_VERIFY_GATEWAYS, pushChunks, subdomainUrl, verifyPage, verifyWebsite } from "./swarm/gateway"
+import {
+  DEFAULT_PUSH_GATEWAYS,
+  DEFAULT_VERIFY_GATEWAYS,
+  pushChunks,
+  pushToGateways,
+  subdomainUrl,
+  verifyPage,
+  verifyWebsite,
+} from "./swarm/gateway"
 import { completeRelease, fileChecksums, sha256, toolingVersions, type FileChecksum, type PendingRelease } from "./swarm/release"
 import { decodeBundle, encodeBundle, planDepth, stampChunks, uniqueChunks, type StampedChunk } from "./swarm/stamping"
 import { hashWebsite, type SwarmChunk } from "./swarm/website"
@@ -60,25 +70,33 @@ const { values, positionals } = parseArgs({
     "wait-minutes": { type: "string", default: "120" },
     "dry-run": { type: "boolean", default: false },
     "push-bundle": { type: "string" },
+    "push-all": { type: "boolean", default: false },
   },
 })
 const pushGateways = list(process.env.SWARM_PUSH_GATEWAYS, DEFAULT_PUSH_GATEWAYS)
 const verifyGateways = list(process.env.SWARM_VERIFY_GATEWAYS, DEFAULT_VERIFY_GATEWAYS)
 
-/** Pushes to the first gateway that accepts every chunk, then verifies every file through the others. */
-async function pushAndVerify(chunks: StampedChunk[], reference: string, files: FileChecksum[]): Promise<{ pushedVia: string; verifiedVia: string[] }> {
-  let pushedVia = ""
-  for (const gw of pushGateways) {
-    log(`Pushing ${chunks.length} chunks to ${gw} …`)
-    try {
-      await pushChunks(chunks, gw, { onProgress: (d, t) => d % 100 === 0 && log(`  ${d}/${t}`) })
-      pushedVia = gw
-      break
-    } catch (e) {
-      log(`  ${gw} failed: ${(e as Error).message}`)
-    }
+/**
+ * Pushes to the first gateway that accepts every chunk (with --push-all: to
+ * every push gateway), then verifies every file through the verify gateways.
+ */
+async function pushAndVerify(
+  chunks: StampedChunk[],
+  reference: string,
+  files: FileChecksum[],
+  releaseDir: string,
+): Promise<{ pushedVia: string[]; verifiedVia: string[] }> {
+  const all = values["push-all"]
+  const { pushed: pushedVia, failed } = await pushToGateways(chunks, pushGateways, {
+    all,
+    push: (c, gw) => pushChunks(c, gw, { onProgress: (d, t) => d % 100 === 0 && log(`  ${d}/${t}`) }),
+    onAttempt: (gw) => log(`Pushing ${chunks.length} chunks to ${gw} …`),
+    onFailure: (gw, e) => log(`  ${gw} failed: ${e.message}`),
+  })
+  if (pushedVia.length === 0) fail(`no gateway accepted the chunks; resume later with --push-bundle ${releaseDir}`)
+  if (all && failed.length > 0) {
+    log(`Warning: not pushed to ${failed.map((f) => f.gateway).join(", ")}; retry with --push-bundle ${releaseDir} --push-all`)
   }
-  if (!pushedVia) fail("no gateway accepted the chunks; resume later with --push-bundle")
   const verifiedVia: string[] = []
   for (const gw of verifyGateways) {
     const bad = await verifyWebsite(reference, files, gw)
@@ -105,7 +123,7 @@ async function finish(releaseDir: string): Promise<void> {
   const chunks = decodeBundle(bundle)
   const { reference } = draft
 
-  const { pushedVia, verifiedVia } = await pushAndVerify(chunks, reference, draft.fileChecksums)
+  const { pushedVia, verifiedVia } = await pushAndVerify(chunks, reference, draft.fileChecksums, releaseDir)
   const page = subdomainUrl(reference)
   const brokenAssets = await verifyPage(page)
   if (brokenAssets.length > 0) log(`Warning: ${page} references assets that do not load:`, ...brokenAssets.map((u) => `  ${u}`))

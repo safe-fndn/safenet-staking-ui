@@ -10,8 +10,8 @@ import { createHash } from "node:crypto"
 import { Reference } from "@ethersphere/core-sdk/bytes"
 import type { StampedChunk } from "./stamping"
 
-/** Accept `Swarm-Postage-Stamp` uploads (validated 2026-10-05). */
-export const DEFAULT_PUSH_GATEWAYS = ["https://beeport.xyz", "https://api.gateway.ethswarm.org"]
+/** Accept `Swarm-Postage-Stamp` uploads (validated 2026-10-05; bzz.limo 2026-11-03). */
+export const DEFAULT_PUSH_GATEWAYS = ["https://beeport.xyz", "https://api.gateway.ethswarm.org", "https://bzz.limo"]
 /** Serve chunks and websites; api.gateway.ethswarm.org refuses to serve this app's content. */
 export const DEFAULT_VERIFY_GATEWAYS = ["https://download.gateway.ethswarm.org", "https://bzz.limo"]
 
@@ -27,18 +27,42 @@ export interface GatewayOptions {
 const hex = (b: Uint8Array) => Buffer.from(b).toString("hex")
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
 
-/** Runs `task` over `items` with bounded concurrency. */
-async function pool<T>(items: T[], concurrency: number, task: (item: T) => Promise<void>): Promise<void> {
+/**
+ * Runs `task` over `items` with bounded concurrency. After the first failure no
+ * worker takes another item, and `task` sees `stopped()` turn true (to skip
+ * retries); the failure is rethrown only once every in-flight task has
+ * settled, so nothing keeps running after this returns.
+ */
+async function pool<T>(
+  items: T[],
+  concurrency: number,
+  task: (item: T, stopped: () => boolean) => Promise<void>,
+): Promise<void> {
   const queue = [...items]
+  let failure: { error: unknown } | undefined
+  const stopped = () => failure !== undefined
   await Promise.all(Array.from({ length: Math.min(concurrency, queue.length) }, async () => {
-    while (queue.length > 0) await task(queue.shift()!)
+    while (!stopped() && queue.length > 0) {
+      try {
+        await task(queue.shift()!, stopped)
+      } catch (error) {
+        failure ??= { error }
+      }
+    }
   }))
+  if (failure) throw failure.error
 }
 
 /** Bee's answer while it has not yet seen the batch on-chain. */
 const BATCH_NOT_READY = /invalid batch id|batch not usable|batch not found|not yet usable/i
 
-async function pushOne(gateway: string, chunk: StampedChunk, opts: Required<GatewayOptions>, batchDeadline: number) {
+async function pushOne(
+  gateway: string,
+  chunk: StampedChunk,
+  opts: Required<GatewayOptions>,
+  batchDeadline: number,
+  stopped: () => boolean = () => false,
+) {
   for (let attempt = 1; ; attempt++) {
     let status = 0
     let body = ""
@@ -61,10 +85,12 @@ async function pushOne(gateway: string, chunk: StampedChunk, opts: Required<Gate
     }
     const retriable = status === 0 || status === 429 || status >= 500
     const batchPending = status === 400 && BATCH_NOT_READY.test(body) && Date.now() < batchDeadline
-    if (!(batchPending || (retriable && attempt < 5))) {
-      throw new Error(`${gateway} rejected chunk ${hex(chunk.address)}: ${status} ${body.trim().slice(0, 200)}`)
-    }
+    const rejected = () => new Error(`${gateway} rejected chunk ${hex(chunk.address)}: ${status} ${body.trim().slice(0, 200)}`)
+    if (!(batchPending || (retriable && attempt < 5))) throw rejected()
+    // Another chunk already failed this gateway: no more requests to it.
+    if (stopped()) throw rejected()
     await sleep(opts.retryDelayMs * (batchPending ? 1 : attempt))
+    if (stopped()) throw rejected()
   }
 }
 
@@ -87,10 +113,47 @@ export async function pushChunks(chunks: StampedChunk[], gateway: string, option
   const step = () => opts.onProgress(++done, chunks.length)
   await pushOne(gateway, chunks[0], opts, Date.now() + opts.batchWaitMs)
   step()
-  await pool(chunks.slice(1), opts.concurrency, async (c) => {
-    await pushOne(gateway, c, opts, 0)
+  // Rejects only after every in-flight request to this gateway has settled,
+  // so the next gateway never overlaps with this one.
+  await pool(chunks.slice(1), opts.concurrency, async (c, stopped) => {
+    await pushOne(gateway, c, opts, 0, stopped)
     step()
   })
+}
+
+export interface PushToGatewaysOptions {
+  /** Push to every gateway instead of stopping at the first that accepts every chunk. */
+  all: boolean
+  push?: (chunks: StampedChunk[], gateway: string) => Promise<void>
+  onAttempt?: (gateway: string) => void
+  onFailure?: (gateway: string, error: Error) => void
+}
+
+/**
+ * Pushes `chunks` to `gateways` in order, one gateway at a time. Without
+ * `all` it stops at the first gateway that accepts every chunk; with `all` it
+ * tries every gateway. Failures are reported, never thrown.
+ */
+export async function pushToGateways(
+  chunks: StampedChunk[],
+  gateways: string[],
+  { all, push = pushChunks, onAttempt = () => {}, onFailure = () => {} }: PushToGatewaysOptions,
+): Promise<{ pushed: string[]; failed: { gateway: string; error: Error }[] }> {
+  const pushed: string[] = []
+  const failed: { gateway: string; error: Error }[] = []
+  for (const gateway of gateways) {
+    onAttempt(gateway)
+    try {
+      await push(chunks, gateway)
+      pushed.push(gateway)
+      if (!all) break
+    } catch (e) {
+      const error = e instanceof Error ? e : new Error(String(e))
+      failed.push({ gateway, error })
+      onFailure(gateway, error)
+    }
+  }
+  return { pushed, failed }
 }
 
 const sha256 = (data: Uint8Array) => createHash("sha256").update(data).digest("hex")
